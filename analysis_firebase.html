@@ -230,6 +230,12 @@ tbody tr:hover td{background:var(--g1);}
   .hptbl tr.bdiv td{border-top:1pt solid #3b5bdb;}
   .hptbl td.hprow-left{background:rgba(26,92,232,0.05);}
   .hptbl td.hprow-right{background:rgba(185,28,28,0.05);}
+  /* 全学生印刷モード */
+  body.print-all-students .page.active{display:none!important;}
+  body.print-all-students .student-print-page{display:block!important;}
+  .student-print-page{page-break-before:always;}
+  .student-print-page:first-of-type{page-break-before:auto;}
+  .print-student-header{font-size:11pt;font-weight:700;margin-bottom:3mm;border-bottom:1pt solid #ccc;padding-bottom:1mm;}
 }
 </style>
 </head>
@@ -292,7 +298,7 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
     </button>
     <button class="nav-item" onclick="showPage('hist',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>個人模試成績一覧
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧
     </button>
     <div class="nav-section-label">管理</div>
     <button class="nav-item" onclick="showPage('admin_exam',this)">
@@ -384,7 +390,7 @@ tbody tr:hover td{background:var(--g1);}
     <!-- 個人模試成績一覧 -->
     <div class="page" id="page-hist" style="padding:12px 16px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
-        <span class="page-title" style="font-size:15px;margin-bottom:0;">個人模試成績一覧</span>
+        <span class="page-title" style="font-size:15px;margin-bottom:0;">模試成績一覧</span>
         <span id="histPrintName" style="font-size:12px;color:var(--g4);display:none;"></span>
       </div>
       <div class="hist-wrap" style="max-height:calc(100vh - 100px);">
@@ -950,7 +956,7 @@ function getWeakLabel() {
 
 function renderWeak(part) {
   const stuName = getWeakLabel();
-  document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName : '');
+  document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName + '【個人】' : '');
   const thresh = parseInt(document.getElementById('thresh').value)||80;
   const master  = allData[currentExam]?.master;
   if (!master?.answers) return;
@@ -1205,13 +1211,51 @@ function setupStudentPaste() {
 
 // ===== 全学生印刷 =====
 function printAllStudents(){
+  const activePage = document.querySelector('.page.active')?.id;
+  if (activePage === 'page-hist') { printAllStudentsHist(); return; }
+  printAllStudentsWeak();
+}
+
+function printAllStudentsHist(){
+  document.querySelectorAll('.student-print-page').forEach(el=>el.remove());
+  const container = document.querySelector('.main');
+  const sortedExams = [...examList].sort((a,b)=>{
+    const da=a.date?new Date(a.date):null,db2=b.date?new Date(b.date):null;
+    if(da&&db2)return da-db2; if(da)return 1; if(db2)return -1; return 0;
+  });
+  getActiveStudents().forEach(s=>{
+    const stuLabel = s.name||s.email;
+    const examData = sortedExams.map((exam,idx)=>{
+      const master=allData[exam.name]?.master||{};
+      const responses=allData[exam.name]?.responses||{};
+      const myResp=responses[s.uid]||{};
+      const categories=master.categories||{},answers=master.answers||{};
+      const myAM=myResp.AM?.status==='submitted'?(myResp.AM.score??null):null;
+      const myPM=myResp.PM?.status==='submitted'?(myResp.PM.score??null):null;
+      const totals=getActiveStudents().map(st=>{const r=responses[st.uid];const am=r?.AM?.status==='submitted'?(r.AM.score??0):null;const pm=r?.PM?.status==='submitted'?(r.PM.score??0):null;if(am===null&&pm===null)return null;return(am||0)+(pm||0);}).filter(t=>t!==null);
+      const classAvg=totals.length?Math.round(totals.reduce((a,b)=>a+b,0)/totals.length):null;
+      const catStats={};CATEGORY_ORDER.forEach(cat=>{catStats[cat]={myC:0,myT:0,clC:0,clT:0};});
+      const isC=(correct,ans)=>{const a=String(ans||'');return correct.includes(',')?correct.split(',').includes(a):a===correct;};
+      for(let q=1;q<=200;q++){const cat=categories[q];if(!cat||!CATEGORY_ORDER.includes(cat))continue;const part=q<=100?'AM':'PM';const correct=String(answers[q]||'');if(!correct||correct==='解なし')continue;if(myResp[part]?.answers){catStats[cat].myT++;if(isC(correct,myResp[part].answers[q]))catStats[cat].myC++;}getActiveStudents().forEach(st=>{const sr=responses[st.uid];if(!sr?.[part]?.answers)return;catStats[cat].clT++;if(isC(correct,sr[part].answers[q]))catStats[cat].clC++;});}
+      return{exam,no:idx+1,myAM,myPM,classAvg,catStats};
+    });
+    const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
+    page.innerHTML=buildHistPrintHTML(stuLabel,examData);
+    container.appendChild(page);
+  });
+  document.body.classList.add('print-all-students');
+  window.print();
+  setTimeout(()=>{document.body.classList.remove('print-all-students');document.querySelectorAll('.student-print-page').forEach(el=>el.remove());},1000);
+}
+
+function printAllStudentsWeak(){
   document.querySelectorAll('.student-print-page').forEach(el=>el.remove());
   const thresh=parseInt(document.getElementById('thresh').value)||80;
   const container=document.querySelector('.main');
   getActiveStudents().forEach(s=>{
     const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
     const header=document.createElement('div');header.className='print-student-header';
-    header.innerHTML=`<span style="font-size:16px;font-weight:700;">${s.email||s.name}</span><span style="font-size:11px;color:#666;margin-left:12px;">${getExamName()} ／ 弱点抽出（基準値 ${thresh}%）</span>`;
+    header.innerHTML=`<span>${s.name||s.email}【個人】</span><span style="font-size:11px;color:#666;margin-left:12px;">${getExamName()} ／ 弱点抽出（基準値 ${thresh}%）</span>`;
     page.appendChild(header);
     // 正答マスタ取得
     const master=allData[currentExam]?.master;
@@ -1615,10 +1659,13 @@ function renderStudentHistory() {
   html += '</tbody></table>';
   container.innerHTML = html;
 
-  // 印刷用レイアウト：模試ごとに分野列付きカードを並べる
+  // 印刷用レイアウト
   const pw = document.getElementById('histPrintWrap');
-  if (!pw) return;
-  let phdr = `<div style="font-size:8pt;font-weight:700;margin-bottom:2mm;">${stuLabel}</div>`;
+  if (pw) pw.innerHTML = buildHistPrintHTML(stuLabel, examData);
+}
+
+function buildHistPrintHTML(stuLabel, examData) {
+  const phdr = `<div style="font-size:8pt;font-weight:700;margin-bottom:2mm;">${stuLabel}【個人】</div>`;
   let pcards = '<div class="hpg">';
   examData.forEach(d => {
     const scoreMap = [
@@ -1643,14 +1690,10 @@ function renderStudentHistory() {
       const cls   = myPct >= 80 ? 'c-ok' : myPct >= 60 ? 'c-warn' : 'c-ng';
       rows += `<tr${isBdiv ? ' class="bdiv"' : ''}><td class="hpcat ${side}">${cat}</td><td class="hpval ${cls}">${myPct}%</td><td class="hpval hprow-${side}">${s.myT}</td><td class="hpval hprow-${side}">${clPct !== null ? clPct + '%' : '—'}</td></tr>`;
     });
-    pcards += `<div class="hpcard">
-      <div class="hpcard-hd">第${d.no}回 ${d.exam.name}<div class="hpcard-hd2">${formatDate(d.exam.date)||'—'}</div></div>
-      <div class="hpcard-score">${scoreHtml}</div>
-      <table class="hptbl"><thead><tr><td class="hpcat" style="font-weight:700;background:#f5f5f5;">分野</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">個人</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">問題数</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">正答率</td></tr></thead><tbody>${rows}</tbody></table>
-    </div>`;
+    pcards += `<div class="hpcard"><div class="hpcard-hd">第${d.no}回 ${d.exam.name}<div class="hpcard-hd2">${formatDate(d.exam.date)||'—'}</div></div><div class="hpcard-score">${scoreHtml}</div><table class="hptbl"><thead><tr><td class="hpcat" style="font-weight:700;background:#f5f5f5;">分野</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">個人</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">問題数</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">正答率</td></tr></thead><tbody>${rows}</tbody></table></div>`;
   });
   pcards += '</div>';
-  pw.innerHTML = phdr + pcards;
+  return phdr + pcards;
 }
 
 // ===== ローディング =====
