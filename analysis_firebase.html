@@ -168,6 +168,7 @@ tbody tr:hover td{background:var(--g1);}
 .grid-cell:focus{background:var(--accent-bg);outline:2px solid var(--accent);outline-offset:-2px;}
 .grid-cell.ans-cell{width:100%;text-align:center;}
 .grid-cell.cat-cell{width:100%;}
+.grid-cell.cat-invalid{background:rgba(185,28,28,0.12)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
 .grid-cell.name-cell{width:180px;font-family:'Noto Sans JP',sans-serif;}
 .grid-cell.date-cell{width:110px;}
 .grid-cell.active-cell{width:80px;text-align:center;}
@@ -1358,12 +1359,21 @@ function renderGridMaster() {
       const cat = gridData[examName].categories[q] || '';
       const bdr = (q % 10 === 0 && q !== end) ? 'border-right:2px solid var(--g3);'
                 : (q % 5  === 0 && q !== end) ? 'border-right:1px dashed var(--g3);' : '';
-      html += `<td style="${bdr}"><input class="grid-cell cat-cell" type="text" value="${cat}" data-exam="${examName}" data-q="${q}" data-type="cat" onchange="onGridCellChange(this)"></td>`;
+      const inv = cat && !CATEGORY_ORDER.includes(cat) ? ' cat-invalid' : '';
+      html += `<td style="${bdr}"><input class="grid-cell cat-cell${inv}" type="text" list="catDatalist" value="${cat}" data-exam="${examName}" data-q="${q}" data-type="cat" onchange="onGridCellChange(this)" oninput="validateCatCell(this)"></td>`;
     }
     html += '</tr>';
 
     html += '</tbody></table></div>';
     return html;
+  }
+
+  // datalist（1回だけ挿入）
+  if (!document.getElementById('catDatalist')) {
+    const dl = document.createElement('datalist');
+    dl.id = 'catDatalist';
+    dl.innerHTML = CATEGORY_ORDER.map(c => `<option value="${c}">`).join('');
+    document.body.appendChild(dl);
   }
 
   document.getElementById('gridWrap').innerHTML =
@@ -1443,13 +1453,26 @@ async function deleteAllResponses() {
   renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
 }
 
+function validateCatCell(el) {
+  const v = el.value.trim();
+  if (!v || CATEGORY_ORDER.includes(v)) {
+    el.classList.remove('cat-invalid');
+  } else {
+    el.classList.add('cat-invalid');
+  }
+}
+
 function onGridCellChange(el) {
   const exam = el.dataset.exam;
   const q    = el.dataset.q;
   const type = el.dataset.type;
   if (!gridData[exam]) gridData[exam] = { answers:{}, categories:{} };
-  if (type === 'ans') gridData[exam].answers[q]    = el.value;
-  else                gridData[exam].categories[q] = el.value;
+  if (type === 'ans') {
+    gridData[exam].answers[q] = el.value;
+  } else {
+    gridData[exam].categories[q] = el.value;
+    validateCatCell(el);
+  }
 }
 
 // ===== ペースト処理 =====
@@ -1501,6 +1524,18 @@ function setupPaste() {
 async function saveGridData() {
   const examName = document.getElementById('gridExamSel')?.value;
   if (!examName || !gridData[examName]) return;
+
+  // カテゴリバリデーション
+  const badQs = [];
+  const cats = gridData[examName].categories || {};
+  for (let q = 1; q <= 200; q++) {
+    const v = (cats[q] || '').trim();
+    if (v && !CATEGORY_ORDER.includes(v)) badQs.push(q);
+  }
+  if (badQs.length > 0) {
+    alert(`❌ 以下の問のカテゴリが正しくありません（保存できません）:\n問 ${badQs.join('、')}\n\n正しい科目名を入力してください。`);
+    return;
+  }
 
   showLoading('Firebaseに保存中...');
   try {
