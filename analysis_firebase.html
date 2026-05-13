@@ -103,6 +103,15 @@ tbody tr:hover td{background:var(--g1);}
 .vdiv{width:1px;height:18px;background:var(--g2);}
 .chart-box{position:relative;}
 
+/* 成績推移 1画面レイアウト */
+#page-trend{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;overflow:hidden;}
+#page-trend.active{display:flex;}
+#page-trend .page-header-row{margin-bottom:10px;flex-shrink:0;}
+#page-trend .card{margin-bottom:10px;}
+#page-trend #trendChartCard{flex-shrink:0;}
+#page-trend #trendTableCard{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;}
+#page-trend #trendTableCard .tbl-wrap{flex:1;overflow-y:auto;}
+
 /* HIST TABLE */
 .hist-wrap{overflow:auto;border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
 .hist-tbl{border-collapse:collapse;font-size:10px;white-space:nowrap;width:auto;}
@@ -196,6 +205,9 @@ tbody tr:hover td{background:var(--g1);}
   .main{overflow:visible!important;}
   .page{display:none!important;padding:0!important;}
   .page.active{display:block!important;}
+  #page-trend.active{display:block!important;height:auto!important;overflow:visible!important;}
+  #page-trend #trendTableCard{flex:none!important;overflow:visible!important;}
+  #page-trend #trendTableCard .tbl-wrap{overflow:visible!important;}
   .card{border:1px solid #ccc;border-radius:4px;padding:10px;margin-bottom:10px;break-inside:avoid;}
   .grid2{grid-template-columns:1fr 1fr;gap:10px;}
   .grid4{gap:8px;margin-bottom:10px;}
@@ -341,8 +353,8 @@ tbody tr:hover td{background:var(--g1);}
       <div class="page-header-row">
         <div><div class="page-title">成績推移</div><div class="page-sub">全模試にわたる学生別の得点変化</div></div>
       </div>
-      <div class="card"><div class="card-title">合計得点の推移</div><div class="chart-box" style="height:360px"><canvas id="trendChart"></canvas></div></div>
-      <div class="card"><div class="card-title">学生別 × 模試別 得点一覧</div><div class="tbl-wrap"><table><thead id="trendThead"></thead><tbody id="trendTbody"></tbody></table></div></div>
+      <div class="card" id="trendChartCard"><div class="card-title">合計得点の推移</div><div class="chart-box" style="height:240px"><canvas id="trendChart"></canvas></div></div>
+      <div class="card" id="trendTableCard"><div class="card-title" style="margin-bottom:8px;">学生別 × 模試別 得点一覧</div><div class="tbl-wrap"><table><thead id="trendThead"></thead><tbody id="trendTbody"></tbody></table></div></div>
     </div>
 
     <!-- 個別模試集計 -->
