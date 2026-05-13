@@ -441,6 +441,17 @@ function getActiveStudents() {
   return students.filter(s => s.active !== false);
 }
 
+// 分野の表示順（固定）
+const CATEGORY_ORDER = [
+  '医学総論','解剖学','生理学','病理学','内科学','小児科学','精神医学',
+  'リハビリテーション医学','耳鼻咽喉科学','臨床神経学','形成外科','臨床歯科学',
+  '発声発語系医学','聴覚系医学','神経系医学','学習認知心理学','心理測定法',
+  '臨床心理学','生涯発達心理学','音声学','音響学・聴覚心理学','言語学','言語発達学',
+  '社会福祉・教育','リハビリテーション概論','失語症','高次脳機能障害','言語発達障害学',
+  '音声障害','機能性構音障害','器質性構音障害','運動障害性構音障害','嚥下障害','吃音',
+  '聴覚障害','聴覚検査','補聴器・人工内耳','言語聴覚障害概論',
+];
+
 // ===== AUTH =====
 function signIn() {
   const provider = new firebase.auth.GoogleAuthProvider();
@@ -711,31 +722,53 @@ function renderCategory() {
   const master = allData[currentExam]?.master;
   if (!master?.answers) return;
 
-  // クラス全体のカテゴリ集計
+  // master.categoriesから直接集計（categoryScoresに依存しない）
+  const categories = master.categories || {};
   const allAmCat={}, allPmCat={};
+
+  // masterに存在する全カテゴリをあらかじめ初期化
+  for (let q=1;  q<=100; q++) { const c=categories[q]; if(c && !allAmCat[c]) allAmCat[c]={correct:0,total:0}; }
+  for (let q=101;q<=200; q++) { const c=categories[q]; if(c && !allPmCat[c]) allPmCat[c]={correct:0,total:0}; }
+
+  // 学生の生回答から集計
   getActiveStudents().forEach(s => {
     const r = allData[currentExam]?.responses?.[s.uid];
-    if (r?.AM?.categoryScores) {
-      Object.entries(r.AM.categoryScores).forEach(([k,v]) => {
-        if(!allAmCat[k])allAmCat[k]={correct:0,total:0};
-        allAmCat[k].correct+=v.correct;allAmCat[k].total+=v.total;
-      });
+    if (r?.AM?.answers) {
+      for (let q=1; q<=100; q++) {
+        const cat=categories[q]; if(!cat) continue;
+        const correct=String(master.answers[q]||'');
+        const ua=String(r.AM.answers[q]||'');
+        allAmCat[cat].total++;
+        if(correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(ua):ua===correct))
+          allAmCat[cat].correct++;
+      }
     }
-    if (r?.PM?.categoryScores) {
-      Object.entries(r.PM.categoryScores).forEach(([k,v]) => {
-        if(!allPmCat[k])allPmCat[k]={correct:0,total:0};
-        allPmCat[k].correct+=v.correct;allPmCat[k].total+=v.total;
-      });
+    if (r?.PM?.answers) {
+      for (let q=101; q<=200; q++) {
+        const cat=categories[q]; if(!cat) continue;
+        const correct=String(master.answers[q]||'');
+        const ua=String(r.PM.answers[q]||'');
+        allPmCat[cat].total++;
+        if(correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(ua):ua===correct))
+          allPmCat[cat].correct++;
+      }
     }
   });
 
-  const cats = [...new Set([...Object.keys(allAmCat),...Object.keys(allPmCat)])];
-  const data = cats.map(cat => ({
+  // CATEGORY_ORDERに従って並べ、masterにない分野は末尾に追加
+  const masterCats = new Set([...Object.keys(allAmCat),...Object.keys(allPmCat)]);
+  const orderedCats = CATEGORY_ORDER.filter(c => masterCats.has(c));
+  masterCats.forEach(c => { if(!CATEGORY_ORDER.includes(c)) orderedCats.push(c); });
+
+  const data = orderedCats.map(cat => ({
     name: cat,
     amPct: allAmCat[cat]?.total ? Math.round(allAmCat[cat].correct/allAmCat[cat].total*100) : null,
     pmPct: allPmCat[cat]?.total ? Math.round(allPmCat[cat].correct/allPmCat[cat].total*100) : null,
     amQ: allAmCat[cat]?.total||0, pmQ: allPmCat[cat]?.total||0,
   }));
+
+  // カテゴリ数に合わせてグラフ高さを動的調整
+  document.querySelector('#page-category .chart-box').style.height = Math.max(520, data.length * 32 + 80) + 'px';
 
   const amVals = data.map(c => c.amPct!=null?c.amPct/2:0);
   const pmVals = data.map(c => c.pmPct!=null?c.pmPct/2:0);
