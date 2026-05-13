@@ -1247,7 +1247,7 @@ function printAllStudentsHist(){
       return{exam,no:idx+1,myAM,myPM,classAvg,catStats};
     });
     const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
-    page.innerHTML=buildHistPrintHTML(stuLabel,examData);
+    page.innerHTML=buildHistPrintHTML(stuLabel,examData,true);
     container.appendChild(page);
   });
   document.body.classList.add('print-all-students');
@@ -1671,8 +1671,8 @@ function renderStudentHistory() {
   if (pw) pw.innerHTML = buildHistPrintHTML(stuLabel, examData);
 }
 
-function buildHistPrintHTML(stuLabel, examData) {
-  const phdr = ``;
+function buildHistPrintHTML(stuLabel, examData, showHeader=false) {
+  const phdr = showHeader ? `<div class="print-student-header" style="font-size:10pt;margin-bottom:3mm;">模試成績一覧　${stuLabel}</div>` : ``;
   let pcards = '<div class="hpg">';
   examData.forEach(d => {
     const scoreMap = [
