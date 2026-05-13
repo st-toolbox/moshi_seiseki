@@ -1166,7 +1166,7 @@ async function saveStudentGrid() {
         s.isNew  = false;
         await ref.set({ email: s.email, name: s.name || s.email.split('@')[0], active: s.active, registeredAt: null });
       } else {
-        await db.ref('students/' + s.uid).update({ email: s.email, name: s.name, active: s.active });
+        await db.ref('students/' + s.uid).update({ email: s.email, name: s.name || '', active: s.active !== false });
       }
     }
     // 削除された学生をFirebaseから消す
