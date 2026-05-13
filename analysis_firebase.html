@@ -755,9 +755,9 @@ function renderCategory() {
     }
   });
 
-  // CATEGORY_ORDERに従って並べ、masterにない分野は末尾に追加
+  // CATEGORY_ORDERを全件表示（データなしでも必ず出す）、master独自分野は末尾に追加
   const masterCats = new Set([...Object.keys(allAmCat),...Object.keys(allPmCat)]);
-  const orderedCats = CATEGORY_ORDER.filter(c => masterCats.has(c));
+  const orderedCats = [...CATEGORY_ORDER];
   masterCats.forEach(c => { if(!CATEGORY_ORDER.includes(c)) orderedCats.push(c); });
 
   const data = orderedCats.map(cat => ({
@@ -770,6 +770,11 @@ function renderCategory() {
   // カテゴリ数に合わせてグラフ高さを動的調整
   document.querySelector('#page-category .chart-box').style.height = Math.max(520, data.length * 32 + 80) + 'px';
 
+  // リハビリテーション概論／失語症の間で色を切り替える
+  const divIdx = orderedCats.indexOf('失語症'); // ここから下グループ
+  const amColors = data.map((_,i) => i < divIdx ? 'rgba(26,92,232,0.75)' : 'rgba(185,28,28,0.75)');
+  const pmColors = data.map((_,i) => i < divIdx ? 'rgba(26,92,232,0.35)' : 'rgba(185,28,28,0.35)');
+
   const amVals = data.map(c => c.amPct!=null?c.amPct/2:0);
   const pmVals = data.map(c => c.pmPct!=null?c.pmPct/2:0);
 
@@ -777,19 +782,31 @@ function renderCategory() {
   charts.cat=new Chart(document.getElementById('catChart'),{
     type:'bar',
     data:{labels:data.map(c=>c.name),datasets:[
-      {label:'午前',data:amVals,backgroundColor:'rgba(26,92,232,0.65)',borderRadius:0,stack:'stack'},
-      {label:'午後',data:pmVals,backgroundColor:'rgba(234,88,12,0.65)',borderRadius:2,stack:'stack'},
+      {label:'午前（濃）',data:amVals,backgroundColor:amColors,borderRadius:0,stack:'stack'},
+      {label:'午後（淡）',data:pmVals,backgroundColor:pmColors,borderRadius:2,stack:'stack'},
     ]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:true,position:'top',labels:{font:{size:11},boxWidth:14,padding:12}},
-        tooltip:{callbacks:{title:ctx=>data[ctx[0].dataIndex].name,label:ctx=>ctx.dataset.label==='午前'?` 午前 ${data[ctx.dataIndex].amPct??'—'}%（${data[ctx.dataIndex].amQ}問）`:` 午後 ${data[ctx.dataIndex].pmPct??'—'}%`}}},
+        tooltip:{callbacks:{title:ctx=>data[ctx[0].dataIndex].name,label:ctx=>ctx.dataset.label==='午前（濃）'?` 午前 ${data[ctx.dataIndex].amPct??'—'}%（${data[ctx.dataIndex].amQ}問）`:` 午後 ${data[ctx.dataIndex].pmPct??'—'}%`}}},
       scales:{x:{min:0,max:100,stacked:true,ticks:{callback:v=>v+'%',font:{size:11},stepSize:10},grid:{color:'#f0eeeb'}},y:{stacked:true,ticks:{font:{size:12}},grid:{display:false}}}
     },
     plugins:[{id:'catLines',afterDraw(chart){
-      const {ctx,chartArea:{top,bottom},scales:{x}}=chart;
+      const {ctx,chartArea:{left,right,top,bottom},scales:{x}}=chart;
+      // 60/70/80%の垂直基準線
       [{v:60,label:'60%',color:'rgba(185,28,28,0.6)'},{v:70,label:'70%',color:'rgba(180,83,9,0.6)'},{v:80,label:'80%',color:'rgba(21,128,61,0.6)'}].forEach(({v,label,color})=>{
         const xp=x.getPixelForValue(v);ctx.save();ctx.beginPath();ctx.moveTo(xp,top);ctx.lineTo(xp,bottom);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(label,xp,top-4);ctx.restore();
       });
+      // 大項目区切り線
+      if(divIdx>0&&divIdx<data.length){
+        const meta0=chart.getDatasetMeta(0);
+        const yA=meta0.data[divIdx-1]?.y, yB=meta0.data[divIdx]?.y;
+        if(yA!=null&&yB!=null){
+          const divY=(yA+yB)/2;
+          ctx.save();ctx.beginPath();ctx.moveTo(left,divY);ctx.lineTo(right,divY);
+          ctx.strokeStyle='#2D2C2A';ctx.lineWidth=2;ctx.setLineDash([]);ctx.stroke();ctx.restore();
+        }
+      }
+      // 平均%ラベル
       const meta1=chart.getDatasetMeta(1);
       data.forEach((d,i)=>{if(!meta1.data[i])return;const avg=d.amPct!=null&&d.pmPct!=null?Math.round((d.amPct+d.pmPct)/2):null;if(avg===null)return;ctx.save();ctx.fillStyle='#2D2C2A';ctx.font='bold 11px DM Mono,monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`${avg}%`,x.getPixelForValue((d.amPct+d.pmPct)/2)+4,meta1.data[i].y);ctx.restore();});
     }}]
