@@ -103,14 +103,20 @@ tbody tr:hover td{background:var(--g1);}
 .vdiv{width:1px;height:18px;background:var(--g2);}
 .chart-box{position:relative;}
 
-/* 成績推移 1画面レイアウト */
-#page-trend{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;overflow:hidden;}
-#page-trend.active{display:flex;}
-#page-trend .page-header-row{margin-bottom:10px;flex-shrink:0;}
-#page-trend .card{margin-bottom:10px;}
+/* 成績推移・個別模試集計 1画面レイアウト共通 */
+#page-trend,#page-summary{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;overflow:hidden;}
+#page-trend.active,#page-summary.active{display:flex;}
+#page-trend .page-header-row,#page-summary .page-header-row{margin-bottom:10px;flex-shrink:0;}
+#page-trend .card,#page-summary .card{margin-bottom:10px;}
 #page-trend #trendChartCard{flex-shrink:0;}
 #page-trend #trendTableCard{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;}
 #page-trend #trendTableCard .tbl-wrap{flex:1;overflow-y:auto;}
+/* 個別模試集計 */
+#page-summary .grid4{flex-shrink:0;margin-bottom:10px;}
+#page-summary .grid2{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0;}
+#page-summary .grid2 .card{margin-bottom:0;display:flex;flex-direction:column;overflow:hidden;}
+#page-summary .grid2 .card .tbl-wrap{flex:1;overflow-y:auto;}
+#page-summary .grid2 .card .chart-box{flex:1;}
 
 /* HIST TABLE */
 .hist-wrap{overflow:auto;border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
@@ -205,9 +211,12 @@ tbody tr:hover td{background:var(--g1);}
   .main{overflow:visible!important;}
   .page{display:none!important;padding:0!important;}
   .page.active{display:block!important;}
-  #page-trend.active{display:block!important;height:auto!important;overflow:visible!important;}
+  #page-trend.active,#page-summary.active{display:block!important;height:auto!important;overflow:visible!important;}
   #page-trend #trendTableCard{flex:none!important;overflow:visible!important;}
   #page-trend #trendTableCard .tbl-wrap{overflow:visible!important;}
+  #page-summary .grid2{display:grid!important;height:auto!important;}
+  #page-summary .grid2 .card{overflow:visible!important;}
+  #page-summary .grid2 .card .tbl-wrap{overflow:visible!important;}
   .card{border:1px solid #ccc;border-radius:4px;padding:10px;margin-bottom:10px;break-inside:avoid;}
   .grid2{grid-template-columns:1fr 1fr;gap:10px;}
   .grid4{gap:8px;margin-bottom:10px;}
