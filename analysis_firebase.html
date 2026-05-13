@@ -211,6 +211,9 @@ tbody tr:hover td{background:var(--g1);}
   #page-hist{padding:2mm 0 0!important;}
   #histPageHeader{background:#e0e0e0!important;padding:2mm 4mm!important;margin-bottom:3mm!important;border-radius:3pt;}
   #page-weakness .page-header-row{background:#e0e0e0!important;padding:2mm 4mm!important;margin-bottom:3mm!important;border-radius:3pt;}
+  #page-weakness .page-header-row>div{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  #page-weakness .page-title{font-size:14pt!important;margin-bottom:0!important;}
+  #page-weakness .page-sub{font-size:10pt!important;color:#333!important;}
   #histPageHeader .page-title{font-size:10pt!important;}
   #histPrintName{font-size:9pt!important;color:#333!important;}
   #page-hist .hist-wrap{display:none!important;}
@@ -963,7 +966,7 @@ function getWeakLabel() {
 
 function renderWeak(part) {
   const stuName = getWeakLabel();
-  document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName : '');
+  document.getElementById('weakSubtitle').textContent = (stuName ? stuName + '　' : '') + getExamName() + `（基準値 ${thresh}%）`;
   const thresh = parseInt(document.getElementById('thresh').value)||80;
   const master  = allData[currentExam]?.master;
   if (!master?.answers) return;
