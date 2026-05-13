@@ -1095,7 +1095,7 @@ function renderWeak(part) {
       const cls=q.pct>=80?'pct-ok':q.pct>=60?'pct-warn':'pct-ng';
       return `<div class="wcell ${cls}${sc(i)}${s5(i,bqs.length)}">${q.pct!=null?q.pct+'%':'—'}</div>`;
     })));
-    block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;" title="${myLabel}">${myLabel}</div>`,bqs.map((q,i)=>{
+    block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;" title="${myLabel}">あなた</div>`,bqs.map((q,i)=>{
       const nc=q.myAns===null?' my-none':'';
       return `<div class="wcell${nc}${sc(i)}${s5(i,bqs.length)}">${q.myAns??'—'}</div>`;
     })));
