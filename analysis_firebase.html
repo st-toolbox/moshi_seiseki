@@ -255,7 +255,7 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
     </button>
     <button class="nav-item" onclick="showPage('admin_student',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト編集
     </button>
     <div class="nav-section-label">印刷</div>
     <button class="print-btn nav-item" onclick="window.print()">
@@ -346,13 +346,29 @@ tbody tr:hover td{background:var(--g1);}
       </div>
     </div>
 
-    <!-- 学生リスト -->
+    <!-- 学生リスト編集 -->
     <div class="page" id="page-admin_student">
       <div class="page-header-row">
-        <div><div class="page-title">学生リスト</div><div class="page-sub">登録済み学生一覧</div></div>
+        <div><div class="page-title">学生リスト編集</div><div class="page-sub">学生の追加・無効化・削除</div></div>
+        <button class="btn-admin-add" onclick="openStudentModal()">＋ 学生を追加</button>
       </div>
       <div class="card">
-        <div class="tbl-wrap"><table><thead><tr><th>メールアドレス</th><th>名前</th><th>登録日時</th></tr></thead><tbody id="adminStudentTable"></tbody></table></div>
+        <div class="tbl-wrap"><table><thead><tr><th>メールアドレス</th><th>名前</th><th>登録日時</th><th>状態</th><th>操作</th></tr></thead><tbody id="adminStudentTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- 学生追加モーダル -->
+    <div class="modal-overlay hidden" id="studentModal">
+      <div class="modal-box">
+        <h3 class="modal-box-title">学生を追加</h3>
+        <div class="form-grid">
+          <label>メールアドレス</label><input type="email" id="sMail" placeholder="例：s123456@asahi.ac.jp">
+          <label>名前</label><input type="text" id="sName" placeholder="例：山田 太郎">
+        </div>
+        <div class="modal-box-btns">
+          <button class="modal-cancel-btn" onclick="closeStudentModal()">キャンセル</button>
+          <button class="btn-admin-save" onclick="confirmStudentModal()">追加</button>
+        </div>
       </div>
     </div>
 
@@ -427,6 +443,11 @@ let editingExam   = null;
 let editPart      = 'AM';
 let questionCache = {};
 let _threshTimer  = null;
+
+// active !== false の学生のみ返す（分析用）
+function getActiveStudents() {
+  return students.filter(s => s.active !== false);
+}
 
 // ===== AUTH =====
 function signIn() {
@@ -520,7 +541,7 @@ async function loadAllData() {
 
     // 学生セレクト
     const wSel = document.getElementById('wStudentSel');
-    wSel.innerHTML = students.map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+    wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
 
     // 各ビュー描画
     renderTrend();
@@ -573,8 +594,9 @@ function renderTrend() {
   const examColors = ['#1A5CE8','#E8851A','#B91C1C','#7C3AED','#0891B2','#BE185D','#065F46','#D97706','#6B21A8','#15803D'];
 
   // データがある模試を特定
+  const activeStudents = getActiveStudents();
   const examsWithData = examList.filter(e => {
-    return students.some(s => {
+    return activeStudents.some(s => {
       const r = allData[e.name]?.responses?.[s.uid];
       return r?.AM?.score != null || r?.PM?.score != null;
     });
@@ -588,14 +610,14 @@ function renderTrend() {
     return (r.AM?.status === 'submitted' || r.PM?.status === 'submitted') ? am + pm : null;
   }
   function getAvg(examName) {
-    const tots = students.map(s => getTotal(examName, s.uid)).filter(v => v !== null);
+    const tots = activeStudents.map(s => getTotal(examName, s.uid)).filter(v => v !== null);
     return tots.length ? Math.round(tots.reduce((a,b)=>a+b,0)/tots.length) : null;
   }
 
-  const labels = ['平均', ...students.map(s => (s.email||s.name).split('@')[0].slice(0,4))];
+  const labels = ['平均', ...activeStudents.map(s => (s.email||s.name).split('@')[0].slice(0,4))];
   const datasets = examsWithData.map((e,ei) => ({
     label: formatDate(e.date) || e.name,
-    data: [getAvg(e.name), ...students.map(s => getTotal(e.name, s.uid))],
+    data: [getAvg(e.name), ...activeStudents.map(s => getTotal(e.name, s.uid))],
     backgroundColor: examColors[ei % examColors.length],
     borderRadius: 2, borderSkipped: false,
   }));
@@ -613,7 +635,7 @@ function renderTrend() {
     return `<td class="mono" style="${col}">${avg}</td>`;
   }).join('')}</tr>`;
 
-  const stuRows = students.map(s => {
+  const stuRows = activeStudents.map(s => {
     const cols = examsWithData.map(e => {
       const t = getTotal(e.name, s.uid);
       if (t===null) return '<td style="color:var(--g3)">—</td>';
@@ -633,7 +655,7 @@ function renderTrend() {
       plugins: {
         legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
         tooltip: { callbacks: {
-          title: ctx => ctx[0].dataIndex===0 ? 'クラス平均' : (students[ctx[0].dataIndex-1]?.email||''),
+          title: ctx => ctx[0].dataIndex===0 ? 'クラス平均' : (activeStudents[ctx[0].dataIndex-1]?.email||''),
           label: ctx => ` ${ctx.dataset.label}：${ctx.raw}点`
         }}
       },
@@ -660,7 +682,7 @@ function renderTrend() {
 function renderSummary() {
   if (!currentExam) return;
   document.getElementById('summarySubtitle').textContent = getExamName();
-  const rows = students.map(s => {
+  const rows = getActiveStudents().map(s => {
     const r = allData[currentExam]?.responses?.[s.uid];
     const am = r?.AM?.status==='submitted' ? (r.AM.score||0) : null;
     const pm = r?.PM?.status==='submitted' ? (r.PM.score||0) : null;
@@ -699,7 +721,7 @@ function renderCategory() {
 
   // クラス全体のカテゴリ集計
   const allAmCat={}, allPmCat={};
-  students.forEach(s => {
+  getActiveStudents().forEach(s => {
     const r = allData[currentExam]?.responses?.[s.uid];
     if (r?.AM?.categoryScores) {
       Object.entries(r.AM.categoryScores).forEach(([k,v]) => {
@@ -798,7 +820,7 @@ function renderWeak(part) {
   // クラス正答率計算
   const classStat = {};
   const start = part==='AM'?1:101, end = part==='AM'?100:200;
-  students.forEach(s => {
+  getActiveStudents().forEach(s => {
     const ans = allData[currentExam]?.responses?.[s.uid]?.[part]?.answers;
     if (!ans) return;
     for (let q=start;q<=end;q++) {
@@ -951,7 +973,69 @@ async function saveExamAnswers(){
 // ===== 学生リスト =====
 function renderAdminStudentTable(){
   const tbody=document.getElementById('adminStudentTable');if(!tbody)return;
-  tbody.innerHTML=students.map(s=>`<tr><td style="font-size:12px;color:var(--g4)">${s.email||''}</td><td>${s.name||''}</td><td style="font-size:11px;color:var(--g4)">${s.registeredAt?new Date(s.registeredAt).toLocaleDateString('ja-JP'):''}</td></tr>`).join('');
+  tbody.innerHTML=students.map(s=>{
+    const active = s.active !== false;
+    const dateStr = s.registeredAt ? new Date(s.registeredAt).toLocaleDateString('ja-JP') : '（手動追加）';
+    const toggleLabel = active ? '有効' : '無効';
+    const toggleStyle = active
+      ? 'background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok);'
+      : 'background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);';
+    return `<tr style="${active?'':'opacity:0.5;'}">
+      <td style="font-size:12px;color:var(--g4)">${s.email||''}</td>
+      <td>${s.name||''}</td>
+      <td style="font-size:11px;color:var(--g4)">${dateStr}</td>
+      <td><button onclick="toggleStudentActive('${s.uid}',${active})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;${toggleStyle}">${toggleLabel}</button></td>
+      <td><button class="btn-admin-del" onclick="deleteStudent('${s.uid}','${(s.email||s.name).replace(/'/g,'\\\'')}')" >削除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleStudentActive(uid, currentActive) {
+  const newActive = !currentActive;
+  await db.ref('students/' + uid + '/active').set(newActive);
+  const s = students.find(x => x.uid === uid);
+  if (s) s.active = newActive;
+  renderAdminStudentTable();
+  // 分析ビューも再描画
+  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
+  const wSel = document.getElementById('wStudentSel');
+  wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+}
+
+async function deleteStudent(uid, label) {
+  if (!confirm(`「${label}」を削除しますか？\n回答データは残ります。`)) return;
+  await db.ref('students/' + uid).remove();
+  students = students.filter(s => s.uid !== uid);
+  renderAdminStudentTable();
+  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
+  const wSel = document.getElementById('wStudentSel');
+  wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+}
+
+function openStudentModal() {
+  document.getElementById('sMail').value = '';
+  document.getElementById('sName').value = '';
+  const m = document.getElementById('studentModal');
+  m.classList.remove('hidden'); m.classList.add('show');
+}
+function closeStudentModal() {
+  const m = document.getElementById('studentModal');
+  m.classList.remove('show'); m.classList.add('hidden');
+}
+async function confirmStudentModal() {
+  const email = document.getElementById('sMail').value.trim();
+  const name  = document.getElementById('sName').value.trim();
+  if (!email) return alert('メールアドレスは必須です');
+  const ref = db.ref('students').push();
+  const uid = ref.key;
+  const data = { email, name: name || email.split('@')[0], registeredAt: null, active: true };
+  await ref.set(data);
+  students.push({ uid, ...data });
+  closeStudentModal();
+  renderAdminStudentTable();
+  const wSel = document.getElementById('wStudentSel');
+  wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+  alert('追加しました');
 }
 
 // ===== 全学生印刷 =====
@@ -959,7 +1043,7 @@ function printAllStudents(){
   document.querySelectorAll('.student-print-page').forEach(el=>el.remove());
   const thresh=parseInt(document.getElementById('thresh').value)||80;
   const container=document.querySelector('.main');
-  students.forEach(s=>{
+  getActiveStudents().forEach(s=>{
     const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
     const header=document.createElement('div');header.className='print-student-header';
     header.innerHTML=`<span style="font-size:16px;font-weight:700;">${s.email||s.name}</span><span style="font-size:11px;color:#666;margin-left:12px;">${getExamName()} ／ 弱点抽出（基準値 ${thresh}%）</span>`;
@@ -976,7 +1060,7 @@ function printAllStudents(){
       const myAns=allData[currentExam]?.responses?.[s.uid]?.[part]?.answers||{};
       const start=part==='AM'?1:101,end=part==='AM'?100:200;
       const classStat={};
-      students.forEach(st=>{const ans=allData[currentExam]?.responses?.[st.uid]?.[part]?.answers;if(!ans)return;for(let q=start;q<=end;q++){if(!classStat[q])classStat[q]={correct:0,total:0};const correct=String(master.answers[q]||'');const ua=String(ans[q]||'');classStat[q].total++;if(correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(ua):ua===correct))classStat[q].correct++;}});
+      getActiveStudents().forEach(st=>{const ans=allData[currentExam]?.responses?.[st.uid]?.[part]?.answers;if(!ans)return;for(let q=start;q<=end;q++){if(!classStat[q])classStat[q]={correct:0,total:0};const correct=String(master.answers[q]||'');const ua=String(ans[q]||'');classStat[q].total++;if(correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(ua):ua===correct))classStat[q].correct++;}});
       const qs=Array.from({length:100},(_,i)=>({q:start+i,ans:String(master.answers[start+i]||''),pct:classStat[start+i]?.total?Math.round(classStat[start+i].correct/classStat[start+i].total*100):null,myAns:myAns[start+i]?Number(myAns[start+i]):null}));
       const wrap=document.createElement('div');wrap.className='weak-blocks';
       for(let b=0;b<4;b++){const bqs=qs.slice(b*25,(b+1)*25);const colW='52px '+bqs.map(()=>'1fr').join(' ');const block=document.createElement('div');block.className='weak-block';block.style.marginBottom='6px';
