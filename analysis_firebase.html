@@ -249,7 +249,7 @@ tbody tr:hover td{background:var(--g1);}
     </button>
     <div class="nav-section-label">管理</div>
     <button class="nav-item" onclick="showPage('admin_exam',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試マスタ
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試実施計画
     </button>
     <button class="nav-item" onclick="showPage('data_edit',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
@@ -325,50 +325,42 @@ tbody tr:hover td{background:var(--g1);}
       <div class="weak-blocks" id="weakBlocksPM"></div>
     </div>
 
-    <!-- 模試マスタ管理 -->
+    <!-- 模試実施計画 -->
     <div class="page" id="page-admin_exam">
       <div class="page-header-row">
-        <div><div class="page-title">模試マスタ管理</div><div class="page-sub">模試の追加・編集・正答入力</div></div>
+        <div><div class="page-title">模試実施計画</div><div class="page-sub">模試の追加・編集</div></div>
         <button class="btn-admin-add" onclick="openExamModal(null)">＋ 模試を追加</button>
       </div>
       <div class="card" id="examListCard">
         <div class="card-title">模試一覧</div>
         <div class="tbl-wrap"><table><thead><tr><th>模試名</th><th>実施日</th><th>受付状態</th><th>操作</th></tr></thead><tbody id="adminExamTable"></tbody></table></div>
       </div>
-      <div class="card hidden" id="examEditCard">
-        <div class="card-title" id="examEditTitle">正答・カテゴリ編集</div>
-        <div class="filter-row" style="margin-bottom:16px;">
-          <button class="tog-btn on" id="editAM" onclick="setEditPart('AM')">午前（1〜100）</button>
-          <button class="tog-btn" id="editPM" onclick="setEditPart('PM')">午後（101〜200）</button>
-          <button class="btn-admin-save" onclick="saveExamAnswers()" style="margin-left:auto;">💾 保存</button>
-        </div>
-        <div class="tbl-wrap" id="answerEditArea"></div>
-      </div>
     </div>
 
     <!-- 学生リスト編集 -->
     <div class="page" id="page-admin_student">
       <div class="page-header-row">
-        <div><div class="page-title">学生リスト編集</div><div class="page-sub">学生の追加・無効化・削除</div></div>
-        <button class="btn-admin-add" onclick="openStudentModal()">＋ 学生を追加</button>
-      </div>
-      <div class="card">
-        <div class="tbl-wrap"><table><thead><tr><th>メールアドレス</th><th>名前</th><th>登録日時</th><th>状態</th><th>操作</th></tr></thead><tbody id="adminStudentTable"></tbody></table></div>
-      </div>
-    </div>
-
-    <!-- 学生追加モーダル -->
-    <div class="modal-overlay hidden" id="studentModal">
-      <div class="modal-box">
-        <h3 class="modal-box-title">学生を追加</h3>
-        <div class="form-grid">
-          <label>メールアドレス</label><input type="email" id="sMail" placeholder="例：s123456@asahi.ac.jp">
-          <label>名前</label><input type="text" id="sName" placeholder="例：山田 太郎">
+        <div><div class="page-title">学生リスト編集</div><div class="page-sub">Excelからコピー&ペーストで編集できます</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-admin-add" onclick="addStudentRow()">＋ 行を追加</button>
+          <button class="btn-admin-save" onclick="saveStudentGrid()">💾 保存</button>
         </div>
-        <div class="modal-box-btns">
-          <button class="modal-cancel-btn" onclick="closeStudentModal()">キャンセル</button>
-          <button class="btn-admin-save" onclick="confirmStudentModal()">追加</button>
-        </div>
+      </div>
+      <div class="paste-hint">
+        💡 Excelのセルをコピー（<kbd>Ctrl+C</kbd>）して、グリッドのセルをクリックしてから貼り付け（<kbd>Ctrl+V</kbd>）できます。列順：メールアドレス → 名前
+      </div>
+      <div class="grid-wrap" id="studentGridWrap">
+        <table class="grid-table">
+          <thead><tr>
+            <th class="col-fixed" style="min-width:32px;">#</th>
+            <th style="min-width:260px;">メールアドレス</th>
+            <th style="min-width:160px;">名前</th>
+            <th style="min-width:80px;">状態</th>
+            <th style="min-width:100px;">登録日時</th>
+            <th style="min-width:60px;">操作</th>
+          </tr></thead>
+          <tbody id="studentGridBody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -892,10 +884,7 @@ function renderAdminExamTable() {
         <option value="1" ${e.active?'selected':''}>受付中</option>
         <option value="0" ${!e.active?'selected':''}>締切</option>
       </select></td>
-      <td><div style="display:flex;gap:6px;">
-        <button class="btn-admin-add" style="font-size:11px;padding:4px 10px;" onclick="openAnswerEdit('${e.name}')">正答編集</button>
-        <button class="btn-admin-del" onclick="deleteExam('${e.name}')">削除</button>
-      </div></td>
+      <td><button class="btn-admin-del" onclick="deleteExam('${e.name}')">削除</button></td>
     </tr>`;
   }).join('');
 }
@@ -941,101 +930,128 @@ async function confirmExamModal() {
   alert('保存しました');
 }
 
-// 正答編集
-function openAnswerEdit(name) {
-  editingExam = { name, ...(allData[name]?.master||{}) };
-  if (!editingExam.answers) editingExam.answers = {};
-  if (!editingExam.categories) editingExam.categories = {};
-  editPart = 'AM';
-  document.getElementById('editAM').className='tog-btn on';
-  document.getElementById('editPM').className='tog-btn';
-  document.getElementById('examEditTitle').textContent=`正答・カテゴリ編集：${name}`;
-  document.getElementById('examEditCard').classList.remove('hidden');
-  renderAnswerEdit();
-}
-function setEditPart(p){editPart=p;document.getElementById('editAM').className='tog-btn'+(p==='AM'?' on':'');document.getElementById('editPM').className='tog-btn'+(p==='PM'?' on':'');renderAnswerEdit();}
-function renderAnswerEdit(){
-  if(!editingExam)return;
-  const offset=editPart==='AM'?0:100;
-  const area=document.getElementById('answerEditArea');
-  let html='<table class="ans-table"><thead><tr><th>問</th><th>正答</th><th>カテゴリ</th><th>問</th><th>正答</th><th>カテゴリ</th><th>問</th><th>正答</th><th>カテゴリ</th><th>問</th><th>正答</th><th>カテゴリ</th></tr></thead><tbody>';
-  for(let row=0;row<25;row++){html+='<tr>';for(let col=0;col<4;col++){const qi=offset+col*25+row;const qNum=qi+1;const ans=editingExam.answers[qNum]||'';const cat=editingExam.categories[qNum]||'';html+=`<td style="background:var(--g1);font-weight:700;color:var(--g4);font-family:'DM Mono',monospace">${qNum}</td><td><input class="ans-input" type="text" maxlength="3" value="${ans}" data-q="${qNum}" oninput="editingExam.answers[this.dataset.q]=this.value"></td><td><input class="cat-input" type="text" value="${cat}" data-q="${qNum}" oninput="editingExam.categories[this.dataset.q]=this.value"></td>`;}html+='</tr>';}
-  html+='</tbody></table>';area.innerHTML=html;
-}
-async function saveExamAnswers(){
-  if(!editingExam)return;
-  showLoading('保存中...');
-  await db.ref('exams/'+editingExam.name).update({answers:editingExam.answers,categories:editingExam.categories});
-  if(allData[editingExam.name])allData[editingExam.name].master={...allData[editingExam.name].master,answers:editingExam.answers,categories:editingExam.categories};
-  hideLoading();alert('保存しました');
+
+// ===== 学生リスト編集グリッド =====
+let studentGridData = []; // { uid, email, name, active, registeredAt, isNew }
+let _studentPasteHandler = null;
+
+function renderAdminStudentTable() {
+  studentGridData = students.map(s => ({ ...s, isNew: false }));
+  renderStudentGrid();
 }
 
-// ===== 学生リスト =====
-function renderAdminStudentTable(){
-  const tbody=document.getElementById('adminStudentTable');if(!tbody)return;
-  tbody.innerHTML=students.map(s=>{
-    const active = s.active !== false;
-    const dateStr = s.registeredAt ? new Date(s.registeredAt).toLocaleDateString('ja-JP') : '（手動追加）';
-    const toggleLabel = active ? '有効' : '無効';
+function renderStudentGrid() {
+  const tbody = document.getElementById('studentGridBody');
+  if (!tbody) return;
+  tbody.innerHTML = studentGridData.map((s, i) => {
+    const active  = s.active !== false;
+    const dateStr = s.registeredAt ? new Date(s.registeredAt).toLocaleDateString('ja-JP') : '—';
     const toggleStyle = active
       ? 'background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok);'
       : 'background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);';
-    return `<tr style="${active?'':'opacity:0.5;'}">
-      <td style="font-size:12px;color:var(--g4)">${s.email||''}</td>
-      <td>${s.name||''}</td>
-      <td style="font-size:11px;color:var(--g4)">${dateStr}</td>
-      <td><button onclick="toggleStudentActive('${s.uid}',${active})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;${toggleStyle}">${toggleLabel}</button></td>
-      <td><button class="btn-admin-del" onclick="deleteStudent('${s.uid}','${(s.email||s.name).replace(/'/g,'\\\'')}')" >削除</button></td>
+    return `<tr style="${active?'':'opacity:0.55;'}">
+      <td class="col-fixed" style="text-align:center;font-size:11px;color:var(--g4);padding:4px 6px;">${i+1}</td>
+      <td><input class="grid-cell" style="width:100%;" type="text" value="${s.email||''}" data-si="${i}" data-type="email" onchange="onStudentCellChange(this)"></td>
+      <td><input class="grid-cell" style="width:100%;" type="text" value="${s.name||''}" data-si="${i}" data-type="name" onchange="onStudentCellChange(this)"></td>
+      <td style="text-align:center;"><button onclick="toggleStudentGridActive(${i})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;${toggleStyle}">${active?'有効':'無効'}</button></td>
+      <td style="font-size:11px;color:var(--g4);padding:4px 8px;">${dateStr}</td>
+      <td style="text-align:center;"><button class="btn-admin-del" onclick="deleteStudentRow(${i})">削除</button></td>
     </tr>`;
   }).join('');
+  setupStudentPaste();
 }
 
-async function toggleStudentActive(uid, currentActive) {
-  const newActive = !currentActive;
-  await db.ref('students/' + uid + '/active').set(newActive);
-  const s = students.find(x => x.uid === uid);
-  if (s) s.active = newActive;
-  renderAdminStudentTable();
-  // 分析ビューも再描画
-  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
-  const wSel = document.getElementById('wStudentSel');
-  wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+function onStudentCellChange(el) {
+  const i    = parseInt(el.dataset.si);
+  const type = el.dataset.type;
+  studentGridData[i][type] = el.value;
 }
 
-async function deleteStudent(uid, label) {
+function toggleStudentGridActive(i) {
+  studentGridData[i].active = studentGridData[i].active === false ? true : false;
+  renderStudentGrid();
+}
+
+function deleteStudentRow(i) {
+  const s = studentGridData[i];
+  const label = s.email || s.name || '（新規行）';
   if (!confirm(`「${label}」を削除しますか？\n回答データは残ります。`)) return;
-  await db.ref('students/' + uid).remove();
-  students = students.filter(s => s.uid !== uid);
-  renderAdminStudentTable();
-  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
-  const wSel = document.getElementById('wStudentSel');
-  wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+  studentGridData.splice(i, 1);
+  renderStudentGrid();
 }
 
-function openStudentModal() {
-  document.getElementById('sMail').value = '';
-  document.getElementById('sName').value = '';
-  const m = document.getElementById('studentModal');
-  m.classList.remove('hidden'); m.classList.add('show');
+function addStudentRow() {
+  studentGridData.push({ uid: null, email: '', name: '', active: true, registeredAt: null, isNew: true });
+  renderStudentGrid();
+  // 新行の最初のセルにフォーカス
+  const inputs = document.querySelectorAll('#studentGridBody input[data-type="email"]');
+  if (inputs.length) inputs[inputs.length - 1].focus();
 }
-function closeStudentModal() {
-  const m = document.getElementById('studentModal');
-  m.classList.remove('show'); m.classList.add('hidden');
+
+async function saveStudentGrid() {
+  showLoading('保存中...');
+  try {
+    for (const s of studentGridData) {
+      if (!s.email.trim()) continue;
+      if (s.isNew || !s.uid) {
+        const ref  = db.ref('students').push();
+        s.uid    = ref.key;
+        s.isNew  = false;
+        await ref.set({ email: s.email, name: s.name || s.email.split('@')[0], active: s.active, registeredAt: null });
+      } else {
+        await db.ref('students/' + s.uid).update({ email: s.email, name: s.name, active: s.active });
+      }
+    }
+    // 削除された学生をFirebaseから消す
+    const keepUids = new Set(studentGridData.map(s => s.uid).filter(Boolean));
+    for (const s of students) {
+      if (!keepUids.has(s.uid)) await db.ref('students/' + s.uid).remove();
+    }
+    // ローカル状態を同期
+    students = studentGridData.filter(s => s.uid).map(s => ({ ...s }));
+    renderStudentGrid();
+    const wSel = document.getElementById('wStudentSel');
+    wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+    renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
+    hideLoading();
+    alert('✅ 保存しました');
+  } catch(e) {
+    hideLoading();
+    alert('❌ 保存エラー: ' + e.message);
+  }
 }
-async function confirmStudentModal() {
-  const email = document.getElementById('sMail').value.trim();
-  const name  = document.getElementById('sName').value.trim();
-  if (!email) return alert('メールアドレスは必須です');
-  const ref = db.ref('students').push();
-  const uid = ref.key;
-  const data = { email, name: name || email.split('@')[0], registeredAt: null, active: true };
-  await ref.set(data);
-  students.push({ uid, ...data });
-  closeStudentModal();
-  renderAdminStudentTable();
-  const wSel = document.getElementById('wStudentSel');
-  wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
-  alert('追加しました');
+
+function setupStudentPaste() {
+  const wrap = document.getElementById('studentGridWrap');
+  if (!wrap) return;
+  if (_studentPasteHandler) wrap.removeEventListener('paste', _studentPasteHandler);
+  _studentPasteHandler = function(e) {
+    const active = document.activeElement;
+    if (!active?.classList.contains('grid-cell') || !active.closest('#studentGridWrap')) return;
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const rows = text.split('\n').map(r => r.split('\t'));
+    const startI = parseInt(active.dataset.si);
+    const type   = active.dataset.type;
+    const colOrder = type === 'email' ? ['email','name'] : ['name'];
+    rows.forEach((row, ri) => {
+      const idx = startI + ri;
+      if (idx >= studentGridData.length) {
+        studentGridData.push({ uid: null, email: '', name: '', active: true, registeredAt: null, isNew: true });
+      }
+      row.forEach((val, ci) => {
+        const col = colOrder[ci];
+        if (col) studentGridData[idx][col] = val.trim();
+      });
+    });
+    renderStudentGrid();
+    const msg = document.createElement('div');
+    msg.textContent = `✅ ${rows.length}行ペーストしました`;
+    msg.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--ok);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;z-index:9999;';
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 2000);
+  };
+  wrap.addEventListener('paste', _studentPasteHandler);
 }
 
 // ===== 全学生印刷 =====
