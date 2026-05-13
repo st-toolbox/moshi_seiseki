@@ -180,8 +180,9 @@ tbody tr:hover td{background:var(--g1);}
 .tog-btn{padding:5px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
 .tog-btn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 .legend-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;font-size:12px;color:var(--g4);flex-wrap:wrap;}
-.print-btn{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;}
-.print-btn:hover{background:var(--g1);}
+.print-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--rs);font-size:13px;font-weight:600;color:#fff;cursor:pointer;background:var(--g5);border:none;width:calc(100% - 16px);margin:2px 8px;text-align:left;transition:all .15s;box-shadow:0 2px 4px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.1);}
+.print-btn:hover{background:#444;box-shadow:0 3px 6px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.12);}
+.print-btn:active{box-shadow:0 1px 2px rgba(0,0,0,0.2),inset 0 1px 2px rgba(0,0,0,0.2);transform:translateY(1px);}
 
 @media print {
   @page{size:A4 landscape;margin:10mm 12mm;}
@@ -235,7 +236,7 @@ tbody tr:hover td{background:var(--g1);}
   body.print-all-students .student-print-page{display:block!important;}
   .student-print-page{page-break-before:always;}
   .student-print-page:first-of-type{page-break-before:auto;}
-  .print-student-header{font-size:11pt;font-weight:700;margin-bottom:3mm;border-bottom:1pt solid #ccc;padding-bottom:1mm;}
+  .print-student-header{font-size:11pt;font-weight:700;margin-bottom:3mm;background:#e0e0e0;padding:2mm 4mm;border-radius:2pt;}
 }
 </style>
 </head>
@@ -295,10 +296,10 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率
     </button>
     <button class="nav-item" onclick="showPage('weakness',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出【個人】
     </button>
     <button class="nav-item" onclick="showPage('hist',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧【個人】
     </button>
     <div class="nav-section-label">管理</div>
     <button class="nav-item" onclick="showPage('admin_exam',this)">
@@ -956,7 +957,7 @@ function getWeakLabel() {
 
 function renderWeak(part) {
   const stuName = getWeakLabel();
-  document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName + '【個人】' : '');
+  document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName : '');
   const thresh = parseInt(document.getElementById('thresh').value)||80;
   const master  = allData[currentExam]?.master;
   if (!master?.answers) return;
@@ -1255,7 +1256,7 @@ function printAllStudentsWeak(){
   getActiveStudents().forEach(s=>{
     const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
     const header=document.createElement('div');header.className='print-student-header';
-    header.innerHTML=`<span>${s.name||s.email}【個人】</span><span style="font-size:11px;color:#666;margin-left:12px;">${getExamName()} ／ 弱点抽出（基準値 ${thresh}%）</span>`;
+    header.innerHTML=`<span>${s.name||s.email}</span><span style="font-size:11px;color:#666;margin-left:12px;">${getExamName()} ／ 弱点抽出（基準値 ${thresh}%）</span>`;
     page.appendChild(header);
     // 正答マスタ取得
     const master=allData[currentExam]?.master;
@@ -1665,7 +1666,7 @@ function renderStudentHistory() {
 }
 
 function buildHistPrintHTML(stuLabel, examData) {
-  const phdr = `<div style="font-size:8pt;font-weight:700;margin-bottom:2mm;">${stuLabel}【個人】</div>`;
+  const phdr = `<div style="font-size:8pt;font-weight:700;background:#e0e0e0;padding:1.5mm 3mm;border-radius:2pt;margin-bottom:2mm;">${stuLabel}</div>`;
   let pcards = '<div class="hpg">';
   examData.forEach(d => {
     const scoreMap = [
