@@ -104,15 +104,15 @@ tbody tr:hover td{background:var(--g1);}
 .chart-box{position:relative;}
 
 /* HIST TABLE */
-.hist-wrap{overflow:auto;max-height:calc(100vh - 160px);border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
-.hist-tbl{border-collapse:collapse;font-size:11px;white-space:nowrap;}
-.hist-tbl th,.hist-tbl td{padding:3px 6px;border:1px solid var(--g2);}
+.hist-wrap{overflow:auto;border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
+.hist-tbl{border-collapse:collapse;font-size:10px;white-space:nowrap;}
+.hist-tbl th,.hist-tbl td{padding:2px 5px;border:1px solid var(--g2);}
 .hist-tbl thead th{background:var(--g1);font-weight:700;color:var(--g4);text-align:center;position:sticky;top:0;z-index:10;}
-.hist-tbl thead th.hist-cat-hd{position:sticky;left:0;z-index:20;background:var(--g1);text-align:left;min-width:120px;max-width:140px;}
-.hist-tbl td.hist-cat-td{position:sticky;left:0;background:#fff;z-index:5;font-weight:500;font-size:11px;color:var(--g5);min-width:120px;max-width:140px;padding:3px 8px;}
-.hist-tbl td.hist-score-td{text-align:center;font-family:'DM Mono',monospace;font-size:11px;background:var(--g1);}
-.hist-tbl td.hist-score-label{position:sticky;left:0;z-index:5;background:var(--g1);font-weight:700;font-size:11px;color:var(--g4);padding:3px 8px;min-width:120px;}
-.hist-tbl td.hist-data-td{text-align:center;font-family:'DM Mono',monospace;font-size:11px;}
+.hist-tbl thead th.hist-cat-hd{position:sticky;left:0;z-index:20;background:var(--g1);text-align:left;min-width:110px;max-width:130px;}
+.hist-tbl td.hist-cat-td{position:sticky;left:0;background:#fff;z-index:5;font-weight:500;font-size:10px;color:var(--g5);min-width:110px;max-width:130px;padding:2px 7px;}
+.hist-tbl td.hist-score-td{text-align:center;font-family:'DM Mono',monospace;font-size:10px;background:var(--g1);}
+.hist-tbl td.hist-score-label{position:sticky;left:0;z-index:5;background:var(--g1);font-weight:700;font-size:10px;color:var(--g4);padding:2px 7px;min-width:110px;}
+.hist-tbl td.hist-data-td{text-align:center;font-family:'DM Mono',monospace;font-size:10px;}
 .hist-tbl td.hist-data-td.c-ok{background:rgba(21,128,61,0.15);color:var(--ok);font-weight:700;}
 .hist-tbl td.hist-data-td.c-warn{background:rgba(180,83,9,0.15);color:var(--warn);font-weight:700;}
 .hist-tbl td.hist-data-td.c-ng{background:rgba(185,28,28,0.15);color:var(--ng);font-weight:700;}
@@ -205,6 +205,18 @@ tbody tr:hover td{background:var(--g1);}
   .chart-box canvas{max-height:220px!important;}
   #page-trend .chart-box canvas{max-height:200px!important;}
   #page-category .chart-box canvas{max-height:320px!important;}
+  /* 個人模試成績一覧 印刷 */
+  #page-hist{padding:4mm 0 0!important;}
+  #page-hist .hist-wrap{overflow:visible!important;border:none!important;max-height:none!important;}
+  .hist-tbl{font-size:6px!important;width:100%!important;}
+  .hist-tbl th,.hist-tbl td{padding:1px 2px!important;border:0.3pt solid #ccc!important;}
+  .hist-tbl thead th{position:static!important;background:#f0f0f0!important;}
+  .hist-tbl thead th.hist-cat-hd{position:static!important;min-width:0!important;width:18mm!important;}
+  .hist-tbl td.hist-cat-td{position:static!important;width:18mm!important;font-size:6px!important;padding:1px 2px!important;}
+  .hist-tbl td.hist-score-label{position:static!important;width:18mm!important;font-size:6px!important;padding:1px 2px!important;}
+  .hist-tbl td.hist-score-td{font-size:6px!important;padding:1px 2px!important;}
+  .hist-tbl td.hist-data-td{font-size:6px!important;padding:1px 2px!important;}
+  #histPrintName{display:inline!important;}
 }
 </style>
 </head>
@@ -263,7 +275,7 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
     </button>
     <button class="nav-item" onclick="showPage('hist',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>個人模試成績一覧
     </button>
     <div class="nav-section-label">管理</div>
     <button class="nav-item" onclick="showPage('admin_exam',this)">
@@ -355,16 +367,15 @@ tbody tr:hover td{background:var(--g1);}
       <div class="weak-blocks" id="weakBlocksPM"></div>
     </div>
 
-    <!-- 模試成績一覧 -->
-    <div class="page" id="page-hist">
-      <div class="page-header-row">
-        <div><div class="page-title">模試成績一覧</div><div class="page-sub">学生個別の全模試成績と分野別正答率</div></div>
-      </div>
-      <div class="filter-row">
+    <!-- 個人模試成績一覧 -->
+    <div class="page" id="page-hist" style="padding:12px 16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+        <span class="page-title" style="font-size:15px;margin-bottom:0;">個人模試成績一覧</span>
         <span class="filter-label">学生：</span>
         <select class="student-select" id="histStudentSel" onchange="renderStudentHistory()" style="min-width:180px;"></select>
+        <span id="histPrintName" style="font-size:12px;color:var(--g4);display:none;"></span>
       </div>
-      <div class="hist-wrap">
+      <div class="hist-wrap" style="max-height:calc(100vh - 100px);">
         <div id="histTableWrap"></div>
       </div>
     </div>
@@ -1444,6 +1455,10 @@ function renderStudentHistory() {
   const uid = document.getElementById('histStudentSel')?.value;
   const container = document.getElementById('histTableWrap');
   if (!uid || !container) return;
+  const stu = students.find(s => s.uid === uid);
+  const stuLabel = stu ? (stu.name || stu.email) : '';
+  const pn = document.getElementById('histPrintName');
+  if (pn) pn.textContent = stuLabel;
 
   // 古い順にソート
   const sortedExams = [...examList].sort((a, b) => {
