@@ -103,11 +103,15 @@ tbody tr:hover td{background:var(--g1);}
 .vdiv{width:1px;height:18px;background:var(--g2);}
 .chart-box{position:relative;}
 
-/* 成績推移・個別模試集計 1画面レイアウト共通 */
-#page-trend,#page-summary{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;overflow:hidden;}
-#page-trend.active,#page-summary.active{display:flex;}
-#page-trend .page-header-row,#page-summary .page-header-row{margin-bottom:10px;flex-shrink:0;}
+/* 成績推移・個別模試集計・弱点抽出 1画面レイアウト共通 */
+#page-trend,#page-summary,#page-weakness{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;overflow:hidden;}
+#page-trend.active,#page-summary.active,#page-weakness.active{display:flex;}
+#page-trend .page-header-row,#page-summary .page-header-row,#page-weakness .page-header-row{margin-bottom:10px;flex-shrink:0;}
 #page-trend .card,#page-summary .card{margin-bottom:10px;}
+/* 弱点抽出 */
+#page-weakness .filter-row{flex-shrink:0;margin-bottom:6px;}
+#page-weakness .legend-row{flex-shrink:0;margin-bottom:6px;}
+#page-weakness #weakScrollArea{flex:1;min-height:0;overflow-y:auto;}
 #page-trend #trendChartCard{flex-shrink:0;}
 #page-trend #trendTableCard{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;}
 #page-trend #trendTableCard .tbl-wrap{flex:1;overflow-y:auto;overflow-x:auto;}
@@ -212,7 +216,8 @@ tbody tr:hover td{background:var(--g1);}
   .main{overflow:visible!important;}
   .page{display:none!important;padding:0!important;}
   .page.active{display:block!important;}
-  #page-trend.active,#page-summary.active{display:block!important;height:auto!important;overflow:visible!important;}
+  #page-trend.active,#page-summary.active,#page-weakness.active{display:block!important;height:auto!important;overflow:visible!important;}
+  #page-weakness #weakScrollArea{overflow:visible!important;}
   #page-trend #trendTableCard{flex:none!important;overflow:visible!important;}
   #page-trend #trendTableCard .tbl-wrap{overflow:visible!important;}
   #page-summary .grid2{display:grid!important;height:auto!important;}
@@ -416,10 +421,12 @@ tbody tr:hover td{background:var(--g1);}
         <span><span style="color:var(--ng);font-weight:700;font-size:13px;">★</span> 不正解 かつ クラス正答率が基準値以上（優先復習）</span>
         <span><span style="color:var(--g5);font-weight:700;font-size:13px;">×</span> 不正解</span>
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午前（第1〜100問）</div>
-      <div class="weak-blocks" id="weakBlocksAM" style="margin-bottom:24px;"></div>
-      <div class="pm-break-label" style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午後（第101〜200問）</div>
-      <div class="weak-blocks" id="weakBlocksPM"></div>
+      <div id="weakScrollArea">
+        <div style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午前（第1〜100問）</div>
+        <div class="weak-blocks" id="weakBlocksAM" style="margin-bottom:24px;"></div>
+        <div class="pm-break-label" style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午後（第101〜200問）</div>
+        <div class="weak-blocks" id="weakBlocksPM"></div>
+      </div>
     </div>
 
     <!-- 個人模試成績一覧 -->
