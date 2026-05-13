@@ -103,6 +103,21 @@ tbody tr:hover td{background:var(--g1);}
 .vdiv{width:1px;height:18px;background:var(--g2);}
 .chart-box{position:relative;}
 
+/* HIST TABLE */
+.hist-wrap{overflow:auto;max-height:calc(100vh - 160px);border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
+.hist-tbl{border-collapse:collapse;font-size:11px;white-space:nowrap;}
+.hist-tbl th,.hist-tbl td{padding:3px 6px;border:1px solid var(--g2);}
+.hist-tbl thead th{background:var(--g1);font-weight:700;color:var(--g4);text-align:center;position:sticky;top:0;z-index:10;}
+.hist-tbl thead th.hist-cat-hd{position:sticky;left:0;z-index:20;background:var(--g1);text-align:left;min-width:120px;max-width:140px;}
+.hist-tbl td.hist-cat-td{position:sticky;left:0;background:#fff;z-index:5;font-weight:500;font-size:11px;color:var(--g5);min-width:120px;max-width:140px;padding:3px 8px;}
+.hist-tbl td.hist-score-td{text-align:center;font-family:'DM Mono',monospace;font-size:11px;background:var(--g1);}
+.hist-tbl td.hist-score-label{position:sticky;left:0;z-index:5;background:var(--g1);font-weight:700;font-size:11px;color:var(--g4);padding:3px 8px;min-width:120px;}
+.hist-tbl td.hist-data-td{text-align:center;font-family:'DM Mono',monospace;font-size:11px;}
+.hist-tbl td.hist-data-td.c-ok{background:rgba(21,128,61,0.15);color:var(--ok);font-weight:700;}
+.hist-tbl td.hist-data-td.c-warn{background:rgba(180,83,9,0.15);color:var(--warn);font-weight:700;}
+.hist-tbl td.hist-data-td.c-ng{background:rgba(185,28,28,0.15);color:var(--ng);font-weight:700;}
+.hist-tbl .sec-div td{border-top:2px solid var(--accent);}
+
 /* WEAK */
 .weak-blocks{display:flex;flex-direction:column;gap:12px;}
 .weak-block{background:#fff;border-radius:10px;border:1px solid var(--g2);overflow:hidden;}
@@ -247,6 +262,9 @@ tbody tr:hover td{background:var(--g1);}
     <button class="nav-item" onclick="showPage('weakness',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
     </button>
+    <button class="nav-item" onclick="showPage('hist',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧
+    </button>
     <div class="nav-section-label">管理</div>
     <button class="nav-item" onclick="showPage('admin_exam',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試実施計画
@@ -335,6 +353,20 @@ tbody tr:hover td{background:var(--g1);}
       <div class="weak-blocks" id="weakBlocksAM" style="margin-bottom:24px;"></div>
       <div class="pm-break-label" style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午後（第101〜200問）</div>
       <div class="weak-blocks" id="weakBlocksPM"></div>
+    </div>
+
+    <!-- 模試成績一覧 -->
+    <div class="page" id="page-hist">
+      <div class="page-header-row">
+        <div><div class="page-title">模試成績一覧</div><div class="page-sub">学生個別の全模試成績と分野別正答率</div></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">学生：</span>
+        <select class="student-select" id="histStudentSel" onchange="renderStudentHistory()" style="min-width:180px;"></select>
+      </div>
+      <div class="hist-wrap">
+        <div id="histTableWrap"></div>
+      </div>
     </div>
 
     <!-- 模試実施計画 -->
@@ -584,6 +616,7 @@ async function loadAllData() {
     renderAdminStudentTable();
     initGridExamSel();
     initRespExamSel();
+    initHistStudentSel();
 
   } catch(e) {
     console.error(e);
@@ -1395,6 +1428,158 @@ async function saveGridData() {
     hideLoading();
     alert('❌ 保存エラー: ' + e.message);
   }
+}
+
+// ===== 模試成績一覧 =====
+function initHistStudentSel() {
+  const sel = document.getElementById('histStudentSel');
+  if (!sel) return;
+  sel.innerHTML = getActiveStudents().map(s =>
+    `<option value="${s.uid}">${s.name || s.email}</option>`
+  ).join('');
+  renderStudentHistory();
+}
+
+function renderStudentHistory() {
+  const uid = document.getElementById('histStudentSel')?.value;
+  const container = document.getElementById('histTableWrap');
+  if (!uid || !container) return;
+
+  // 古い順にソート
+  const sortedExams = [...examList].sort((a, b) => {
+    const da = a.date ? new Date(a.date) : null;
+    const db2 = b.date ? new Date(b.date) : null;
+    if (da && db2) return da - db2;
+    if (da) return 1; if (db2) return -1; return 0;
+  });
+
+  // 各模試のデータ計算
+  const examData = sortedExams.map((exam, idx) => {
+    const master    = allData[exam.name]?.master || {};
+    const responses = allData[exam.name]?.responses || {};
+    const myResp    = responses[uid] || {};
+    const categories = master.categories || {};
+    const answers    = master.answers || {};
+
+    const myAM = myResp.AM?.status === 'submitted' ? (myResp.AM.score ?? null) : null;
+    const myPM = myResp.PM?.status === 'submitted' ? (myResp.PM.score ?? null) : null;
+
+    // 学科平均
+    const totals = getActiveStudents().map(s => {
+      const r = responses[s.uid];
+      const am = r?.AM?.status === 'submitted' ? (r.AM.score ?? 0) : null;
+      const pm = r?.PM?.status === 'submitted' ? (r.PM.score ?? 0) : null;
+      if (am === null && pm === null) return null;
+      return (am || 0) + (pm || 0);
+    }).filter(t => t !== null);
+    const classAvg = totals.length ? Math.round(totals.reduce((a,b)=>a+b,0)/totals.length) : null;
+
+    // 分野別集計
+    const catStats = {};
+    CATEGORY_ORDER.forEach(cat => { catStats[cat] = { myC:0, myT:0, clC:0, clT:0 }; });
+
+    for (let q = 1; q <= 200; q++) {
+      const cat = categories[q];
+      if (!cat || !CATEGORY_ORDER.includes(cat)) continue;
+      const part = q <= 100 ? 'AM' : 'PM';
+      const correct = String(answers[q] || '');
+      if (!correct || correct === '解なし') continue;
+
+      const isCorrect = (ans) => {
+        const a = String(ans || '');
+        return correct.includes(',') ? correct.split(',').includes(a) : a === correct;
+      };
+
+      if (myResp[part]?.answers) {
+        catStats[cat].myT++;
+        if (isCorrect(myResp[part].answers[q])) catStats[cat].myC++;
+      }
+      getActiveStudents().forEach(s => {
+        const sr = responses[s.uid];
+        if (!sr?.[part]?.answers) return;
+        catStats[cat].clT++;
+        if (isCorrect(sr[part].answers[q])) catStats[cat].clC++;
+      });
+    }
+
+    return { exam, no: idx + 1, myAM, myPM, classAvg, catStats };
+  });
+
+  const nExams = examData.length;
+  if (nExams === 0) { container.innerHTML = '<p style="padding:24px;color:var(--g4);">模試データがありません</p>'; return; }
+
+  let html = `<table class="hist-tbl">`;
+
+  // ヘッダー行1: 第N回
+  html += '<thead><tr>';
+  html += `<th class="hist-cat-hd" rowspan="3">分野</th>`;
+  examData.forEach(d => {
+    html += `<th colspan="3" style="border-bottom:none;">第${d.no}回</th>`;
+  });
+  html += '</tr>';
+
+  // ヘッダー行2: 模試名
+  html += '<tr>';
+  examData.forEach(d => {
+    html += `<th colspan="3" style="font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;border-bottom:none;">${d.exam.name}</th>`;
+  });
+  html += '</tr>';
+
+  // ヘッダー行3: 実施日 + 3列ラベル
+  html += '<tr>';
+  examData.forEach(d => {
+    const dt = formatDate(d.exam.date);
+    html += `<th style="font-size:10px;color:var(--g4);">個人</th><th style="font-size:10px;color:var(--g4);">問題数</th><th style="font-size:10px;color:var(--g4);">${dt||'—'}</th>`;
+  });
+  html += '</tr></thead>';
+
+  html += '<tbody>';
+
+  // スコア行 (午前/午後/合計/学科平均)
+  const scoreRows = [
+    { label:'午前', fn: d => d.myAM !== null ? `${d.myAM}/100` : '—' },
+    { label:'午後', fn: d => d.myPM !== null ? `${d.myPM}/100` : '—' },
+    { label:'合計', fn: d => d.myAM !== null || d.myPM !== null ? `${(d.myAM||0)+(d.myPM||0)}` : '—', bold: true },
+    { label:'学科平均', fn: d => d.classAvg !== null ? `${d.classAvg}` : '—' },
+  ];
+  scoreRows.forEach(row => {
+    html += `<tr>`;
+    html += `<td class="hist-score-label">${row.label}</td>`;
+    examData.forEach(d => {
+      const v = row.fn(d);
+      const fw = row.bold ? 'font-weight:700;' : '';
+      html += `<td class="hist-score-td" colspan="3" style="${fw}">${v}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  // 区切り
+  html += `<tr><td colspan="${1 + nExams * 3}" style="height:4px;background:var(--g2);padding:0;border:none;"></td></tr>`;
+
+  // 分野行
+  CATEGORY_ORDER.forEach((cat, ci) => {
+    const isBoundary = cat === '失語症';
+    const rowBg = ci >= 25 ? 'background:rgba(185,28,28,0.02);' : '';
+    html += `<tr${isBoundary ? ' class="sec-div"' : ''} style="${rowBg}">`;
+    html += `<td class="hist-cat-td">${cat}</td>`;
+    examData.forEach(d => {
+      const s = d.catStats[cat];
+      if (!s || s.myT === 0) {
+        html += `<td class="hist-data-td" style="color:var(--g3);">—</td><td class="hist-data-td" style="color:var(--g3);">—</td><td class="hist-data-td" style="color:var(--g3);">—</td>`;
+        return;
+      }
+      const myPct  = Math.round(s.myC / s.myT * 100);
+      const clPct  = s.clT > 0 ? Math.round(s.clC / s.clT * 100) : null;
+      const cls    = myPct >= 80 ? 'c-ok' : myPct >= 60 ? 'c-warn' : 'c-ng';
+      html += `<td class="hist-data-td ${cls}">${myPct}%</td>`;
+      html += `<td class="hist-data-td">${s.myT}</td>`;
+      html += `<td class="hist-data-td">${clPct !== null ? clPct + '%' : '—'}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
 }
 
 // ===== ローディング =====
