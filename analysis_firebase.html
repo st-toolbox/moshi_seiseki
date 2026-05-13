@@ -206,17 +206,30 @@ tbody tr:hover td{background:var(--g1);}
   #page-trend .chart-box canvas{max-height:200px!important;}
   #page-category .chart-box canvas{max-height:320px!important;}
   /* 個人模試成績一覧 印刷 */
-  #page-hist{padding:4mm 0 0!important;}
-  #page-hist .hist-wrap{overflow:visible!important;border:none!important;max-height:none!important;}
-  .hist-tbl{font-size:6px!important;width:100%!important;}
-  .hist-tbl th,.hist-tbl td{padding:1px 2px!important;border:0.3pt solid #ccc!important;}
-  .hist-tbl thead th{position:static!important;background:#f0f0f0!important;}
-  .hist-tbl thead th.hist-cat-hd{position:static!important;min-width:0!important;width:18mm!important;}
-  .hist-tbl td.hist-cat-td{position:static!important;width:18mm!important;font-size:6px!important;padding:1px 2px!important;}
-  .hist-tbl td.hist-score-label{position:static!important;width:18mm!important;font-size:6px!important;padding:1px 2px!important;}
-  .hist-tbl td.hist-score-td{font-size:6px!important;padding:1px 2px!important;}
-  .hist-tbl td.hist-data-td{font-size:6px!important;padding:1px 2px!important;}
+  #page-hist{padding:2mm 0 0!important;}
+  #page-hist .hist-wrap{display:none!important;}
+  #histPrintWrap{display:block!important;}
   #histPrintName{display:inline!important;}
+  .hpg{display:flex;flex-wrap:wrap;gap:3mm;align-content:flex-start;}
+  .hpcard{flex:0 0 auto;border:0.5pt solid #bbb;font-size:6pt;page-break-inside:avoid;}
+  .hpcard-hd{background:#e8eaf6;padding:1mm 2mm;font-weight:700;font-size:6.5pt;border-bottom:0.5pt solid #bbb;}
+  .hpcard-hd2{font-size:5.5pt;color:#555;margin-top:0.5mm;}
+  .hpcard-score{display:grid;grid-template-columns:auto auto;gap:0;border-bottom:0.5pt solid #bbb;}
+  .hpcard-score span{padding:0.4mm 2mm;font-size:5.5pt;}
+  .hpcard-score span:nth-child(odd){color:#666;background:#f5f5f5;}
+  .hpcard-score span:nth-child(even){font-family:monospace;font-weight:700;}
+  .hptbl{border-collapse:collapse;width:100%;}
+  .hptbl td{padding:0.3mm 1.5mm;border:0.3pt solid #ddd;white-space:nowrap;}
+  .hptbl td.hpcat{font-size:5.5pt;}
+  .hptbl td.hpcat.left{background:rgba(26,92,232,0.09);}
+  .hptbl td.hpcat.right{background:rgba(185,28,28,0.09);}
+  .hptbl td.hpval{font-family:monospace;text-align:center;font-size:5.5pt;}
+  .hptbl td.hpval.c-ok{background:rgba(21,128,61,0.15);color:#15803d;font-weight:700;}
+  .hptbl td.hpval.c-warn{background:rgba(180,83,9,0.15);color:#b45309;font-weight:700;}
+  .hptbl td.hpval.c-ng{background:rgba(185,28,28,0.15);color:#b91c1c;font-weight:700;}
+  .hptbl tr.bdiv td{border-top:1pt solid #3b5bdb;}
+  .hptbl td.hprow-left{background:rgba(26,92,232,0.05);}
+  .hptbl td.hprow-right{background:rgba(185,28,28,0.05);}
 }
 </style>
 </head>
@@ -377,6 +390,7 @@ tbody tr:hover td{background:var(--g1);}
       <div class="hist-wrap" style="max-height:calc(100vh - 100px);">
         <div id="histTableWrap"></div>
       </div>
+      <div id="histPrintWrap" style="display:none;"></div>
     </div>
 
     <!-- 模試実施計画 -->
@@ -1600,6 +1614,43 @@ function renderStudentHistory() {
 
   html += '</tbody></table>';
   container.innerHTML = html;
+
+  // 印刷用レイアウト：模試ごとに分野列付きカードを並べる
+  const pw = document.getElementById('histPrintWrap');
+  if (!pw) return;
+  let phdr = `<div style="font-size:8pt;font-weight:700;margin-bottom:2mm;">${stuLabel}</div>`;
+  let pcards = '<div class="hpg">';
+  examData.forEach(d => {
+    const scoreMap = [
+      ['午前', d.myAM !== null ? `${d.myAM}/100` : '—'],
+      ['午後', d.myPM !== null ? `${d.myPM}/100` : '—'],
+      ['合計', d.myAM !== null || d.myPM !== null ? `${(d.myAM||0)+(d.myPM||0)}` : '—'],
+      ['学科平均', d.classAvg !== null ? `${d.classAvg}` : '—'],
+    ];
+    const scoreHtml = scoreMap.map(([k,v]) => `<span>${k}</span><span>${v}</span>`).join('');
+    let rows = '';
+    CATEGORY_ORDER.forEach((cat, ci) => {
+      const isLeft = ci < 25;
+      const isBdiv = cat === '失語症';
+      const side = isLeft ? 'left' : 'right';
+      const s = d.catStats[cat];
+      if (!s || s.myT === 0) {
+        rows += `<tr${isBdiv ? ' class="bdiv"' : ''}><td class="hpcat ${side}">${cat}</td><td class="hpval hprow-${side}">—</td><td class="hpval hprow-${side}">—</td><td class="hpval hprow-${side}">—</td></tr>`;
+        return;
+      }
+      const myPct = Math.round(s.myC / s.myT * 100);
+      const clPct = s.clT > 0 ? Math.round(s.clC / s.clT * 100) : null;
+      const cls   = myPct >= 80 ? 'c-ok' : myPct >= 60 ? 'c-warn' : 'c-ng';
+      rows += `<tr${isBdiv ? ' class="bdiv"' : ''}><td class="hpcat ${side}">${cat}</td><td class="hpval ${cls}">${myPct}%</td><td class="hpval hprow-${side}">${s.myT}</td><td class="hpval hprow-${side}">${clPct !== null ? clPct + '%' : '—'}</td></tr>`;
+    });
+    pcards += `<div class="hpcard">
+      <div class="hpcard-hd">第${d.no}回 ${d.exam.name}<div class="hpcard-hd2">${formatDate(d.exam.date)||'—'}</div></div>
+      <div class="hpcard-score">${scoreHtml}</div>
+      <table class="hptbl"><thead><tr><td class="hpcat" style="font-weight:700;background:#f5f5f5;">分野</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">個人</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">問題数</td><td class="hpval" style="font-weight:700;background:#f5f5f5;">正答率</td></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+  });
+  pcards += '</div>';
+  pw.innerHTML = phdr + pcards;
 }
 
 // ===== ローディング =====
