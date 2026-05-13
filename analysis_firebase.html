@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模試結果分析</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --accent:#1A5CE8;--accent-bg:#EEF3FF;
+  --ok:#15803D;--ok-bg:#DCFCE7;
+  --warn:#B45309;--warn-bg:#FEF3C7;
+  --ng:#B91C1C;--ng-bg:#FEE2E2;
+  --g1:#F7F6F4;--g2:#ECEAE6;--g3:#C4C1BB;--g4:#86837E;--g5:#2D2C2A;
+  --r:12px;--rs:8px;--sidebar:200px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);min-height:100vh;display:flex;flex-direction:column;}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:9999;padding:32px;}
+.login-title{font-size:22px;font-weight:700;}
+.login-sub{font-size:14px;color:var(--g4);text-align:center;line-height:1.6;}
+.btn-google{display:flex;align-items:center;gap:12px;padding:14px 24px;border:1.5px solid var(--g2);border-radius:var(--r);font-size:15px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
+.btn-google:hover{background:var(--g1);}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9000;}
+.loading-overlay.show{display:flex;}
+.spinner{width:36px;height:36px;border:3px solid var(--g2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:13px;color:var(--g4);}
+
+/* TOPBAR */
+.topbar{background:#fff;border-bottom:1px solid var(--g2);height:54px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:300;}
+.app-title{font-size:15px;font-weight:700;white-space:nowrap;}
+.spacer{flex:1;}
+.top-sel{padding:6px 10px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;}
+.top-sel:focus{outline:none;border-color:var(--accent);}
+.user-chip{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--g4);background:var(--g1);border:1px solid var(--g2);border-radius:20px;padding:4px 12px 4px 7px;cursor:pointer;}
+.user-chip:hover{background:var(--g2);}
+.av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--accent-bg);color:var(--accent);}
+.marksheet-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--accent);color:#fff;border-radius:var(--rs);font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);background:#fff;border-right:1px solid var(--g2);padding:12px 8px;display:flex;flex-direction:column;gap:4px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;flex-shrink:0;}
+.nav-section-label{font-size:10px;font-weight:700;color:var(--g3);letter-spacing:.07em;padding:8px 8px 4px;margin-top:4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;}
+.nav-item:hover{background:var(--g1);color:var(--g5);}
+.nav-item.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.nav-icon{width:16px;height:16px;flex-shrink:0;}
+
+/* MAIN */
+.main{flex:1;min-width:0;overflow-x:hidden;}
+.page{display:none;padding:24px;}
+.page.active{display:block;}
+.page-header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.page-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--g4);}
+.exam-inline-sel{padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;min-width:220px;flex-shrink:0;}
+.exam-inline-sel:focus{outline:none;border-color:var(--accent);}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--g2);padding:20px;margin-bottom:16px;}
+.card-title{font-size:11px;font-weight:700;color:var(--g4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+
+/* STAT */
+.stat{background:#fff;border:1px solid var(--g2);border-radius:var(--rs);padding:14px 16px;}
+.stat-label{font-size:11px;color:var(--g4);margin-bottom:5px;font-weight:500;}
+.stat-val{font-size:24px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;}
+.stat-val.a{color:var(--accent);}
+.stat-val.ok{color:var(--ok);}
+.stat-sub{font-size:11px;color:var(--g3);margin-top:3px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;padding:7px 10px;font-size:11px;font-weight:700;color:var(--g4);border-bottom:2px solid var(--g2);white-space:nowrap;}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--g2);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--g1);}
+.mono{font-family:'DM Mono',monospace;font-weight:500;}
+
+/* FILTER */
+.filter-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.filter-label{font-size:12px;color:var(--g4);}
+.filter-input{padding:5px 9px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;width:70px;color:var(--g5);background:#fff;}
+.filter-input:focus{outline:none;border-color:var(--accent);}
+.student-select{padding:5px 9px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;min-width:120px;}
+.vdiv{width:1px;height:18px;background:var(--g2);}
+.chart-box{position:relative;}
+
+/* WEAK */
+.weak-blocks{display:flex;flex-direction:column;gap:12px;}
+.weak-block{background:#fff;border-radius:10px;border:1px solid var(--g2);overflow:hidden;}
+.wrow{display:grid;border-bottom:1px solid var(--g2);font-size:12px;}
+.wrow:last-child{border-bottom:none;}
+.wrow-label{display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:var(--g4);border-right:2px solid var(--g2);background:var(--g1);white-space:nowrap;overflow:hidden;}
+.wcell{display:flex;align-items:center;justify-content:center;height:28px;border-right:1px solid var(--g2);font-family:'DM Mono',monospace;font-size:12px;color:var(--g5);}
+.wcell:last-child{border-right:none;}
+.wcell.sep5{border-right:2px solid var(--g3);}
+.wcell.qnum{font-weight:700;font-size:11px;color:var(--g4);height:24px;background:var(--g1);}
+.wcell.pct-ok{background:rgba(21,128,61,0.08);color:var(--ok);font-weight:500;}
+.wcell.pct-warn{background:rgba(180,83,9,0.08);color:var(--warn);font-weight:500;}
+.wcell.pct-ng{background:rgba(185,28,28,0.1);color:var(--ng);font-weight:700;}
+.wcell.my-none{color:var(--g3);}
+.wcell.star-col{background:rgba(185,28,28,0.07);}
+.wcell.jstar{color:var(--ng);font-weight:700;font-size:14px;}
+.wcell.jx{color:var(--g5);font-weight:700;font-size:14px;}
+
+/* ADMIN */
+.btn-admin-add{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;white-space:nowrap;}
+.btn-admin-save{padding:7px 16px;background:var(--ok);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+.btn-admin-del{padding:4px 10px;background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.admin-input{width:100%;padding:5px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);}
+.admin-select{padding:5px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;}
+.ans-table{border-collapse:collapse;font-size:12px;width:100%;}
+.ans-table th{background:var(--g1);padding:5px 6px;border:1px solid var(--g2);font-weight:700;color:var(--g4);text-align:center;white-space:nowrap;}
+.ans-table td{padding:3px 4px;border:1px solid var(--g2);text-align:center;}
+.ans-input{width:46px;padding:3px 4px;border:1.5px solid var(--g2);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;text-align:center;color:var(--g5);}
+.cat-input{width:120px;padding:3px 4px;border:1.5px solid var(--g2);border-radius:4px;font-size:11px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:800;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;}
+.modal-box-title{font-size:16px;font-weight:700;margin-bottom:16px;}
+.form-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;margin-bottom:20px;font-size:13px;}
+.form-grid label{color:var(--g4);font-weight:500;white-space:nowrap;}
+.form-grid input,.form-grid select{padding:7px 10px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);}
+.modal-box-btns{display:flex;justify-content:flex-end;gap:8px;}
+.modal-cancel-btn{padding:8px 16px;background:var(--g1);border:1px solid var(--g2);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+.tog-btn{padding:5px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
+.tog-btn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.legend-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;font-size:12px;color:var(--g4);flex-wrap:wrap;}
+.print-btn{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;}
+.print-btn:hover{background:var(--g1);}
+
+@media print {
+  @page{size:A4 landscape;margin:10mm 12mm;}
+  .topbar,.sidebar,.filter-row,.legend-row,.btn-admin-add,.btn-admin-save,.print-btn,.tog-btn,.vdiv,.filter-input,.student-select,.exam-inline-sel{display:none!important;}
+  body{background:#fff!important;}
+  .layout{display:block!important;}
+  .main{overflow:visible!important;}
+  .page{display:none!important;padding:0!important;}
+  .page.active{display:block!important;}
+  .card{border:1px solid #ccc;border-radius:4px;padding:10px;margin-bottom:10px;break-inside:avoid;}
+  .grid2{grid-template-columns:1fr 1fr;gap:10px;}
+  .grid4{gap:8px;margin-bottom:10px;}
+  .wcell{height:22px!important;font-size:10px!important;}
+  .wrow-label{font-size:9px!important;padding:0 4px!important;}
+  .weak-block{break-inside:avoid;}
+  table{font-size:11px;}
+  thead th{padding:4px 6px;}
+  tbody td{padding:5px 6px;}
+  .pm-break-label{page-break-before:always!important;padding-top:4px;}
+  .chart-box{overflow:visible!important;}
+  .chart-box canvas{max-height:220px!important;}
+  #page-trend .chart-box canvas{max-height:200px!important;}
+  #page-category .chart-box canvas{max-height:320px!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div style="font-size:40px;">📊</div>
+  <div class="login-title">模試結果分析</div>
+  <div class="login-sub">朝日医療大学のGoogleアカウントで<br>ログインしてください</div>
+  <button class="btn-google" onclick="signIn()">
+    <svg viewBox="0 0 48 48" width="20px" height="20px">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    Googleでログイン
+  </button>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">読み込み中...</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="mainApp" style="display:none;">
+  <span class="app-title">模試結果分析</span>
+  <div class="spacer"></div>
+  <a id="marksheetLink" href="marksheet_firebase.html" target="_blank" class="marksheet-btn">📝 マークシートへ</a>
+  <div class="user-chip" onclick="signOut()" title="クリックでログアウト">
+    <div class="av" id="userAv">—</div>
+    <span id="userName">読込中...</span>
+    <span class="role-badge" id="userRole">教員</span>
+  </div>
+</div>
+
+<div class="layout" id="mainLayout" style="display:none;">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section-label">全体分析</div>
+    <button class="nav-item active" onclick="showPage('trend',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,13 5,7 9,10 15,3"/></svg>成績推移
+    </button>
+    <div class="nav-section-label">個別模試</div>
+    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:4px 8px 8px;width:calc(100% - 16px);font-size:12px;"></select>
+    <button class="nav-item" onclick="showPage('summary',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>模試集計
+    </button>
+    <button class="nav-item" onclick="showPage('category',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率
+    </button>
+    <button class="nav-item" onclick="showPage('weakness',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
+    </button>
+    <div class="nav-section-label">管理</div>
+    <button class="nav-item" onclick="showPage('admin_exam',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試マスタ
+    </button>
+    <button class="nav-item" onclick="showPage('admin_student',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト
+    </button>
+    <div class="nav-section-label">印刷</div>
+    <button class="print-btn nav-item" onclick="window.print()">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/></svg>このページを印刷
+    </button>
+    <button class="print-btn nav-item" onclick="printAllStudents()">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/><path d="M6 12h4M8 10v4" stroke-width="1.2"/></svg>全学生を印刷
+    </button>
+  </nav>
+
+  <main class="main">
+    <!-- 成績推移 -->
+    <div class="page active" id="page-trend">
+      <div class="page-header-row">
+        <div><div class="page-title">成績推移</div><div class="page-sub">全模試にわたる学生別の得点変化</div></div>
+      </div>
+      <div class="card"><div class="card-title">合計得点の推移</div><div class="chart-box" style="height:360px"><canvas id="trendChart"></canvas></div></div>
+      <div class="card"><div class="card-title">学生別 × 模試別 得点一覧</div><div class="tbl-wrap"><table><thead id="trendThead"></thead><tbody id="trendTbody"></tbody></table></div></div>
+    </div>
+
+    <!-- 模試集計 -->
+    <div class="page" id="page-summary">
+      <div class="page-header-row">
+        <div><div class="page-title">模試集計</div><div class="page-sub" id="summarySubtitle"></div></div>
+      </div>
+      <div class="grid4">
+        <div class="stat"><div class="stat-label">受験者数</div><div class="stat-val a" id="sN">—</div><div class="stat-sub">名</div></div>
+        <div class="stat"><div class="stat-label">クラス平均</div><div class="stat-val" id="sAvg">—</div><div class="stat-sub">/ 200点</div></div>
+        <div class="stat"><div class="stat-label">中央値</div><div class="stat-val" id="sMed">—</div><div class="stat-sub">/ 200点</div></div>
+        <div class="stat"><div class="stat-label">クラス正答率</div><div class="stat-val ok" id="sPct">—</div><div class="stat-sub">%</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-title">学生別得点</div><div class="tbl-wrap"><table><thead><tr><th>氏名</th><th>午前</th><th>午後</th><th>合計</th></tr></thead><tbody id="scoreBody"></tbody></table></div></div>
+        <div class="card"><div class="card-title">得点分布</div><div class="chart-box" style="height:220px"><canvas id="distChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- 分野別正答率 -->
+    <div class="page" id="page-category">
+      <div class="page-header-row">
+        <div><div class="page-title">分野別正答率</div><div class="page-sub" id="catSubtitle"></div></div>
+      </div>
+      <div class="card"><div class="chart-box" style="height:520px"><canvas id="catChart"></canvas></div></div>
+    </div>
+
+    <!-- 弱点抽出 -->
+    <div class="page" id="page-weakness">
+      <div class="page-header-row">
+        <div><div class="page-title">弱点抽出</div><div class="page-sub" id="weakSubtitle"></div></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">基準値：</span>
+        <input class="filter-input" type="number" id="thresh" value="80" min="0" max="100" oninput="onThreshChange()">
+        <span class="filter-label">%</span>
+        <div class="vdiv" id="wStudentDivider"></div>
+        <span class="filter-label" id="wStudentLabel">学生：</span>
+        <select class="student-select" id="wStudentSel" onchange="loadAndRenderWeak()"></select>
+      </div>
+      <div class="legend-row">
+        <span>判定：</span>
+        <span><span style="color:var(--ng);font-weight:700;font-size:13px;">★</span> 不正解 かつ クラス正答率が基準値以上（優先復習）</span>
+        <span><span style="color:var(--g5);font-weight:700;font-size:13px;">×</span> 不正解</span>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午前（第1〜100問）</div>
+      <div class="weak-blocks" id="weakBlocksAM" style="margin-bottom:24px;"></div>
+      <div class="pm-break-label" style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午後（第101〜200問）</div>
+      <div class="weak-blocks" id="weakBlocksPM"></div>
+    </div>
+
+    <!-- 模試マスタ管理 -->
+    <div class="page" id="page-admin_exam">
+      <div class="page-header-row">
+        <div><div class="page-title">模試マスタ管理</div><div class="page-sub">模試の追加・編集・正答入力</div></div>
+        <button class="btn-admin-add" onclick="openExamModal(null)">＋ 模試を追加</button>
+      </div>
+      <div class="card" id="examListCard">
+        <div class="card-title">模試一覧</div>
+        <div class="tbl-wrap"><table><thead><tr><th>模試名</th><th>実施日</th><th>受付状態</th><th>操作</th></tr></thead><tbody id="adminExamTable"></tbody></table></div>
+      </div>
+      <div class="card hidden" id="examEditCard">
+        <div class="card-title" id="examEditTitle">正答・カテゴリ編集</div>
+        <div class="filter-row" style="margin-bottom:16px;">
+          <button class="tog-btn on" id="editAM" onclick="setEditPart('AM')">午前（1〜100）</button>
+          <button class="tog-btn" id="editPM" onclick="setEditPart('PM')">午後（101〜200）</button>
+          <button class="btn-admin-save" onclick="saveExamAnswers()" style="margin-left:auto;">💾 保存</button>
+        </div>
+        <div class="tbl-wrap" id="answerEditArea"></div>
+      </div>
+    </div>
+
+    <!-- 学生リスト -->
+    <div class="page" id="page-admin_student">
+      <div class="page-header-row">
+        <div><div class="page-title">学生リスト</div><div class="page-sub">登録済み学生一覧</div></div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap"><table><thead><tr><th>メールアドレス</th><th>名前</th><th>登録日時</th></tr></thead><tbody id="adminStudentTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- 模試追加モーダル -->
+    <div class="modal-overlay hidden" id="examModal">
+      <div class="modal-box">
+        <h3 class="modal-box-title" id="examModalTitle">模試を追加</h3>
+        <div class="form-grid">
+          <label>模試名</label><input type="text" id="mName" placeholder="例：第28回 国試模試">
+          <label>実施日</label><input type="date" id="mDate">
+          <label>受付状態</label><select id="mActive"><option value="1">受付中</option><option value="0">締切</option></select>
+        </div>
+        <div class="modal-box-btns">
+          <button class="modal-cancel-btn" onclick="closeExamModal()">キャンセル</button>
+          <button class="btn-admin-save" onclick="confirmExamModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ===== Firebase設定 =====
+const firebaseConfig = {
+  apiKey: "AIzaSyB8iFqfh0LV9iJEY4l3BbP92hVKxNNvWko",
+  authDomain: "moshi-bunseki.firebaseapp.com",
+  databaseURL: "https://moshi-bunseki-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "moshi-bunseki",
+  storageBucket: "moshi-bunseki.firebasestorage.app",
+  messagingSenderId: "324983246776",
+  appId: "1:324983246776:web:d9fa55f11950ec1f90494d"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.database();
+
+// ===== STATE =====
+let currentUser   = null;
+let isTeacher     = false;
+let examList      = [];
+let currentExam   = '';
+let allData       = {};  // { examName: { master, responses } }
+let students      = [];
+let charts        = {};
+let editingExam   = null;
+let editPart      = 'AM';
+let questionCache = {};
+let _threshTimer  = null;
+
+// ===== AUTH =====
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e => alert('ログインエラー: ' + e.message));
+}
+function signOut() {
+  if (confirm('ログアウトしますか？')) auth.signOut();
+}
+
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    const email = user.email || '';
+    if (!email.includes('@asahi.ac.jp') && !email.includes('@oky.asahi.ac.jp')) {
+      await auth.signOut(); alert('朝日医療大学のアカウントが必要です'); return;
+    }
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = '';
+    document.getElementById('mainLayout').style.display = 'flex';
+    document.getElementById('userAv').textContent = email.slice(0,2).toUpperCase();
+    document.getElementById('userName').textContent = email;
+
+    // 教員判定
+    const tSnap = await db.ref('teachers/' + user.uid).once('value');
+    isTeacher = tSnap.exists();
+    document.getElementById('userRole').textContent = isTeacher ? '教員' : '学生';
+    if (!isTeacher) {
+      document.getElementById('userRole').style.background = 'var(--ok-bg)';
+      document.getElementById('userRole').style.color = 'var(--ok)';
+      // 学生は管理画面非表示
+      document.querySelectorAll('#page-admin_exam, #page-admin_student').forEach(el => el.style.display='none');
+    }
+
+    applyWeakMode();
+    await loadAllData();
+  } else {
+    currentUser = null;
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('mainLayout').style.display = 'none';
+  }
+});
+
+// ===== データ一括読み込み =====
+async function loadAllData() {
+  showLoading('データを読み込み中...');
+  try {
+    // 模試マスタ + 回答データを並行取得
+    const [examSnap, respSnap, stuSnap] = await Promise.all([
+      db.ref('exams').once('value'),
+      db.ref('responses').once('value'),
+      db.ref('students').once('value'),
+    ]);
+
+    // 模試マスタ
+    examList = [];
+    examSnap.forEach(child => {
+      const e = child.val();
+      examList.push({ name: child.key, ...e });
+      allData[child.key] = { master: e, responses: {} };
+    });
+
+    // 学生リスト
+    students = [];
+    stuSnap.forEach(child => {
+      students.push({ uid: child.key, ...child.val() });
+    });
+
+    // 回答データ
+    respSnap.forEach(examChild => {
+      const examName = examChild.key;
+      if (!allData[examName]) allData[examName] = { master: {}, responses: {} };
+      examChild.forEach(userChild => {
+        allData[examName].responses[userChild.key] = userChild.val();
+      });
+    });
+
+    // ソート（新しい順）
+    examList.sort((a, b) => {
+      const da = a.date ? new Date(a.date) : null;
+      const db2 = b.date ? new Date(b.date) : null;
+      if (da && db2) return db2 - da;
+      if (da) return -1; if (db2) return 1; return 0;
+    });
+
+    // セレクト設定
+    const opts = examList.map(e => `<option value="${e.name}">${e.name}（${formatDate(e.date)}）</option>`).join('');
+    document.getElementById('examSel').innerHTML = opts;
+    currentExam = examList[0]?.name || '';
+
+    // 学生セレクト
+    const wSel = document.getElementById('wStudentSel');
+    wSel.innerHTML = students.map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+
+    // 各ビュー描画
+    renderTrend();
+    renderSummary();
+    renderCategory();
+    loadAndRenderWeak();
+    renderAdminExamTable();
+    renderAdminStudentTable();
+
+  } catch(e) {
+    console.error(e);
+    alert('データ取得エラー: ' + e.message);
+  }
+  hideLoading();
+}
+
+// ===== NAV =====
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function onExamChange() {
+  currentExam = document.getElementById('examSel').value;
+  questionCache = {};
+  renderSummary();
+  renderCategory();
+  loadAndRenderWeak();
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const m = String(d).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+  if (m) return parseInt(m[2]) + '月' + parseInt(m[3]) + '日';
+  try { const dt=new Date(d); if(!isNaN(dt)) return (dt.getMonth()+1)+'月'+dt.getDate()+'日'; } catch(e){}
+  return d;
+}
+
+function getExamName() {
+  const e = examList.find(x => x.name === currentExam);
+  return e ? `${e.name}（${formatDate(e.date)}）` : '';
+}
+
+// ===== 成績推移 =====
+function renderTrend() {
+  const PASS = 120;
+  const examColors = ['#1A5CE8','#E8851A','#B91C1C','#7C3AED','#0891B2','#BE185D','#065F46','#D97706','#6B21A8','#15803D'];
+
+  // データがある模試を特定
+  const examsWithData = examList.filter(e => {
+    return students.some(s => {
+      const r = allData[e.name]?.responses?.[s.uid];
+      return r?.AM?.score != null || r?.PM?.score != null;
+    });
+  });
+
+  function getTotal(examName, uid) {
+    const r = allData[examName]?.responses?.[uid];
+    if (!r) return null;
+    const am = r.AM?.score ?? 0;
+    const pm = r.PM?.score ?? 0;
+    return (r.AM?.status === 'submitted' || r.PM?.status === 'submitted') ? am + pm : null;
+  }
+  function getAvg(examName) {
+    const tots = students.map(s => getTotal(examName, s.uid)).filter(v => v !== null);
+    return tots.length ? Math.round(tots.reduce((a,b)=>a+b,0)/tots.length) : null;
+  }
+
+  const labels = ['平均', ...students.map(s => (s.email||s.name).split('@')[0].slice(0,4))];
+  const datasets = examsWithData.map((e,ei) => ({
+    label: formatDate(e.date) || e.name,
+    data: [getAvg(e.name), ...students.map(s => getTotal(e.name, s.uid))],
+    backgroundColor: examColors[ei % examColors.length],
+    borderRadius: 2, borderSkipped: false,
+  }));
+
+  // 表
+  const thead = document.getElementById('trendThead');
+  thead.innerHTML = '<tr><th>メール</th>' + examsWithData.map((e,ei) =>
+    `<th><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${examColors[ei%examColors.length]};margin-right:4px;vertical-align:middle"></span>${e.name}<br><span style="font-weight:400;font-size:10px;color:var(--g4)">${formatDate(e.date)}</span></th>`
+  ).join('') + '</tr>';
+
+  const avgRow = `<tr style="background:var(--g1);font-weight:500;"><td>クラス平均</td>${examsWithData.map(e => {
+    const avg = getAvg(e.name);
+    if (avg===null) return '<td style="color:var(--g3)">—</td>';
+    const col = avg>=PASS?'color:var(--ok)':avg>=100?'color:var(--warn)':'color:var(--ng)';
+    return `<td class="mono" style="${col}">${avg}</td>`;
+  }).join('')}</tr>`;
+
+  const stuRows = students.map(s => {
+    const cols = examsWithData.map(e => {
+      const t = getTotal(e.name, s.uid);
+      if (t===null) return '<td style="color:var(--g3)">—</td>';
+      const col = t>=PASS?'color:var(--ok)':t>=100?'color:var(--warn)':'color:var(--ng)';
+      return `<td class="mono" style="${col}">${t}</td>`;
+    }).join('');
+    return `<tr><td style="font-size:11px;color:var(--g4)">${s.email||s.name}</td>${cols}</tr>`;
+  }).join('');
+  document.getElementById('trendTbody').innerHTML = avgRow + stuRows;
+
+  if (charts.trend) charts.trend.destroy();
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type: 'bar', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 80 } },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+        tooltip: { callbacks: {
+          title: ctx => ctx[0].dataIndex===0 ? 'クラス平均' : (students[ctx[0].dataIndex-1]?.email||''),
+          label: ctx => ` ${ctx.dataset.label}：${ctx.raw}点`
+        }}
+      },
+      scales: {
+        y: { min:80, max:200, grid:{color:'#f0eeeb'}, ticks:{font:{size:11}} },
+        x: { grid:{display:false}, ticks:{font:{size:10}} }
+      }
+    },
+    plugins: [{ id:'passLine', afterDraw(chart) {
+      const {ctx,chartArea:{left,right,top,bottom},scales:{y}} = chart;
+      const yPos = y.getPixelForValue(120);
+      ctx.save();
+      ctx.fillStyle='rgba(185,28,28,0.06)';ctx.fillRect(left,yPos,right-left,bottom-yPos);
+      ctx.beginPath();ctx.moveTo(left,yPos);ctx.lineTo(right,yPos);
+      ctx.strokeStyle='#B91C1C';ctx.lineWidth=2.5;ctx.stroke();
+      ctx.fillStyle='#B91C1C';ctx.fillRect(left+6,yPos-20,90,18);
+      ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillText('合格ライン 120点',left+10,yPos-11);ctx.restore();
+    }}]
+  });
+}
+
+// ===== 模試集計 =====
+function renderSummary() {
+  if (!currentExam) return;
+  document.getElementById('summarySubtitle').textContent = getExamName();
+  const rows = students.map(s => {
+    const r = allData[currentExam]?.responses?.[s.uid];
+    const am = r?.AM?.status==='submitted' ? (r.AM.score||0) : null;
+    const pm = r?.PM?.status==='submitted' ? (r.PM.score||0) : null;
+    return { email: s.email||s.name, am, pm, total:(am||0)+(pm||0) };
+  }).filter(r => r.am!==null || r.pm!==null);
+
+  const totals = rows.map(r=>r.total).filter(t=>t>0);
+  const avg = totals.length ? Math.round(totals.reduce((a,b)=>a+b,0)/totals.length) : 0;
+  const med = [...totals].sort((a,b)=>a-b)[Math.floor(totals.length/2)]||0;
+  document.getElementById('sN').textContent   = rows.length;
+  document.getElementById('sAvg').textContent = avg;
+  document.getElementById('sMed').textContent = med;
+  document.getElementById('sPct').textContent = Math.round(avg/2);
+
+  document.getElementById('scoreBody').innerHTML = rows.map(r => {
+    const col = r.total>=120?'color:var(--ok)':r.total>=100?'color:var(--warn)':'color:var(--ng)';
+    return `<tr><td style="font-size:11px;color:var(--g4)">${r.email}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
+  }).join('');
+
+  const bins=['80-99','100-119','120-139','140-159','160-179','180-200'];
+  const binData=[0,0,0,0,0,0];
+  totals.forEach(t=>{const i=Math.min(Math.floor((t-80)/20),5);if(i>=0)binData[i]++;});
+  if(charts.dist)charts.dist.destroy();
+  charts.dist=new Chart(document.getElementById('distChart'),{
+    type:'bar',data:{labels:bins,datasets:[{label:'人数',data:binData,backgroundColor:bins.map((_,i)=>i>=3?'rgba(21,128,61,0.75)':i>=1?'rgba(180,83,9,0.65)':'rgba(185,28,28,0.65)'),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:1,font:{size:11}},grid:{color:'#f0eeeb'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+}
+
+// ===== 分野別正答率 =====
+function renderCategory() {
+  if (!currentExam) return;
+  document.getElementById('catSubtitle').textContent = getExamName();
+  const master = allData[currentExam]?.master;
+  if (!master?.answers) return;
+
+  // クラス全体のカテゴリ集計
+  const allAmCat={}, allPmCat={};
+  students.forEach(s => {
+    const r = allData[currentExam]?.responses?.[s.uid];
+    if (r?.AM?.categoryScores) {
+      Object.entries(r.AM.categoryScores).forEach(([k,v]) => {
+        if(!allAmCat[k])allAmCat[k]={correct:0,total:0};
+        allAmCat[k].correct+=v.correct;allAmCat[k].total+=v.total;
+      });
+    }
+    if (r?.PM?.categoryScores) {
+      Object.entries(r.PM.categoryScores).forEach(([k,v]) => {
+        if(!allPmCat[k])allPmCat[k]={correct:0,total:0};
+        allPmCat[k].correct+=v.correct;allPmCat[k].total+=v.total;
+      });
+    }
+  });
+
+  const cats = [...new Set([...Object.keys(allAmCat),...Object.keys(allPmCat)])];
+  const data = cats.map(cat => ({
+    name: cat,
+    amPct: allAmCat[cat]?.total ? Math.round(allAmCat[cat].correct/allAmCat[cat].total*100) : null,
+    pmPct: allPmCat[cat]?.total ? Math.round(allPmCat[cat].correct/allPmCat[cat].total*100) : null,
+    amQ: allAmCat[cat]?.total||0, pmQ: allPmCat[cat]?.total||0,
+  }));
+
+  const amVals = data.map(c => c.amPct!=null?c.amPct/2:0);
+  const pmVals = data.map(c => c.pmPct!=null?c.pmPct/2:0);
+
+  if(charts.cat)charts.cat.destroy();
+  charts.cat=new Chart(document.getElementById('catChart'),{
+    type:'bar',
+    data:{labels:data.map(c=>c.name),datasets:[
+      {label:'午前',data:amVals,backgroundColor:'rgba(26,92,232,0.65)',borderRadius:0,stack:'stack'},
+      {label:'午後',data:pmVals,backgroundColor:'rgba(234,88,12,0.65)',borderRadius:2,stack:'stack'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:11},boxWidth:14,padding:12}},
+        tooltip:{callbacks:{title:ctx=>data[ctx[0].dataIndex].name,label:ctx=>ctx.dataset.label==='午前'?` 午前 ${data[ctx.dataIndex].amPct??'—'}%（${data[ctx.dataIndex].amQ}問）`:` 午後 ${data[ctx.dataIndex].pmPct??'—'}%`}}},
+      scales:{x:{min:0,max:100,stacked:true,ticks:{callback:v=>v+'%',font:{size:11},stepSize:10},grid:{color:'#f0eeeb'}},y:{stacked:true,ticks:{font:{size:12}},grid:{display:false}}}
+    },
+    plugins:[{id:'catLines',afterDraw(chart){
+      const {ctx,chartArea:{top,bottom},scales:{x}}=chart;
+      [{v:60,label:'60%',color:'rgba(185,28,28,0.6)'},{v:70,label:'70%',color:'rgba(180,83,9,0.6)'},{v:80,label:'80%',color:'rgba(21,128,61,0.6)'}].forEach(({v,label,color})=>{
+        const xp=x.getPixelForValue(v);ctx.save();ctx.beginPath();ctx.moveTo(xp,top);ctx.lineTo(xp,bottom);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(label,xp,top-4);ctx.restore();
+      });
+      const meta1=chart.getDatasetMeta(1);
+      data.forEach((d,i)=>{if(!meta1.data[i])return;const avg=d.amPct!=null&&d.pmPct!=null?Math.round((d.amPct+d.pmPct)/2):null;if(avg===null)return;ctx.save();ctx.fillStyle='#2D2C2A';ctx.font='bold 11px DM Mono,monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`${avg}%`,x.getPixelForValue((d.amPct+d.pmPct)/2)+4,meta1.data[i].y);ctx.restore();});
+    }}]
+  });
+}
+
+// ===== 弱点抽出 =====
+function applyWeakMode() {
+  const show = isTeacher;
+  ['wStudentDivider','wStudentLabel','wStudentSel'].forEach(id => {
+    const el=document.getElementById(id);if(el)el.style.display=show?'':'none';
+  });
+}
+
+function onThreshChange() {
+  clearTimeout(_threshTimer);
+  _threshTimer = setTimeout(() => renderWeakBoth(), 600);
+}
+
+async function loadAndRenderWeak() {
+  if (!currentExam) return;
+  const master = allData[currentExam]?.master;
+  if (!master?.answers) return;
+  renderWeakBoth();
+}
+
+function renderWeakBoth() {
+  renderWeak('AM');
+  renderWeak('PM');
+}
+
+function getWeakStudentUid() {
+  if (!isTeacher) return currentUser?.uid;
+  return document.getElementById('wStudentSel')?.value || '';
+}
+function getWeakLabel() {
+  if (!isTeacher) return 'あなた';
+  const uid = document.getElementById('wStudentSel')?.value;
+  const s = students.find(x => x.uid === uid);
+  return s ? (s.email||s.name).split('@')[0].slice(0,4) : '';
+}
+
+function renderWeak(part) {
+  document.getElementById('weakSubtitle').textContent = getExamName();
+  const thresh = parseInt(document.getElementById('thresh').value)||80;
+  const master  = allData[currentExam]?.master;
+  if (!master?.answers) return;
+
+  const targetUid = getWeakStudentUid();
+  const myAnsData = allData[currentExam]?.responses?.[targetUid]?.[part]?.answers || {};
+  const myLabel   = getWeakLabel();
+
+  // クラス正答率計算
+  const classStat = {};
+  const start = part==='AM'?1:101, end = part==='AM'?100:200;
+  students.forEach(s => {
+    const ans = allData[currentExam]?.responses?.[s.uid]?.[part]?.answers;
+    if (!ans) return;
+    for (let q=start;q<=end;q++) {
+      if(!classStat[q])classStat[q]={correct:0,total:0};
+      const correct=String(master.answers[q]||'');
+      const userAns=String(ans[q]||'');
+      classStat[q].total++;
+      if(correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(userAns):userAns===correct))classStat[q].correct++;
+    }
+  });
+
+  const qs = Array.from({length:100},(_,i)=>({
+    q:start+i,
+    ans:String(master.answers[start+i]||''),
+    pct:classStat[start+i]?.total?Math.round(classStat[start+i].correct/classStat[start+i].total*100):null,
+    myAns:myAnsData[start+i]?Number(myAnsData[start+i]):null,
+  }));
+
+  const containerId = part==='PM'?'weakBlocksPM':'weakBlocksAM';
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  for (let b=0;b<4;b++) {
+    const bqs=qs.slice(b*25,(b+1)*25);
+    const colW='52px '+bqs.map(()=>'1fr').join(' ');
+    const block=document.createElement('div');
+    block.className='weak-block';
+
+    const starCols=new Set(bqs.map((q,i)=>{
+      const wrong=q.myAns===null||q.myAns!==Number(q.ans);
+      return(wrong&&q.pct>=thresh)?i:-1;
+    }).filter(i=>i>=0));
+    const sc=i=>starCols.has(i)?' star-col':'';
+
+    block.appendChild(mkWRow(colW,`<div class="wcell qnum wrow-label" style="height:24px;border-bottom:none;">問</div>`,bqs.map((q,i)=>`<div class="wcell qnum${s5(i,bqs.length)}">${q.q}</div>`)));
+    block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">正答</div>`,bqs.map((q,i)=>`<div class="wcell${sc(i)}${s5(i,bqs.length)}">${q.ans}</div>`)));
+    block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">正答率</div>`,bqs.map((q,i)=>{
+      const cls=q.pct>=80?'pct-ok':q.pct>=60?'pct-warn':'pct-ng';
+      return `<div class="wcell ${cls}${sc(i)}${s5(i,bqs.length)}">${q.pct!=null?q.pct+'%':'—'}</div>`;
+    })));
+    block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;" title="${myLabel}">${myLabel}</div>`,bqs.map((q,i)=>{
+      const nc=q.myAns===null?' my-none':'';
+      return `<div class="wcell${nc}${sc(i)}${s5(i,bqs.length)}">${q.myAns??'—'}</div>`;
+    })));
+    block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;border-bottom:none;">判定</div>`,bqs.map((q,i)=>{
+      const wrong=q.myAns===null||q.myAns!==Number(q.ans);
+      let mark='',cls='';
+      if(wrong&&q.pct>=thresh){mark='★';cls='jstar';}else if(wrong){mark='×';cls='jx';}
+      return `<div class="wcell${cls?' '+cls:''}${sc(i)}${s5(i,bqs.length)}">${mark}</div>`;
+    })));
+    container.appendChild(block);
+  }
+}
+
+function mkWRow(colW,labelHtml,cells){const d=document.createElement('div');d.className='wrow';d.style.gridTemplateColumns=colW;d.innerHTML=labelHtml+cells.join('');return d;}
+function s5(i,len){return(i+1)%5===0&&i!==len-1?' sep5':'';}
+
+// ===== 模試マスタ管理 =====
+function renderAdminExamTable() {
+  const tbody = document.getElementById('adminExamTable');
+  if (!tbody) return;
+  tbody.innerHTML = examList.map((e,i) => {
+    function toInputDate(d){if(!d)return'';const m=String(d).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);if(m)return`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;try{const dt=new Date(d);if(!isNaN(dt))return dt.toISOString().split('T')[0];}catch(e){}return'';}
+    return `<tr>
+      <td style="font-weight:500">${e.name}</td>
+      <td><input type="date" class="admin-input" style="width:140px;" value="${toInputDate(e.date)}" onchange="updateExamDate('${e.name}',this.value)"></td>
+      <td><select class="admin-select" onchange="updateExamActive('${e.name}',this.value)">
+        <option value="1" ${e.active?'selected':''}>受付中</option>
+        <option value="0" ${!e.active?'selected':''}>締切</option>
+      </select></td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="btn-admin-add" style="font-size:11px;padding:4px 10px;" onclick="openAnswerEdit('${e.name}')">正答編集</button>
+        <button class="btn-admin-del" onclick="deleteExam('${e.name}')">削除</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateExamDate(name, date) {
+  db.ref('exams/' + name + '/date').set(date);
+  const e = examList.find(x=>x.name===name); if(e) e.date=date;
+}
+function updateExamActive(name, val) {
+  db.ref('exams/' + name + '/active').set(val==='1');
+  const e = examList.find(x=>x.name===name); if(e) e.active=val==='1';
+}
+async function deleteExam(name) {
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+  await db.ref('exams/' + name).remove();
+  examList = examList.filter(e=>e.name!==name);
+  delete allData[name];
+  renderAdminExamTable();
+}
+
+function openExamModal(name) {
+  const modal = document.getElementById('examModal');
+  document.getElementById('mName').value  = name||'';
+  document.getElementById('mDate').value  = '';
+  document.getElementById('mActive').value= '1';
+  document.getElementById('examModalTitle').textContent = name ? '模試を編集' : '模試を追加';
+  modal.classList.remove('hidden'); modal.classList.add('show');
+}
+function closeExamModal() {
+  const modal = document.getElementById('examModal');
+  modal.classList.remove('show'); modal.classList.add('hidden');
+}
+async function confirmExamModal() {
+  const name   = document.getElementById('mName').value.trim();
+  const date   = document.getElementById('mDate').value;
+  const active = document.getElementById('mActive').value==='1';
+  if (!name) return alert('模試名は必須です');
+  await db.ref('exams/' + name).update({ date, active });
+  if (!allData[name]) allData[name]={master:{date,active,answers:{},categories:{}},responses:{}};
+  if (!examList.find(e=>e.name===name)) examList.push({name,date,active});
+  closeExamModal();
+  renderAdminExamTable();
+  alert('保存しました');
+}
+
+// 正答編集
+function openAnswerEdit(name) {
+  editingExam = { name, ...(allData[name]?.master||{}) };
+  if (!editingExam.answers) editingExam.answers = {};
+  if (!editingExam.categories) editingExam.categories = {};
+  editPart = 'AM';
+  document.getElementById('editAM').className='tog-btn on';
+  document.getElementById('editPM').className='tog-btn';
+  document.getElementById('examEditTitle').textContent=`正答・カテゴリ編集：${name}`;
+  document.getElementById('examEditCard').classList.remove('hidden');
+  renderAnswerEdit();
+}
+function setEditPart(p){editPart=p;document.getElementById('editAM').className='tog-btn'+(p==='AM'?' on':'');document.getElementById('editPM').className='tog-btn'+(p==='PM'?' on':'');renderAnswerEdit();}
+function renderAnswerEdit(){
+  if(!editingExam)return;
+  const offset=editPart==='AM'?0:100;
+  const area=document.getElementById('answerEditArea');
+  let html='<table class="ans-table"><thead><tr><th>問</th><th>正答</th><th>カテゴリ</th><th>問</th><th>正答</th><th>カテゴリ</th><th>問</th><th>正答</th><th>カテゴリ</th><th>問</th><th>正答</th><th>カテゴリ</th></tr></thead><tbody>';
+  for(let row=0;row<25;row++){html+='<tr>';for(let col=0;col<4;col++){const qi=offset+col*25+row;const qNum=qi+1;const ans=editingExam.answers[qNum]||'';const cat=editingExam.categories[qNum]||'';html+=`<td style="background:var(--g1);font-weight:700;color:var(--g4);font-family:'DM Mono',monospace">${qNum}</td><td><input class="ans-input" type="text" maxlength="3" value="${ans}" data-q="${qNum}" oninput="editingExam.answers[this.dataset.q]=this.value"></td><td><input class="cat-input" type="text" value="${cat}" data-q="${qNum}" oninput="editingExam.categories[this.dataset.q]=this.value"></td>`;}html+='</tr>';}
+  html+='</tbody></table>';area.innerHTML=html;
+}
+async function saveExamAnswers(){
+  if(!editingExam)return;
+  showLoading('保存中...');
+  await db.ref('exams/'+editingExam.name).update({answers:editingExam.answers,categories:editingExam.categories});
+  if(allData[editingExam.name])allData[editingExam.name].master={...allData[editingExam.name].master,answers:editingExam.answers,categories:editingExam.categories};
+  hideLoading();alert('保存しました');
+}
+
+// ===== 学生リスト =====
+function renderAdminStudentTable(){
+  const tbody=document.getElementById('adminStudentTable');if(!tbody)return;
+  tbody.innerHTML=students.map(s=>`<tr><td style="font-size:12px;color:var(--g4)">${s.email||''}</td><td>${s.name||''}</td><td style="font-size:11px;color:var(--g4)">${s.registeredAt?new Date(s.registeredAt).toLocaleDateString('ja-JP'):''}</td></tr>`).join('');
+}
+
+// ===== 全学生印刷 =====
+function printAllStudents(){
+  document.querySelectorAll('.student-print-page').forEach(el=>el.remove());
+  const thresh=parseInt(document.getElementById('thresh').value)||80;
+  const container=document.querySelector('.main');
+  students.forEach(s=>{
+    const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
+    const header=document.createElement('div');header.className='print-student-header';
+    header.innerHTML=`<span style="font-size:16px;font-weight:700;">${s.email||s.name}</span><span style="font-size:11px;color:#666;margin-left:12px;">${getExamName()} ／ 弱点抽出（基準値 ${thresh}%）</span>`;
+    page.appendChild(header);
+    // 正答マスタ取得
+    const master=allData[currentExam]?.master;
+    if(!master?.answers){page.appendChild(document.createTextNode('データなし'));container.appendChild(page);return;}
+    ['AM','PM'].forEach(part=>{
+      const partLabel=document.createElement('div');
+      partLabel.style.cssText='font-size:12px;font-weight:700;color:#666;margin:8px 0 4px;';
+      partLabel.textContent=part==='AM'?'午前（第1〜100問）':'午後（第101〜200問）';
+      if(part==='PM')partLabel.style.cssText+='page-break-before:always;padding-top:8px;';
+      page.appendChild(partLabel);
+      const myAns=allData[currentExam]?.responses?.[s.uid]?.[part]?.answers||{};
+      const start=part==='AM'?1:101,end=part==='AM'?100:200;
+      const classStat={};
+      students.forEach(st=>{const ans=allData[currentExam]?.responses?.[st.uid]?.[part]?.answers;if(!ans)return;for(let q=start;q<=end;q++){if(!classStat[q])classStat[q]={correct:0,total:0};const correct=String(master.answers[q]||'');const ua=String(ans[q]||'');classStat[q].total++;if(correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(ua):ua===correct))classStat[q].correct++;}});
+      const qs=Array.from({length:100},(_,i)=>({q:start+i,ans:String(master.answers[start+i]||''),pct:classStat[start+i]?.total?Math.round(classStat[start+i].correct/classStat[start+i].total*100):null,myAns:myAns[start+i]?Number(myAns[start+i]):null}));
+      const wrap=document.createElement('div');wrap.className='weak-blocks';
+      for(let b=0;b<4;b++){const bqs=qs.slice(b*25,(b+1)*25);const colW='52px '+bqs.map(()=>'1fr').join(' ');const block=document.createElement('div');block.className='weak-block';block.style.marginBottom='6px';
+        const starCols=new Set(bqs.map((q,i)=>{const wrong=q.myAns===null||q.myAns!==Number(q.ans);return(wrong&&q.pct>=thresh)?i:-1;}).filter(i=>i>=0));const sc=i=>starCols.has(i)?' star-col':'';
+        block.appendChild(mkWRow(colW,`<div class="wcell qnum wrow-label" style="height:24px;border-bottom:none;">問</div>`,bqs.map((q,i)=>`<div class="wcell qnum${s5(i,bqs.length)}">${q.q}</div>`)));
+        block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">正答</div>`,bqs.map((q,i)=>`<div class="wcell${sc(i)}${s5(i,bqs.length)}">${q.ans}</div>`)));
+        block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">正答率</div>`,bqs.map((q,i)=>{const cls=q.pct>=80?'pct-ok':q.pct>=60?'pct-warn':'pct-ng';return`<div class="wcell ${cls}${sc(i)}${s5(i,bqs.length)}">${q.pct!=null?q.pct+'%':'—'}</div>`;})));
+        block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">あなた</div>`,bqs.map((q,i)=>{const nc=q.myAns===null?' my-none':'';return`<div class="wcell${nc}${sc(i)}${s5(i,bqs.length)}">${q.myAns??'—'}</div>`;})));
+        block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;border-bottom:none;">判定</div>`,bqs.map((q,i)=>{const wrong=q.myAns===null||q.myAns!==Number(q.ans);let mark='',cls='';if(wrong&&q.pct>=thresh){mark='★';cls='jstar';}else if(wrong){mark='×';cls='jx';}return`<div class="wcell${cls?' '+cls:''}${sc(i)}${s5(i,bqs.length)}">${mark}</div>`;})));
+        wrap.appendChild(block);}
+      page.appendChild(wrap);
+    });
+    container.appendChild(page);
+  });
+  document.body.classList.add('print-all-students');
+  window.print();
+  setTimeout(()=>{document.body.classList.remove('print-all-students');document.querySelectorAll('.student-print-page').forEach(el=>el.remove());},1000);
+}
+
+// ===== ローディング =====
+function showLoading(t){document.getElementById('loadingText').textContent=t||'処理中...';document.getElementById('loading').classList.add('show');}
+function hideLoading(){document.getElementById('loading').classList.remove('show');}
+</script>
+</body>
+</html>
