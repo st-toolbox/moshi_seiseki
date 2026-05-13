@@ -163,12 +163,14 @@ tbody tr:hover td{background:var(--g1);}
 .grid-table th{background:var(--g1);padding:5px 8px;border:1px solid var(--g2);font-weight:700;color:var(--g4);text-align:center;position:sticky;top:0;z-index:10;min-width:80px;}
 .grid-table th.col-fixed{position:sticky;left:0;z-index:20;background:var(--g1);}
 .grid-table td{padding:0;border:1px solid var(--g2);min-width:60px;max-width:160px;}
+.grid-table td.ans-td{min-width:72px;}
 .grid-table td.col-fixed{position:sticky;left:0;background:#fff;z-index:5;font-weight:500;padding:4px 8px;font-size:11px;color:var(--g4);}
 .grid-cell{width:100%;height:28px;padding:2px 6px;border:none;outline:none;font-size:12px;font-family:'DM Mono',monospace;color:var(--g5);background:transparent;}
 .grid-cell:focus{background:var(--accent-bg);outline:2px solid var(--accent);outline-offset:-2px;}
 .grid-cell.ans-cell{width:100%;text-align:center;}
 .grid-cell.cat-cell{width:100%;}
 .grid-cell.cat-invalid{background:rgba(185,28,28,0.12)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
+.grid-cell.ans-invalid{background:rgba(185,28,28,0.10)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
 .grid-cell.name-cell{width:180px;font-family:'Noto Sans JP',sans-serif;}
 .grid-cell.date-cell{width:110px;}
 .grid-cell.active-cell{width:80px;text-align:center;}
@@ -1399,7 +1401,8 @@ function renderGridMaster() {
       const a   = gridData[examName].answers[q] || '';
       const bdr = (q % 10 === 0 && q !== end) ? 'border-right:2px solid var(--g3);'
                 : (q % 5  === 0 && q !== end) ? 'border-right:1px dashed var(--g3);' : '';
-      html += `<td style="${bdr}"><input class="grid-cell ans-cell" type="text" maxlength="5" value="${a}" data-exam="${examName}" data-q="${q}" data-type="ans" onchange="onGridCellChange(this)"></td>`;
+      const ansInv = a && !isValidAns(a) ? ' ans-invalid' : '';
+      html += `<td class="ans-td" style="${bdr}"><input class="grid-cell ans-cell${ansInv}" type="text" maxlength="19" value="${a}" data-exam="${examName}" data-q="${q}" data-type="ans" onchange="onGridCellChange(this)" oninput="validateAnsCell(this)"></td>`;
     }
     html += '</tr>';
 
@@ -1503,6 +1506,20 @@ async function deleteAllResponses() {
   renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
 }
 
+function isValidAns(v) {
+  const s = v.trim();
+  if (!s || s === '解なし') return true;
+  return s.split(',').every(p => /^[1-5]$/.test(p.trim()));
+}
+
+function validateAnsCell(el) {
+  if (isValidAns(el.value)) {
+    el.classList.remove('ans-invalid');
+  } else {
+    el.classList.add('ans-invalid');
+  }
+}
+
 function validateCatCell(el) {
   const v = el.value.trim();
   if (!v || CATEGORY_ORDER.includes(v)) {
@@ -1519,6 +1536,7 @@ function onGridCellChange(el) {
   if (!gridData[exam]) gridData[exam] = { answers:{}, categories:{} };
   if (type === 'ans') {
     gridData[exam].answers[q] = el.value;
+    validateAnsCell(el);
   } else {
     gridData[exam].categories[q] = el.value;
     validateCatCell(el);
@@ -1557,7 +1575,11 @@ function setupPaste() {
         if (targetType === 'ans') gridData[exam].answers[q]    = v;
         else                      gridData[exam].categories[q] = v;
         const cell = document.querySelector(`input[data-exam="${exam}"][data-q="${q}"][data-type="${targetType}"]`);
-        if (cell) cell.value = v;
+        if (cell) {
+          cell.value = v;
+          if (targetType === 'ans') validateAnsCell(cell);
+          else validateCatCell(cell);
+        }
       });
     });
 
