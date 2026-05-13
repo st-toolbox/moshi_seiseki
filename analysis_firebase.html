@@ -924,7 +924,10 @@ function getWeakLabel() {
 }
 
 function renderWeak(part) {
-  document.getElementById('weakSubtitle').textContent = getExamName();
+  const stuName = isTeacher
+    ? (() => { const uid=document.getElementById('wStudentSel')?.value; const s=students.find(x=>x.uid===uid); return s?(s.name||s.email):''; })()
+    : (currentUser?.displayName || currentUser?.email || '');
+  document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName : '');
   const thresh = parseInt(document.getElementById('thresh').value)||80;
   const master  = allData[currentExam]?.master;
   if (!master?.answers) return;
