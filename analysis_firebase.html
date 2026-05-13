@@ -264,7 +264,11 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,13 5,7 9,10 15,3"/></svg>成績推移
     </button>
     <div class="nav-section-label">個別模試</div>
-    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:4px 8px 8px;width:calc(100% - 16px);font-size:12px;"></select>
+    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:4px 8px 4px;width:calc(100% - 16px);font-size:12px;"></select>
+    <div id="sidebarStudentWrap" style="display:none;">
+      <div class="nav-section-label" style="padding-top:2px;">学生</div>
+      <select class="top-sel" id="sidebarStudentSel" onchange="onStudentChange()" style="margin:0 8px 8px;width:calc(100% - 16px);font-size:12px;"></select>
+    </div>
     <button class="nav-item" onclick="showPage('summary',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>個別模試集計
     </button>
@@ -352,9 +356,6 @@ tbody tr:hover td{background:var(--g1);}
         <span class="filter-label">基準値：</span>
         <input class="filter-input" type="number" id="thresh" value="80" min="0" max="100" oninput="onThreshChange()">
         <span class="filter-label">%</span>
-        <div class="vdiv" id="wStudentDivider"></div>
-        <span class="filter-label" id="wStudentLabel">学生：</span>
-        <select class="student-select" id="wStudentSel" onchange="loadAndRenderWeak()"></select>
       </div>
       <div class="legend-row">
         <span>判定：</span>
@@ -371,8 +372,6 @@ tbody tr:hover td{background:var(--g1);}
     <div class="page" id="page-hist" style="padding:12px 16px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
         <span class="page-title" style="font-size:15px;margin-bottom:0;">個人模試成績一覧</span>
-        <span class="filter-label">学生：</span>
-        <select class="student-select" id="histStudentSel" onchange="renderStudentHistory()" style="min-width:180px;"></select>
         <span id="histPrintName" style="font-size:12px;color:var(--g4);display:none;"></span>
       </div>
       <div class="hist-wrap" style="max-height:calc(100vh - 100px);">
@@ -499,7 +498,8 @@ const db   = firebase.database();
 let currentUser   = null;
 let isTeacher     = false;
 let examList      = [];
-let currentExam   = '';
+let currentExam    = '';
+let currentStudent = '';
 let allData       = {};  // { examName: { master, responses } }
 let students      = [];
 let charts        = {};
@@ -614,9 +614,8 @@ async function loadAllData() {
     document.getElementById('examSel').innerHTML = opts;
     currentExam = examList[0]?.name || '';
 
-    // 学生セレクト
-    const wSel = document.getElementById('wStudentSel');
-    wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+    // サイドバー学生セレクト
+    initSidebarStudentSel();
 
     // 各ビュー描画
     renderTrend();
@@ -627,7 +626,7 @@ async function loadAllData() {
     renderAdminStudentTable();
     initGridExamSel();
     initRespExamSel();
-    initHistStudentSel();
+    renderStudentHistory();
 
   } catch(e) {
     console.error(e);
@@ -650,6 +649,23 @@ function onExamChange() {
   renderSummary();
   renderCategory();
   loadAndRenderWeak();
+}
+
+function onStudentChange() {
+  currentStudent = document.getElementById('sidebarStudentSel')?.value || '';
+  loadAndRenderWeak();
+  renderStudentHistory();
+}
+
+function initSidebarStudentSel() {
+  const wrap = document.getElementById('sidebarStudentWrap');
+  const sel  = document.getElementById('sidebarStudentSel');
+  if (!sel) return;
+  if (!isTeacher) { if (wrap) wrap.style.display = 'none'; currentStudent = currentUser?.uid || ''; return; }
+  if (wrap) wrap.style.display = '';
+  sel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.name || s.email}</option>`).join('');
+  currentStudent = getActiveStudents()[0]?.uid || '';
+  sel.value = currentStudent;
 }
 
 function formatDate(d) {
@@ -889,10 +905,7 @@ function renderCategory() {
 
 // ===== 弱点抽出 =====
 function applyWeakMode() {
-  const show = isTeacher;
-  ['wStudentDivider','wStudentLabel','wStudentSel'].forEach(id => {
-    const el=document.getElementById(id);if(el)el.style.display=show?'':'none';
-  });
+  // student selector is now in sidebar; nothing to toggle here
 }
 
 function onThreshChange() {
@@ -913,20 +926,16 @@ function renderWeakBoth() {
 }
 
 function getWeakStudentUid() {
-  if (!isTeacher) return currentUser?.uid;
-  return document.getElementById('wStudentSel')?.value || '';
+  return currentStudent || currentUser?.uid || '';
 }
 function getWeakLabel() {
-  if (!isTeacher) return 'あなた';
-  const uid = document.getElementById('wStudentSel')?.value;
+  const uid = currentStudent || currentUser?.uid;
   const s = students.find(x => x.uid === uid);
-  return s ? (s.email||s.name).split('@')[0].slice(0,4) : '';
+  return s ? (s.name || s.email.split('@')[0]) : '';
 }
 
 function renderWeak(part) {
-  const stuName = isTeacher
-    ? (() => { const uid=document.getElementById('wStudentSel')?.value; const s=students.find(x=>x.uid===uid); return s?(s.name||s.email):''; })()
-    : (currentUser?.displayName || currentUser?.email || '');
+  const stuName = getWeakLabel();
   document.getElementById('weakSubtitle').textContent = getExamName() + (stuName ? '　' + stuName : '');
   const thresh = parseInt(document.getElementById('thresh').value)||80;
   const master  = allData[currentExam]?.master;
@@ -1137,8 +1146,7 @@ async function saveStudentGrid() {
     // ローカル状態を同期
     students = studentGridData.filter(s => s.uid).map(s => ({ ...s }));
     renderStudentGrid();
-    const wSel = document.getElementById('wStudentSel');
-    wSel.innerHTML = getActiveStudents().map(s => `<option value="${s.uid}">${s.email||s.name}</option>`).join('');
+    initSidebarStudentSel();
     renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
     hideLoading();
     alert('✅ 保存しました');
@@ -1445,19 +1453,11 @@ async function saveGridData() {
 }
 
 // ===== 模試成績一覧 =====
-function initHistStudentSel() {
-  const sel = document.getElementById('histStudentSel');
-  if (!sel) return;
-  sel.innerHTML = getActiveStudents().map(s =>
-    `<option value="${s.uid}">${s.name || s.email}</option>`
-  ).join('');
-  renderStudentHistory();
-}
-
 function renderStudentHistory() {
-  const uid = document.getElementById('histStudentSel')?.value;
+  const uid = currentStudent || currentUser?.uid || '';
   const container = document.getElementById('histTableWrap');
-  if (!uid || !container) return;
+  if (!container) return;
+  if (!uid) { container.innerHTML = '<p style="padding:24px;color:var(--g4);">サイドバーで学生を選択してください</p>'; return; }
   const stu = students.find(s => s.uid === uid);
   const stuLabel = stu ? (stu.name || stu.email) : '';
   const pn = document.getElementById('histPrintName');
@@ -1576,22 +1576,24 @@ function renderStudentHistory() {
 
   // 分野行
   CATEGORY_ORDER.forEach((cat, ci) => {
+    const isLeft     = ci < 25;
     const isBoundary = cat === '失語症';
-    const rowBg = ci >= 25 ? 'background:rgba(185,28,28,0.02);' : '';
-    html += `<tr${isBoundary ? ' class="sec-div"' : ''} style="${rowBg}">`;
-    html += `<td class="hist-cat-td">${cat}</td>`;
+    const rowBg  = isLeft ? 'rgba(26,92,232,0.05)' : 'rgba(185,28,28,0.05)';
+    const catBg  = isLeft ? 'rgba(26,92,232,0.09)' : 'rgba(185,28,28,0.09)';
+    html += `<tr${isBoundary ? ' class="sec-div"' : ''}>`;
+    html += `<td class="hist-cat-td" style="background:${catBg};">${cat}</td>`;
     examData.forEach(d => {
       const s = d.catStats[cat];
       if (!s || s.myT === 0) {
-        html += `<td class="hist-data-td" style="color:var(--g3);">—</td><td class="hist-data-td" style="color:var(--g3);">—</td><td class="hist-data-td" style="color:var(--g3);">—</td>`;
+        html += `<td class="hist-data-td" style="background:${rowBg};color:var(--g3);">—</td><td class="hist-data-td" style="background:${rowBg};color:var(--g3);">—</td><td class="hist-data-td" style="background:${rowBg};color:var(--g3);">—</td>`;
         return;
       }
-      const myPct  = Math.round(s.myC / s.myT * 100);
-      const clPct  = s.clT > 0 ? Math.round(s.clC / s.clT * 100) : null;
-      const cls    = myPct >= 80 ? 'c-ok' : myPct >= 60 ? 'c-warn' : 'c-ng';
+      const myPct = Math.round(s.myC / s.myT * 100);
+      const clPct = s.clT > 0 ? Math.round(s.clC / s.clT * 100) : null;
+      const cls   = myPct >= 80 ? 'c-ok' : myPct >= 60 ? 'c-warn' : 'c-ng';
       html += `<td class="hist-data-td ${cls}">${myPct}%</td>`;
-      html += `<td class="hist-data-td">${s.myT}</td>`;
-      html += `<td class="hist-data-td">${clPct !== null ? clPct + '%' : '—'}</td>`;
+      html += `<td class="hist-data-td" style="background:${rowBg};">${s.myT}</td>`;
+      html += `<td class="hist-data-td" style="background:${rowBg};">${clPct !== null ? clPct + '%' : '—'}</td>`;
     });
     html += '</tr>';
   });
