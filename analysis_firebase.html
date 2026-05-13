@@ -151,8 +151,8 @@ tbody tr:hover td{background:var(--g1);}
 .grid-table td.col-fixed{position:sticky;left:0;background:#fff;z-index:5;font-weight:500;padding:4px 8px;font-size:11px;color:var(--g4);}
 .grid-cell{width:100%;height:28px;padding:2px 6px;border:none;outline:none;font-size:12px;font-family:'DM Mono',monospace;color:var(--g5);background:transparent;}
 .grid-cell:focus{background:var(--accent-bg);outline:2px solid var(--accent);outline-offset:-2px;}
-.grid-cell.ans-cell{width:52px;text-align:center;}
-.grid-cell.cat-cell{width:120px;}
+.grid-cell.ans-cell{width:100%;text-align:center;}
+.grid-cell.cat-cell{width:100%;}
 .grid-cell.name-cell{width:180px;font-family:'Noto Sans JP',sans-serif;}
 .grid-cell.date-cell{width:110px;}
 .grid-cell.active-cell{width:80px;text-align:center;}
@@ -252,7 +252,7 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試マスタ
     </button>
     <button class="nav-item" onclick="showPage('data_edit',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>データ編集
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
     </button>
     <button class="nav-item" onclick="showPage('admin_student',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト
@@ -360,7 +360,7 @@ tbody tr:hover td{background:var(--g1);}
     <!-- データ編集ページ -->
     <div class="page" id="page-data_edit">
       <div class="page-header-row">
-        <div><div class="page-title">データ編集</div><div class="page-sub">Excelからコピー&ペーストで編集できます</div></div>
+        <div><div class="page-title">模試データ編集</div><div class="page-sub">Excelからコピー&ペーストで編集できます</div></div>
         <button class="btn-admin-save" onclick="saveGridData()">💾 Firebaseに保存</button>
       </div>
 
@@ -378,15 +378,9 @@ tbody tr:hover td{background:var(--g1);}
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;" id="gridExamRow">
         <span style="font-size:13px;color:var(--g4);">模試：</span>
         <select class="exam-inline-sel" id="gridExamSel" onchange="renderGridMaster()" style="min-width:200px;"></select>
-        <span style="font-size:12px;color:var(--g4);">列：</span>
-        <select class="exam-inline-sel" id="gridPartSel" onchange="renderGridMaster()" style="min-width:100px;">
-          <option value="AM">午前（問1〜100）</option>
-          <option value="PM">午後（問101〜200）</option>
-          <option value="ALL">全問（1〜200）</option>
-        </select>
       </div>
 
-      <div class="grid-wrap" id="gridWrap" style="max-height:calc(100vh - 280px);"></div>
+      <div id="gridWrap"></div>
     </div>
     <!-- 模試追加モーダル -->
     <div class="modal-overlay hidden" id="examModal">
@@ -1009,6 +1003,7 @@ function printAllStudents(){
 
 let gridTab = 'master';
 let gridData = {}; // { examName: { answers:{}, categories:{} } }
+let _pasteHandler = null;
 
 function switchGridTab(tab) {
   gridTab = tab;
@@ -1029,39 +1024,54 @@ function initGridExamSel() {
 
 function renderGridMaster() {
   const examName = document.getElementById('gridExamSel')?.value;
-  const part     = document.getElementById('gridPartSel')?.value || 'AM';
   if (!examName) return;
 
   const master = allData[examName]?.master || {};
   const ans    = master.answers    || {};
   const cats   = master.categories || {};
 
-  // グリッドデータをキャッシュ
   if (!gridData[examName]) gridData[examName] = { answers: {...ans}, categories: {...cats} };
 
-  const start = part==='PM' ? 101 : 1;
-  const end   = part==='ALL' ? 200 : (part==='PM' ? 200 : 100);
+  function makeSection(start, end, label) {
+    let html = `<div style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:8px;padding:4px 0;border-bottom:2px solid var(--g2);">${label}</div>`;
+    html += '<div class="grid-wrap" style="margin-bottom:20px;">';
+    html += '<table class="grid-table"><thead><tr>';
+    html += '<th class="col-fixed" style="min-width:60px;text-align:left;">項目</th>';
+    for (let q = start; q <= end; q++) {
+      const bdr = (q % 10 === 0 && q !== end) ? 'border-right:2px solid var(--g3);'
+                : (q % 5  === 0 && q !== end) ? 'border-right:1px dashed var(--g3);' : '';
+      html += `<th style="min-width:40px;${bdr}">${q}</th>`;
+    }
+    html += '</tr></thead><tbody>';
 
-  let html = '<table class="grid-table"><thead><tr>';
-  html += '<th class="col-fixed" style="min-width:40px;">問</th>';
-  html += '<th style="min-width:60px;">正答</th>';
-  html += '<th style="min-width:140px;">カテゴリ</th>';
-  html += '</tr></thead><tbody>';
+    // 正答行
+    html += '<tr><td class="col-fixed" style="padding:4px 8px;font-weight:700;font-size:11px;">正答</td>';
+    for (let q = start; q <= end; q++) {
+      const a   = gridData[examName].answers[q] || '';
+      const bdr = (q % 10 === 0 && q !== end) ? 'border-right:2px solid var(--g3);'
+                : (q % 5  === 0 && q !== end) ? 'border-right:1px dashed var(--g3);' : '';
+      html += `<td style="${bdr}"><input class="grid-cell ans-cell" type="text" maxlength="5" value="${a}" data-exam="${examName}" data-q="${q}" data-type="ans" onchange="onGridCellChange(this)"></td>`;
+    }
+    html += '</tr>';
 
-  for (let q = start; q <= end; q++) {
-    const a = gridData[examName].answers[q]    || '';
-    const cat = gridData[examName].categories[q] || '';
-    const bg = q % 10 === 0 ? 'border-bottom:2px solid var(--g3);' : q % 5 === 0 ? 'border-bottom:1px dashed var(--g3);' : '';
-    html += `<tr style="${bg}">
-      <td class="col-fixed" style="min-width:40px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:var(--g4);">${q}</td>
-      <td><input class="grid-cell ans-cell" type="text" maxlength="5" value="${a}" data-exam="${examName}" data-q="${q}" data-type="ans" onchange="onGridCellChange(this)"></td>
-      <td><input class="grid-cell cat-cell" type="text" value="${cat}" data-exam="${examName}" data-q="${q}" data-type="cat" onchange="onGridCellChange(this)"></td>
-    </tr>`;
+    // カテゴリ行
+    html += '<tr><td class="col-fixed" style="padding:4px 8px;font-weight:700;font-size:11px;">カテゴリ</td>';
+    for (let q = start; q <= end; q++) {
+      const cat = gridData[examName].categories[q] || '';
+      const bdr = (q % 10 === 0 && q !== end) ? 'border-right:2px solid var(--g3);'
+                : (q % 5  === 0 && q !== end) ? 'border-right:1px dashed var(--g3);' : '';
+      html += `<td style="${bdr}"><input class="grid-cell cat-cell" type="text" value="${cat}" data-exam="${examName}" data-q="${q}" data-type="cat" onchange="onGridCellChange(this)"></td>`;
+    }
+    html += '</tr>';
+
+    html += '</tbody></table></div>';
+    return html;
   }
-  html += '</tbody></table>';
-  document.getElementById('gridWrap').innerHTML = html;
 
-  // ペーストイベント
+  document.getElementById('gridWrap').innerHTML =
+    makeSection(1,   100, '午前（問1〜100）') +
+    makeSection(101, 200, '午後（問101〜200）');
+
   setupPaste();
 }
 
@@ -1103,51 +1113,46 @@ function onGridCellChange(el) {
 // ===== ペースト処理 =====
 function setupPaste() {
   const wrap = document.getElementById('gridWrap');
-  wrap.addEventListener('paste', e => {
+  if (_pasteHandler) wrap.removeEventListener('paste', _pasteHandler);
+  _pasteHandler = function(e) {
     const active = document.activeElement;
     if (!active?.classList.contains('grid-cell')) return;
     e.preventDefault();
 
     const text = (e.clipboardData || window.clipboardData).getData('text');
-    const rows  = text.split('\n').map(r => r.split('\t'));
+    const rows = text.split('\n').map(r => r.split('\t'));
 
-    const exam = active.dataset.exam;
+    const exam   = active.dataset.exam;
     const startQ = parseInt(active.dataset.q);
-    const type   = active.dataset.type; // ans or cat
+    const type   = active.dataset.type;
 
     if (!gridData[exam]) gridData[exam] = { answers:{}, categories:{} };
 
-    // 貼り付けた値をグリッドに反映
+    // 横レイアウト：列 = 問番号、行 = 正答/カテゴリ
     rows.forEach((row, ri) => {
+      const targetType = type === 'ans'
+        ? (ri === 0 ? 'ans' : ri === 1 ? 'cat' : null)
+        : (ri === 0 ? 'cat' : null);
+      if (!targetType) return;
+
       row.forEach((val, ci) => {
-        const q = startQ + ri;
-        if (q > 200) return;
+        const q = startQ + ci;
+        if (q < 1 || q > 200) return;
         const v = val.trim();
-
-        // カラムオフセット：正答列なら0、カテゴリ列なら1
-        const targetType = (type === 'ans' && ci === 0) ? 'ans'
-                         : (type === 'ans' && ci === 1) ? 'cat'
-                         : (type === 'cat' && ci === 0) ? 'cat'
-                         : null;
-        if (!targetType) return;
-
         if (targetType === 'ans') gridData[exam].answers[q]    = v;
         else                      gridData[exam].categories[q] = v;
-
-        // DOMを更新
-        const sel = `input[data-exam="${exam}"][data-q="${q}"][data-type="${targetType}"]`;
-        const cell = document.querySelector(sel);
+        const cell = document.querySelector(`input[data-exam="${exam}"][data-q="${q}"][data-type="${targetType}"]`);
         if (cell) cell.value = v;
       });
     });
 
-    // ペースト完了通知
     const msg = document.createElement('div');
-    msg.textContent = `✅ ${rows.length}行ペーストしました`;
+    msg.textContent = '✅ ペーストしました';
     msg.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--ok);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;z-index:9999;';
     document.body.appendChild(msg);
     setTimeout(() => msg.remove(), 2000);
-  });
+  };
+  wrap.addEventListener('paste', _pasteHandler);
 }
 
 // ===== Firebase保存 =====
