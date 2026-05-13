@@ -1109,8 +1109,7 @@ function setupPaste() {
     e.preventDefault();
 
     const text = (e.clipboardData || window.clipboardData).getData('text');
-    const rows  = text.split('
-').map(r => r.split('	'));
+    const rows  = text.split('\n').map(r => r.split('\t'));
 
     const exam = active.dataset.exam;
     const startQ = parseInt(active.dataset.q);
