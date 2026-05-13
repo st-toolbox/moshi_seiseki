@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>マークシート入力</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root {
+  --am:#E8611A; --am-bg:#FFF6F0; --am-light:#FDEEE5;
+  --pm:#1A6BE8; --pm-bg:#F0F5FF; --pm-light:#E5EEFF;
+  --theme:var(--am); --theme-bg:var(--am-bg); --theme-light:var(--am-light);
+  --g1:#F7F6F4; --g2:#ECEAE6; --g3:#C4C1BB; --g4:#86837E; --g5:#2D2C2A;
+  --r:12px; --rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;color:var(--g5);overscroll-behavior:none;}
+body{background:var(--theme-bg);transition:background .3s;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:9999;padding:32px;}
+.login-title{font-size:22px;font-weight:700;color:var(--g5);}
+.login-sub{font-size:14px;color:var(--g4);text-align:center;line-height:1.6;}
+.btn-google{display:flex;align-items:center;gap:12px;padding:14px 24px;border:1.5px solid var(--g2);border-radius:var(--r);font-size:15px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
+.btn-google:hover{background:var(--g1);}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--g2);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.user-info{display:flex;align-items:center;gap:8px;min-width:0;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--theme);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .3s;}
+.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+.btn-logout{font-size:11px;color:var(--g4);border:1px solid var(--g2);border-radius:20px;padding:5px 12px;background:#fff;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.btn-logout:hover{background:var(--g1);}
+
+/* CONTENT */
+.content{max-width:480px;margin:0 auto;padding:16px;}
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--g2);margin-bottom:12px;overflow:hidden;}
+.card-inner{padding:16px;}
+.section-label{font-size:11px;font-weight:700;color:var(--g4);letter-spacing:.06em;margin-bottom:8px;}
+
+select{width:100%;padding:10px 14px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;margin-bottom:12px;transition:border-color .15s;}
+select:focus{outline:none;border-color:var(--theme);}
+
+.part-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.part-btn{padding:10px;border:2px solid var(--g2);border-radius:var(--rs);font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g4);transition:all .2s;text-align:center;}
+.part-btn.active-am{border-color:var(--am);background:var(--am-light);color:var(--am);}
+.part-btn.active-pm{border-color:var(--pm);background:var(--pm-light);color:var(--pm);}
+
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.badge-new{background:var(--g1);color:var(--g4);}
+.badge-draft{background:#FFF3CD;color:#7A5C00;}
+.badge-done{background:#D4EDDA;color:#1A6C35;}
+
+.progress-wrap{margin-bottom:14px;}
+.progress-info{font-size:12px;color:var(--g4);margin-bottom:4px;text-align:right;}
+.progress-bar{height:4px;background:var(--g2);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--theme);border-radius:2px;transition:width .3s;}
+
+.draft-banner{background:#FFF3CD;border-bottom:1px solid #F0D98A;padding:8px 16px;font-size:12px;font-weight:500;color:#7A5C00;display:none;}
+.draft-banner.show{display:block;}
+
+.sheet-header{display:grid;gap:4px;padding:8px 16px;background:var(--g1);border-bottom:1px solid var(--g2);position:sticky;top:53px;z-index:50;}
+.sheet-header-num{font-size:11px;font-weight:700;color:var(--g4);text-align:center;}
+
+.mark-row{display:grid;gap:4px;padding:5px 16px;border-bottom:1px solid var(--g2);align-items:center;transition:background .1s;}
+.mark-row:hover{background:var(--g1);}
+.mark-row.row-alt{background:#FAFAF8;}
+.mark-row.row-alt:hover{background:var(--g1);}
+.mark-row.sep-5{border-bottom:1px dashed var(--g3);}
+.mark-row.sep-10{border-bottom:2px solid var(--g3);}
+.q-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--g4);text-align:center;}
+
+.bubble{aspect-ratio:1;border:2px solid var(--g2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--g3);cursor:pointer;user-select:none;transition:all .15s;max-width:40px;margin:0 auto;width:100%;}
+.bubble:hover{border-color:var(--theme);color:var(--theme);background:var(--theme-light);}
+.bubble.filled{background:var(--theme);border-color:var(--theme);color:#fff;}
+.bubble.modified{border:2.5px dashed var(--g5)!important;color:var(--g5)!important;background:#fff!important;}
+.bubble.hint{border-color:var(--theme);color:var(--theme);opacity:.3;}
+
+/* FOOTER */
+.footer{background:#fff;padding:16px 16px 32px;border-top:1px solid var(--g2);box-shadow:0 -3px 10px rgba(0,0,0,.05);}
+.footer-inner{max-width:480px;margin:0 auto;display:grid;grid-template-columns:1fr 2fr;gap:10px;}
+.btn{padding:13px;border-radius:var(--rs);font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;border:none;transition:all .15s;text-align:center;}
+.btn-save{background:var(--g1);color:var(--g5);border:1.5px solid var(--g2);}
+.btn-save:hover{background:var(--g2);}
+.btn-submit{background:var(--theme);color:#fff;}
+.btn-submit:hover{opacity:.88;}
+.btn-submit:active{transform:scale(.98);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{background:#fff;border-radius:20px;padding:28px 24px 20px;width:100%;max-width:340px;text-align:center;transform:translateY(10px);transition:transform .2s;}
+.modal-bg.open .modal{transform:translateY(0);}
+.modal-msg{font-size:15px;font-weight:500;line-height:1.6;margin-bottom:20px;white-space:pre-wrap;}
+.modal-btns{display:grid;grid-template-columns:1fr 1.6fr;gap:8px;}
+.modal-cancel{background:var(--g1);color:var(--g5);border:1px solid var(--g2);border-radius:10px;padding:12px;font-size:14px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+.modal-ok{background:var(--theme);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9000;}
+.spinner{width:32px;height:32px;border:3px solid var(--g2);border-top-color:var(--theme);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:13px;font-weight:500;color:var(--g4);}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div class="login-screen" id="loginScreen">
+  <div style="font-size:40px;">📝</div>
+  <div class="login-title">模試マークシート</div>
+  <div class="login-sub">朝日医療大学のGoogleアカウントで<br>ログインしてください</div>
+  <button class="btn-google" onclick="signIn()">
+    <svg viewBox="0 0 48 48" width="20px" height="20px">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    Googleでログイン
+  </button>
+</div>
+
+<!-- LOADING -->
+<div id="loading" class="loading-overlay hidden">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">読み込み中...</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <p class="modal-msg" id="modalMsg"></p>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="mainApp" style="display:none;">
+  <div class="user-info">
+    <div class="avatar" id="avatar">?</div>
+    <span class="user-name" id="userName">読込中...</span>
+  </div>
+  <button class="btn-logout" onclick="signOut()">ログアウト</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content" id="appContent" style="display:none;">
+  <div class="card">
+    <div class="card-inner">
+      <div class="section-label">模試を選択</div>
+      <select id="examSelect" onchange="checkAndLoad()">
+        <option value="">模試を選択してください...</option>
+      </select>
+      <div class="section-label">時間帯</div>
+      <div class="part-toggle">
+        <button class="part-btn active-am" id="btnAM" onclick="setPart('AM')">午前</button>
+        <button class="part-btn" id="btnPM" onclick="setPart('PM')">午後</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="sheetCard">
+    <div class="draft-banner" id="draftBanner">⚠ 解答はまだ送信されていません（一時保存中）</div>
+    <div class="card-inner" style="padding-bottom:8px;">
+      <div class="status-row">
+        <span class="badge badge-new" id="statusBadge">新規入力</span>
+        <span></span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-info"><span id="progressInfo">0 / 100 問</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="sheet-header" id="sheetHeader" style="grid-template-columns:44px 1fr 1fr 1fr 1fr 1fr;">
+      <div class="sheet-header-num">問</div>
+      <div class="sheet-header-num">1</div>
+      <div class="sheet-header-num">2</div>
+      <div class="sheet-header-num">3</div>
+      <div class="sheet-header-num">4</div>
+      <div class="sheet-header-num">5</div>
+    </div>
+    <div id="sheetArea"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer" id="appFooter" style="display:none;">
+  <div class="footer-inner">
+    <button class="btn btn-save" onclick="handleSave()">一時保存</button>
+    <button class="btn btn-submit" id="submitBtn" onclick="handleSubmit()">解答を送信する</button>
+  </div>
+</div>
+
+<script>
+// ===== Firebase設定 =====
+const firebaseConfig = {
+  apiKey: "AIzaSyB8iFqfh0LV9iJEY4l3BbP92hVKxNNvWko",
+  authDomain: "moshi-bunseki.firebaseapp.com",
+  databaseURL: "https://moshi-bunseki-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "moshi-bunseki",
+  storageBucket: "moshi-bunseki.firebasestorage.app",
+  messagingSenderId: "324983246776",
+  appId: "1:324983246776:web:d9fa55f11950ec1f90494d"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.database();
+
+// ===== STATE =====
+let currentUser  = null;
+let currentPart  = 'AM';
+let currentExam  = '';
+let answers      = {};
+let originalAnswers = {};
+let currentStatus   = 'new';
+let examMasterCache = {};
+
+// ===== AUTH =====
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ hd: 'asahi.ac.jp' });
+  auth.signInWithPopup(provider).catch(e => showAlert('ログインに失敗しました: ' + e.message));
+}
+
+function signOut() {
+  showConfirm('ログアウトしますか？', () => auth.signOut());
+}
+
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    const email = user.email || '';
+    // ドメインチェック
+    if (!email.includes('@asahi.ac.jp') && !email.includes('@oky.asahi.ac.jp')) {
+      await auth.signOut();
+      showAlert('朝日医療大学のアカウントでログインしてください');
+      return;
+    }
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display     = '';
+    document.getElementById('appContent').style.display  = '';
+    document.getElementById('appFooter').style.display   = '';
+
+    const av = email.slice(0,2).toUpperCase();
+    document.getElementById('avatar').textContent  = av;
+    document.getElementById('userName').textContent = email;
+
+    // 学生名をDBに登録（なければ）
+    const stuRef = db.ref('students/' + user.uid);
+    stuRef.once('value').then(snap => {
+      if (!snap.exists()) {
+        stuRef.set({ email, name: email.split('@')[0], registeredAt: Date.now() });
+      }
+    });
+
+    loadExamList();
+  } else {
+    currentUser = null;
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('mainApp').style.display     = 'none';
+    document.getElementById('appContent').style.display  = 'none';
+    document.getElementById('appFooter').style.display   = 'none';
+  }
+});
+
+// ===== 模試リスト読み込み =====
+function loadExamList() {
+  showLoading('模試リストを読み込み中...');
+  db.ref('exams').once('value').then(snap => {
+    const sel = document.getElementById('examSelect');
+    sel.innerHTML = '<option value="">模試を選択してください...</option>';
+    const exams = [];
+    snap.forEach(child => {
+      const e = child.val();
+      if (e.active) exams.push({ name: child.key, date: e.date || '' });
+      examMasterCache[child.key] = e;
+    });
+    // 新しい順にソート
+    exams.sort((a, b) => {
+      const da = a.date ? new Date(a.date) : null;
+      const db2 = b.date ? new Date(b.date) : null;
+      if (da && db2) return db2 - da;
+      if (da) return -1;
+      if (db2) return 1;
+      return 0;
+    });
+    exams.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.name;
+      opt.textContent = e.name + (e.date ? '（' + formatDate(e.date) + '）' : '');
+      sel.appendChild(opt);
+    });
+    hideLoading();
+  }).catch(e => { hideLoading(); showAlert('模試リストの取得に失敗しました'); });
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const m = String(d).match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (m) return parseInt(m[2]) + '月' + parseInt(m[3]) + '日';
+  try { const dt=new Date(d); if(!isNaN(dt)) return (dt.getMonth()+1)+'月'+dt.getDate()+'日'; } catch(e){}
+  return d;
+}
+
+// ===== 時間帯切替 =====
+function setPart(p) {
+  currentPart = p;
+  const root = document.documentElement;
+  if (p === 'AM') {
+    root.style.setProperty('--theme',       'var(--am)');
+    root.style.setProperty('--theme-bg',    'var(--am-bg)');
+    root.style.setProperty('--theme-light', 'var(--am-light)');
+  } else {
+    root.style.setProperty('--theme',       'var(--pm)');
+    root.style.setProperty('--theme-bg',    'var(--pm-bg)');
+    root.style.setProperty('--theme-light', 'var(--pm-light)');
+  }
+  document.getElementById('avatar').style.background = p==='AM'?'var(--am)':'var(--pm)';
+  document.getElementById('btnAM').className = 'part-btn'+(p==='AM'?' active-am':'');
+  document.getElementById('btnPM').className = 'part-btn'+(p==='PM'?' active-pm':'');
+  if (currentExam) checkAndLoad();
+}
+
+// ===== 模試選択・データ読み込み =====
+function checkAndLoad() {
+  currentExam = document.getElementById('examSelect').value;
+  if (!currentExam) { document.getElementById('sheetCard').classList.add('hidden'); return; }
+  showLoading('同期中...');
+  const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
+  db.ref(path).once('value').then(snap => {
+    const data = snap.val();
+    originalAnswers = data ? { ...data.answers } : {};
+    answers         = data ? { ...data.answers } : {};
+    currentStatus   = data ? data.status : 'new';
+    updateStatusUI();
+    renderSheet();
+    document.getElementById('sheetCard').classList.remove('hidden');
+    hideLoading();
+  }).catch(e => { hideLoading(); showAlert('データ取得に失敗しました'); });
+}
+
+// ===== ステータスUI =====
+function updateStatusUI() {
+  const badge  = document.getElementById('statusBadge');
+  const btn    = document.getElementById('submitBtn');
+  const banner = document.getElementById('draftBanner');
+  badge.className = 'badge';
+  if (currentStatus === 'submitted') {
+    badge.classList.add('badge-done'); badge.textContent = '提出済';
+    btn.textContent = '修正して再送信'; banner.classList.remove('show');
+  } else if (currentStatus === 'draft') {
+    badge.classList.add('badge-draft'); badge.textContent = '一時保存中';
+    btn.textContent = '解答を送信する'; banner.classList.add('show');
+  } else {
+    badge.classList.add('badge-new'); badge.textContent = '新規入力';
+    btn.textContent = '解答を送信する'; banner.classList.remove('show');
+  }
+}
+
+// ===== シート描画 =====
+function renderSheet() {
+  const area  = document.getElementById('sheetArea');
+  area.innerHTML = '';
+  const colW  = '44px 1fr 1fr 1fr 1fr 1fr';
+  document.getElementById('sheetHeader').style.gridTemplateColumns = colW;
+  const isPM  = currentPart === 'PM';
+  const start = isPM ? 101 : 1, end = isPM ? 200 : 100;
+
+  const answered = Object.keys(answers).filter(k => answers[k]).length;
+  document.getElementById('progressInfo').textContent = `${answered} / 100 問`;
+  document.getElementById('progressFill').style.width = answered + '%';
+
+  for (let i = start; i <= end; i++) {
+    const row = document.createElement('div');
+    row.className = 'mark-row';
+    row.style.gridTemplateColumns = colW;
+    const li = i - start;
+    if (Math.floor(li/10)%2===1) row.classList.add('row-alt');
+    if (i%10===0) row.classList.add('sep-10');
+    else if (i%5===0) row.classList.add('sep-5');
+
+    const num = document.createElement('span');
+    num.className = 'q-num'; num.textContent = i;
+    row.appendChild(num);
+
+    for (let v = 1; v <= 5; v++) {
+      const b = document.createElement('div');
+      b.className = 'bubble'; b.textContent = v;
+      const isFilled = answers[i] == v;
+      const isOrig   = originalAnswers[i] == v;
+      if (isFilled) {
+        b.classList.add('filled');
+        if (originalAnswers[i] && !isOrig) b.classList.add('modified');
+      } else if (isOrig) {
+        b.classList.add('hint');
+      }
+      b.onclick = () => {
+        if (answers[i] == v) delete answers[i];
+        else answers[i] = v;
+        renderSheet();
+      };
+      row.appendChild(b);
+    }
+    area.appendChild(row);
+  }
+}
+
+// ===== 採点 =====
+function calcScore(ans, examName, part) {
+  const master = examMasterCache[examName];
+  if (!master || !master.answers) return { score: 0, categoryScores: {}, wrongAnswers: [] };
+  const start = part==='AM'?1:101, end = part==='AM'?100:200;
+  let score = 0;
+  const catStats = {}, wrongList = [];
+  for (let q = start; q <= end; q++) {
+    const correct = String(master.answers[q] || '');
+    const cat     = master.categories ? (master.categories[q] || '未分類') : '未分類';
+    const userAns = String(ans[q] || '');
+    if (!catStats[cat]) catStats[cat] = { correct:0, total:0 };
+    catStats[cat].total++;
+    const isCorrect = correct && correct !== '解なし' && (
+      correct.includes(',') ? correct.split(',').includes(userAns) : userAns === correct
+    );
+    if (isCorrect) { score++; catStats[cat].correct++; }
+    else wrongList.push({ qNum:String(q), userAns:userAns||'未解答', correctAns:correct, category:cat });
+  }
+  return { score, categoryScores: catStats, wrongAnswers: wrongList };
+}
+
+// ===== 保存・送信 =====
+function handleSave() {
+  if (!currentExam) return showAlert('模試を選択してください');
+  showLoading('一時保存中...');
+  const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
+  db.ref(path).set({
+    answers, status: 'draft',
+    email: currentUser.email,
+    updatedAt: Date.now()
+  }).then(() => {
+    hideLoading();
+    showAlert('一時保存しました', () => { currentStatus='draft'; updateStatusUI(); });
+  }).catch(e => { hideLoading(); showAlert('保存に失敗しました: '+e.message); });
+}
+
+function handleSubmit() {
+  if (!currentExam) return showAlert('模試を選択してください');
+  showConfirm('解答を送信します。\nよろしいですか？', () => {
+    showLoading('送信・採点中...');
+    const { score, categoryScores, wrongAnswers } = calcScore(answers, currentExam, currentPart);
+    const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
+    db.ref(path).set({
+      answers, status: 'submitted', score,
+      categoryScores, wrongAnswers,
+      email: currentUser.email,
+      submittedAt: Date.now()
+    }).then(() => {
+      hideLoading();
+      showAlert(`送信完了！\n得点：${score}点`, () => { currentStatus='submitted'; updateStatusUI(); });
+    }).catch(e => { hideLoading(); showAlert('送信に失敗しました: '+e.message); });
+  });
+}
+
+// ===== モーダル =====
+function showAlert(msg, cb) {
+  document.getElementById('modalMsg').textContent = msg;
+  document.getElementById('modalBtns').innerHTML =
+    `<button class="modal-ok" style="grid-column:1/-1" onclick="closeModal(true)">OK</button>`;
+  document.getElementById('modal').classList.add('open');
+  window._modalCb = cb||null;
+}
+function showConfirm(msg, onOk) {
+  document.getElementById('modalMsg').textContent = msg;
+  document.getElementById('modalBtns').innerHTML = `
+    <button class="modal-cancel" onclick="closeModal(false)">キャンセル</button>
+    <button class="modal-ok" onclick="closeModal(true)">送信する</button>`;
+  document.getElementById('modal').classList.add('open');
+  window._modalCb = onOk;
+}
+function closeModal(ok) {
+  document.getElementById('modal').classList.remove('open');
+  if (ok && window._modalCb) window._modalCb();
+  window._modalCb = null;
+}
+
+// ===== ローディング =====
+function showLoading(t) {
+  document.getElementById('loadingText').textContent = t||'処理中...';
+  document.getElementById('loading').classList.remove('hidden');
+}
+function hideLoading() {
+  document.getElementById('loading').classList.add('hidden');
+}
+</script>
+</body>
+</html>
