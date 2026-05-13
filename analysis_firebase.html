@@ -606,7 +606,7 @@ function renderTrend() {
     return tots.length ? Math.round(tots.reduce((a,b)=>a+b,0)/tots.length) : null;
   }
 
-  const labels = ['平均', ...activeStudents.map(s => (s.email||s.name).split('@')[0].slice(0,4))];
+  const labels = ['平均', ...activeStudents.map(s => s.name || s.email.split('@')[0])];
   const datasets = examsWithData.map((e,ei) => ({
     label: formatDate(e.date) || e.name,
     data: [getAvg(e.name), ...activeStudents.map(s => getTotal(e.name, s.uid))],
@@ -616,7 +616,7 @@ function renderTrend() {
 
   // 表
   const thead = document.getElementById('trendThead');
-  thead.innerHTML = '<tr><th>メール</th>' + examsWithData.map((e,ei) =>
+  thead.innerHTML = '<tr><th>名前</th>' + examsWithData.map((e,ei) =>
     `<th><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${examColors[ei%examColors.length]};margin-right:4px;vertical-align:middle"></span>${e.name}<br><span style="font-weight:400;font-size:10px;color:var(--g4)">${formatDate(e.date)}</span></th>`
   ).join('') + '</tr>';
 
@@ -634,7 +634,7 @@ function renderTrend() {
       const col = t>=PASS?'color:var(--ok)':t>=100?'color:var(--warn)':'color:var(--ng)';
       return `<td class="mono" style="${col}">${t}</td>`;
     }).join('');
-    return `<tr><td style="font-size:11px;color:var(--g4)">${s.email||s.name}</td>${cols}</tr>`;
+    return `<tr><td style="font-size:11px;color:var(--g4)">${s.name || s.email.split('@')[0]}</td>${cols}</tr>`;
   }).join('');
   document.getElementById('trendTbody').innerHTML = avgRow + stuRows;
 
@@ -647,7 +647,7 @@ function renderTrend() {
       plugins: {
         legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
         tooltip: { callbacks: {
-          title: ctx => ctx[0].dataIndex===0 ? 'クラス平均' : (activeStudents[ctx[0].dataIndex-1]?.email||''),
+          title: ctx => ctx[0].dataIndex===0 ? 'クラス平均' : (activeStudents[ctx[0].dataIndex-1]?.name || activeStudents[ctx[0].dataIndex-1]?.email || ''),
           label: ctx => ` ${ctx.dataset.label}：${ctx.raw}点`
         }}
       },
