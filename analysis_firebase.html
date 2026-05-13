@@ -1040,9 +1040,9 @@ function getWeakLabel() {
 }
 
 function renderWeak(part) {
+  const thresh  = parseInt(document.getElementById('thresh').value)||80;
   const stuName = getWeakLabel();
   document.getElementById('weakSubtitle').textContent = (stuName ? stuName + '　' : '') + getExamName() + `（基準値 ${thresh}%）`;
-  const thresh = parseInt(document.getElementById('thresh').value)||80;
   const master  = allData[currentExam]?.master;
   if (!master?.answers) return;
 
