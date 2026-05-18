@@ -1206,12 +1206,12 @@ async function confirmExamModal() {
 // ===== 学生リスト編集グリッド =====
 let studentGridData = []; // { uid, email, name, nendo, gakunen, active, registeredAt, isNew }
 let _studentPasteHandler = null;
-let _studentSortKey = 'name';
-let _studentSortDir = 1; // 1=昇順, -1=降順
+let _studentSortKey = 'gakunen';
+let _studentSortDir = -1; // 1=昇順, -1=降順
 
 function renderAdminStudentTable() {
   studentGridData = students.map(s => ({ ...s, isNew: false }));
-  renderStudentGrid();
+  sortStudentGrid(_studentSortKey, _studentSortDir); // 初期ソートを適用
 }
 
 function renderStudentGrid() {
@@ -1246,8 +1246,11 @@ function renderStudentGrid() {
   setupStudentPaste();
 }
 
-function sortStudentGrid(key) {
-  if (_studentSortKey === key) {
+function sortStudentGrid(key, forceDir) {
+  if (forceDir !== undefined) {
+    _studentSortKey = key;
+    _studentSortDir = forceDir;
+  } else if (_studentSortKey === key) {
     _studentSortDir *= -1;
   } else {
     _studentSortKey = key;
@@ -1259,6 +1262,8 @@ function sortStudentGrid(key) {
     if (key === 'registeredAt') { av = av || 0; bv = bv || 0; }
     if (av < bv) return -1 * _studentSortDir;
     if (av > bv) return  1 * _studentSortDir;
+    // 同値の場合はメールアドレスで昇順
+    if (key !== 'email') return (a.email||'') < (b.email||'') ? -1 : (a.email||'') > (b.email||'') ? 1 : 0;
     return 0;
   });
   renderStudentGrid();
