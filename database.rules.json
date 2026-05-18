@@ -1,0 +1,30 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "teachers": {
+      ".read": "auth != null",
+      ".write": false
+    },
+
+    "exams": {
+      ".read": "auth != null",
+      ".write": "root.child('teachers').child(auth.uid).exists()"
+    },
+
+    "students": {
+      ".read": "auth != null",
+      ".write": "root.child('teachers').child(auth.uid).exists()"
+    },
+
+    "responses": {
+      "$examId": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())",
+          ".write": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())"
+        }
+      }
+    }
+  }
+}

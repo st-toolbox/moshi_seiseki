@@ -617,6 +617,11 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// ===== UTILS =====
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ===== STATE =====
 let currentUser   = null;
 let isTeacher     = false;
@@ -683,7 +688,7 @@ function signOut() {
 auth.onAuthStateChanged(async user => {
   if (user) {
     const email = user.email || '';
-    if (!email.includes('@asahi.ac.jp') && !email.includes('@oky.asahi.ac.jp')) {
+    if (!email.endsWith('@asahi.ac.jp') && !email.endsWith('@oky.asahi.ac.jp')) {
       await auth.signOut(); alert('朝日医療大学のアカウントが必要です'); return;
     }
     currentUser = user;
@@ -757,7 +762,7 @@ async function loadAllData() {
     });
 
     // セレクト設定
-    const opts = examList.map(e => `<option value="${e.name}">${e.name}（${formatDate(e.date)}）</option>`).join('');
+    const opts = examList.map(e => `<option value="${esc(e.name)}">${esc(e.name)}（${esc(formatDate(e.date))}）</option>`).join('');
     document.getElementById('examSel').innerHTML = opts;
     currentExam = examList[0]?.name || '';
 
@@ -865,7 +870,7 @@ function renderTrend() {
   // 表
   const thead = document.getElementById('trendThead');
   thead.innerHTML = '<tr><th>名前</th>' + examsWithData.map((e,ei) =>
-    `<th><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${examColors[ei%examColors.length]};margin-right:4px;vertical-align:middle"></span>${e.name}<br><span style="font-weight:400;font-size:10px;color:var(--g4)">${formatDate(e.date)}</span></th>`
+    `<th><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${examColors[ei%examColors.length]};margin-right:4px;vertical-align:middle"></span>${esc(e.name)}<br><span style="font-weight:400;font-size:10px;color:var(--g4)">${esc(formatDate(e.date))}</span></th>`
   ).join('') + '</tr>';
 
   const avgRow = `<tr style="background:var(--g1);font-weight:500;"><td>クラス平均</td>${examsWithData.map(e => {
@@ -882,7 +887,7 @@ function renderTrend() {
       const col = t>=PASS?'color:var(--ok)':t>=100?'color:var(--warn)':'color:var(--ng)';
       return `<td class="mono" style="${col}">${t}</td>`;
     }).join('');
-    return `<tr><td style="font-size:11px;color:var(--g4)">${s.name || s.email.split('@')[0]}</td>${cols}</tr>`;
+    return `<tr><td style="font-size:11px;color:var(--g4)">${esc(s.name || s.email.split('@')[0])}</td>${cols}</tr>`;
   }).join('');
   document.getElementById('trendTbody').innerHTML = avgRow + stuRows;
 
@@ -939,7 +944,7 @@ function renderSummary() {
 
   document.getElementById('scoreBody').innerHTML = rows.map(r => {
     const col = r.total>=120?'color:var(--ok)':r.total>=100?'color:var(--warn)':'color:var(--ng)';
-    return `<tr><td style="font-size:11px;color:var(--g4)">${r.email}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
+    return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.email)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
   }).join('');
 
   const bins=['80-99','100-119','120-139','140-159','160-179','180-200'];
@@ -1182,16 +1187,33 @@ function renderAdminExamTable() {
   if (!tbody) return;
   tbody.innerHTML = examList.map((e,i) => {
     function toInputDate(d){if(!d)return'';const m=String(d).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);if(m)return`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;try{const dt=new Date(d);if(!isNaN(dt))return dt.toISOString().split('T')[0];}catch(e){}return'';}
-    return `<tr>
-      <td style="font-weight:500">${e.name}</td>
-      <td><input type="date" class="admin-input" style="width:140px;" value="${toInputDate(e.date)}" onchange="updateExamDate('${e.name}',this.value)"></td>
-      <td><select class="admin-select" onchange="updateExamActive('${e.name}',this.value)">
+    return `<tr data-exam="${esc(e.name)}">
+      <td style="font-weight:500">${esc(e.name)}</td>
+      <td><input type="date" class="admin-input" style="width:140px;" value="${esc(toInputDate(e.date))}" data-action="update-date"></td>
+      <td><select class="admin-select" data-action="update-active">
         <option value="1" ${e.active?'selected':''}>受付中</option>
         <option value="0" ${!e.active?'selected':''}>締切</option>
       </select></td>
-      <td><button class="btn-admin-del" onclick="deleteExam('${e.name}')">削除</button></td>
+      <td><button class="btn-admin-del" data-action="delete-exam">削除</button></td>
     </tr>`;
   }).join('');
+
+  // イベント委任
+  tbody.onclick = (ev) => {
+    const tr = ev.target.closest('tr[data-exam]');
+    if (!tr) return;
+    const name = tr.dataset.exam;
+    const action = ev.target.closest('[data-action]')?.dataset.action;
+    if (action === 'delete-exam') deleteExam(name);
+  };
+  tbody.onchange = (ev) => {
+    const tr = ev.target.closest('tr[data-exam]');
+    if (!tr) return;
+    const name = tr.dataset.exam;
+    const action = ev.target.dataset.action;
+    if (action === 'update-date')   updateExamDate(name, ev.target.value);
+    if (action === 'update-active') updateExamActive(name, ev.target.value);
+  };
 }
 
 function updateExamDate(name, date) {
@@ -1454,7 +1476,7 @@ function printAllStudentsWeak(){
   getActiveStudents().forEach(s=>{
     const page=document.createElement('div');page.className='student-print-page';page.style.display='none';
     const header=document.createElement('div');header.className='print-student-header';
-    header.innerHTML=`<span style="font-size:14px;font-weight:700;">弱点抽出</span><span style="font-size:12px;margin-left:10px;">${s.name||s.email}</span><span style="font-size:11px;color:#555;margin-left:12px;">${getExamName()}（基準値 ${thresh}%）</span>`;
+    header.innerHTML=`<span style="font-size:14px;font-weight:700;">弱点抽出</span><span style="font-size:12px;margin-left:10px;">${esc(s.name||s.email)}</span><span style="font-size:11px;color:#555;margin-left:12px;">${esc(getExamName())}（基準値 ${thresh}%）</span>`;
     page.appendChild(header);
     // 正答マスタ取得
     const master=allData[currentExam]?.master;
@@ -1505,7 +1527,7 @@ function switchGridTab(tab) {
 function initGridExamSel() {
   const sel = document.getElementById('gridExamSel');
   if (!sel) return;
-  sel.innerHTML = examList.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+  sel.innerHTML = examList.map(e => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join('');
   if (examList.length) renderGridMaster();
 }
 
@@ -1577,7 +1599,7 @@ function initRespExamSel() {
   const sel = document.getElementById('respExamSel');
   if (!sel) return;
   sel.innerHTML = '<option value="">（全模試）</option>' +
-    examList.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+    examList.map(e => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join('');
   renderResponsesPage();
 }
 
@@ -1606,15 +1628,21 @@ function renderResponsesPage() {
   tbody.innerHTML = rows.map(row => {
     const col = row.score>=60?'color:var(--ok)':row.score>=40?'color:var(--warn)':'color:var(--ng)';
     const stBg = row.status==='submitted'?'background:var(--ok-bg);color:var(--ok)':'background:var(--warn-bg);color:var(--warn)';
-    return `<tr>
-      <td>${row.label}</td>
-      <td style="font-size:11px;color:var(--g4)">${row.examName}</td>
-      <td style="font-weight:500">${row.part}</td>
+    return `<tr data-exam="${esc(row.examName)}" data-uid="${esc(row.uid)}" data-part="${esc(row.part)}">
+      <td>${esc(row.label)}</td>
+      <td style="font-size:11px;color:var(--g4)">${esc(row.examName)}</td>
+      <td style="font-weight:500">${esc(row.part)}</td>
       <td class="mono" style="${col}">${row.score??'—'}</td>
       <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':'下書き'}</span></td>
-      <td><button class="btn-admin-del" onclick="deleteResponse('${row.examName}','${row.uid}','${row.part}')">削除</button></td>
+      <td><button class="btn-admin-del" data-action="delete-resp">削除</button></td>
     </tr>`;
   }).join('');
+
+  tbody.onclick = (ev) => {
+    if (ev.target.dataset.action !== 'delete-resp') return;
+    const tr = ev.target.closest('tr');
+    if (tr) deleteResponse(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
+  };
 }
 
 async function deleteResponse(examName, uid, part) {
