@@ -59,6 +59,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);
 .nav-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;}
 .nav-item:hover{background:var(--g1);color:var(--g5);}
 .nav-item.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.nav-item-view{background:var(--accent-bg);color:var(--accent);border:1px solid #c3d4f8;font-weight:600;}
+.nav-item-view:hover{background:#dde8ff;color:var(--accent);border-color:var(--accent);}
+.nav-item-view.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700;}
 .nav-item-admin{background:rgba(254,202,202,0.4);color:#991b1b;}
 .nav-item-admin:hover{background:rgba(254,202,202,0.7);color:#7f1d1d;}
 .nav-item-admin.active{background:rgba(254,202,202,0.9);color:#7f1d1d;font-weight:700;}
@@ -331,7 +334,7 @@ tbody tr:hover td{background:var(--g1);}
       <button class="gakunen-filter-btn" data-val="2年" onclick="onGakunenFilterChange('2年')">2年</button>
     </div>
     <div class="nav-section-label">全体分析</div>
-    <button class="nav-item active" onclick="showPage('trend',this)">
+    <button class="nav-item nav-item-view active" onclick="showPage('trend',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,13 5,7 9,10 15,3"/></svg>成績推移
     </button>
     <div class="nav-section-label">個別模試</div>
@@ -340,16 +343,16 @@ tbody tr:hover td{background:var(--g1);}
       <div class="nav-section-label" style="padding-top:2px;">学生</div>
       <select class="top-sel" id="sidebarStudentSel" onchange="onStudentChange()" style="margin:0 8px 8px;width:calc(100% - 16px);font-size:12px;"></select>
     </div>
-    <button class="nav-item" onclick="showPage('summary',this)">
+    <button class="nav-item nav-item-view" onclick="showPage('summary',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>個別模試集計【全員】
     </button>
-    <button class="nav-item" onclick="showPage('category',this)">
+    <button class="nav-item nav-item-view" onclick="showPage('category',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率【全員】
     </button>
-    <button class="nav-item" onclick="showPage('weakness',this)">
+    <button class="nav-item nav-item-view" onclick="showPage('weakness',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出【個人】
     </button>
-    <button class="nav-item" onclick="showPage('hist',this)">
+    <button class="nav-item nav-item-view" onclick="showPage('hist',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧【個人】
     </button>
     <div class="nav-section-label">印刷</div>
