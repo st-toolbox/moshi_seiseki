@@ -59,6 +59,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);
 .nav-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;}
 .nav-item:hover{background:var(--g1);color:var(--g5);}
 .nav-item.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.nav-item-admin{background:rgba(254,202,202,0.4);color:#991b1b;}
+.nav-item-admin:hover{background:rgba(254,202,202,0.7);color:#7f1d1d;}
+.nav-item-admin.active{background:rgba(254,202,202,0.9);color:#7f1d1d;font-weight:700;}
 .gakunen-filter-btn{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--g2);background:#fff;color:var(--g4);font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
 .gakunen-filter-btn:hover{border-color:var(--accent);color:var(--accent);}
 .gakunen-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -349,25 +352,26 @@ tbody tr:hover td{background:var(--g1);}
     <button class="nav-item" onclick="showPage('hist',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧【個人】
     </button>
-    <div class="nav-section-label">管理</div>
-    <button class="nav-item" onclick="showPage('admin_exam',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試実施計画
-    </button>
-    <button class="nav-item" onclick="showPage('data_edit',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
-    </button>
-    <button class="nav-item" onclick="showPage('admin_student',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト編集
-    </button>
-    <button class="nav-item" onclick="showPage('responses',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="5" y1="9" x2="5" y2="15"/></svg>回答データ
-    </button>
     <div class="nav-section-label">印刷</div>
     <button class="print-btn nav-item" onclick="window.print()">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/></svg>このページを印刷
     </button>
     <button class="print-btn nav-item" onclick="printAllStudents()">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/><path d="M6 12h4M8 10v4" stroke-width="1.2"/></svg>全学生を印刷
+    </button>
+    <hr style="border:none;border-top:1px solid #fca5a5;margin:10px 8px 2px;">
+    <div class="nav-section-label" style="color:#b91c1c;">管理</div>
+    <button class="nav-item nav-item-admin" onclick="showPage('admin_exam',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試実施計画
+    </button>
+    <button class="nav-item nav-item-admin" onclick="showPage('data_edit',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
+    </button>
+    <button class="nav-item nav-item-admin" onclick="showPage('admin_student',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト編集
+    </button>
+    <button class="nav-item nav-item-admin" onclick="showPage('responses',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="5" y1="9" x2="5" y2="15"/></svg>回答データ
     </button>
   </nav>
 
