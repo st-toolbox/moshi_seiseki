@@ -463,16 +463,18 @@ tbody tr:hover td{background:var(--g1);}
         </div>
       </div>
       <div class="paste-hint">
-        💡 Excelのセルをコピー（<kbd>Ctrl+C</kbd>）して、グリッドのセルをクリックしてから貼り付け（<kbd>Ctrl+V</kbd>）できます。列順：メールアドレス → 名前
+        💡 Excelのセルをコピー（<kbd>Ctrl+C</kbd>）して、グリッドのセルをクリックしてから貼り付け（<kbd>Ctrl+V</kbd>）できます。列順：メールアドレス → 名前 → 年次 → 学年
       </div>
       <div class="grid-wrap" id="studentGridWrap">
         <table class="grid-table">
-          <thead><tr>
+          <thead><tr id="studentGridHead">
             <th class="col-fixed" style="min-width:32px;">#</th>
-            <th style="min-width:260px;">メールアドレス</th>
-            <th style="min-width:160px;">名前</th>
-            <th style="min-width:80px;">状態</th>
-            <th style="min-width:100px;">登録日時</th>
+            <th style="min-width:260px;cursor:pointer;" onclick="sortStudentGrid('email')">メールアドレス <span id="sort-email"></span></th>
+            <th style="min-width:160px;cursor:pointer;" onclick="sortStudentGrid('name')">名前 <span id="sort-name"></span></th>
+            <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('nendo')">年次 <span id="sort-nendo"></span></th>
+            <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('gakunen')">学年 <span id="sort-gakunen"></span></th>
+            <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('active')">状態 <span id="sort-active"></span></th>
+            <th style="min-width:100px;cursor:pointer;" onclick="sortStudentGrid('registeredAt')">登録日時 <span id="sort-registeredAt"></span></th>
             <th style="min-width:60px;">操作</th>
           </tr></thead>
           <tbody id="studentGridBody"></tbody>
@@ -1202,8 +1204,10 @@ async function confirmExamModal() {
 
 
 // ===== 学生リスト編集グリッド =====
-let studentGridData = []; // { uid, email, name, active, registeredAt, isNew }
+let studentGridData = []; // { uid, email, name, nendo, gakunen, active, registeredAt, isNew }
 let _studentPasteHandler = null;
+let _studentSortKey = 'name';
+let _studentSortDir = 1; // 1=昇順, -1=降順
 
 function renderAdminStudentTable() {
   studentGridData = students.map(s => ({ ...s, isNew: false }));
@@ -1213,22 +1217,51 @@ function renderAdminStudentTable() {
 function renderStudentGrid() {
   const tbody = document.getElementById('studentGridBody');
   if (!tbody) return;
+
+  // ソートインジケーター更新
+  ['email','name','nendo','gakunen','active','registeredAt'].forEach(k => {
+    const el = document.getElementById('sort-' + k);
+    if (el) el.textContent = k === _studentSortKey ? (_studentSortDir === 1 ? '↑' : '↓') : '';
+  });
+
   tbody.innerHTML = studentGridData.map((s, i) => {
     const active  = s.active !== false;
     const dateStr = s.registeredAt ? new Date(s.registeredAt).toLocaleDateString('ja-JP') : '—';
     const toggleStyle = active
       ? 'background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok);'
       : 'background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);';
+    const gakunenOpts = ['','1年','2年','3年','4年'].map(v =>
+      `<option value="${v}"${(s.gakunen||'')=== v?' selected':''}>${v||'—'}</option>`).join('');
     return `<tr style="${active?'':'opacity:0.55;'}">
       <td class="col-fixed" style="text-align:center;font-size:11px;color:var(--g4);padding:4px 6px;">${i+1}</td>
       <td><input class="grid-cell" style="width:100%;" type="text" value="${s.email||''}" data-si="${i}" data-type="email" onchange="onStudentCellChange(this)"></td>
       <td><input class="grid-cell" style="width:100%;" type="text" value="${s.name||''}" data-si="${i}" data-type="name" onchange="onStudentCellChange(this)"></td>
+      <td><input class="grid-cell" style="width:100%;text-align:center;" type="text" placeholder="例:2024" value="${s.nendo||''}" data-si="${i}" data-type="nendo" onchange="onStudentCellChange(this)"></td>
+      <td style="padding:0 4px;"><select class="grid-cell" style="width:100%;font-size:12px;" data-si="${i}" data-type="gakunen" onchange="onStudentCellChange(this)">${gakunenOpts}</select></td>
       <td style="text-align:center;"><button onclick="toggleStudentGridActive(${i})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;${toggleStyle}">${active?'有効':'無効'}</button></td>
       <td style="font-size:11px;color:var(--g4);padding:4px 8px;">${dateStr}</td>
       <td style="text-align:center;"><button class="btn-admin-del" onclick="deleteStudentRow(${i})">削除</button></td>
     </tr>`;
   }).join('');
   setupStudentPaste();
+}
+
+function sortStudentGrid(key) {
+  if (_studentSortKey === key) {
+    _studentSortDir *= -1;
+  } else {
+    _studentSortKey = key;
+    _studentSortDir = 1;
+  }
+  studentGridData.sort((a, b) => {
+    let av = a[key] ?? '', bv = b[key] ?? '';
+    if (key === 'active') { av = a.active !== false ? 1 : 0; bv = b.active !== false ? 1 : 0; }
+    if (key === 'registeredAt') { av = av || 0; bv = bv || 0; }
+    if (av < bv) return -1 * _studentSortDir;
+    if (av > bv) return  1 * _studentSortDir;
+    return 0;
+  });
+  renderStudentGrid();
 }
 
 function onStudentCellChange(el) {
@@ -1251,7 +1284,7 @@ function deleteStudentRow(i) {
 }
 
 function addStudentRow() {
-  studentGridData.push({ uid: null, email: '', name: '', active: true, registeredAt: null, isNew: true });
+  studentGridData.push({ uid: null, email: '', name: '', nendo: '', gakunen: '', active: true, registeredAt: null, isNew: true });
   renderStudentGrid();
   // 新行の最初のセルにフォーカス
   const inputs = document.querySelectorAll('#studentGridBody input[data-type="email"]');
@@ -1267,9 +1300,9 @@ async function saveStudentGrid() {
         const ref  = db.ref('students').push();
         s.uid    = ref.key;
         s.isNew  = false;
-        await ref.set({ email: s.email, name: s.name || s.email.split('@')[0], active: s.active, registeredAt: null });
+        await ref.set({ email: s.email, name: s.name || s.email.split('@')[0], nendo: s.nendo||'', gakunen: s.gakunen||'', active: s.active !== false, registeredAt: null });
       } else {
-        await db.ref('students/' + s.uid).update({ email: s.email, name: s.name || '', active: s.active !== false });
+        await db.ref('students/' + s.uid).update({ email: s.email, name: s.name || '', nendo: s.nendo||'', gakunen: s.gakunen||'', active: s.active !== false });
       }
     }
     // 削除された学生をFirebaseから消す
@@ -1306,7 +1339,7 @@ function setupStudentPaste() {
     rows.forEach((row, ri) => {
       const idx = startI + ri;
       if (idx >= studentGridData.length) {
-        studentGridData.push({ uid: null, email: '', name: '', active: true, registeredAt: null, isNew: true });
+        studentGridData.push({ uid: null, email: '', name: '', nendo: '', gakunen: '', active: true, registeredAt: null, isNew: true });
       }
       row.forEach((val, ci) => {
         const col = colOrder[ci];
