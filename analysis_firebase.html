@@ -326,8 +326,6 @@ tbody tr:hover td{background:var(--g1);}
       <button class="gakunen-filter-btn active" data-val="全員" onclick="onGakunenFilterChange('全員')">全員</button>
       <button class="gakunen-filter-btn" data-val="3年" onclick="onGakunenFilterChange('3年')">3年</button>
       <button class="gakunen-filter-btn" data-val="2年" onclick="onGakunenFilterChange('2年')">2年</button>
-      <button class="gakunen-filter-btn" data-val="1年" onclick="onGakunenFilterChange('1年')">1年</button>
-      <button class="gakunen-filter-btn" data-val="4年" onclick="onGakunenFilterChange('4年')">4年</button>
     </div>
     <div class="nav-section-label">全体分析</div>
     <button class="nav-item active" onclick="showPage('trend',this)">
@@ -1258,7 +1256,7 @@ function renderStudentGrid() {
     const toggleStyle = active
       ? 'background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok);'
       : 'background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);';
-    const gakunenOpts = ['','1年','2年','3年','4年'].map(v =>
+    const gakunenOpts = ['','2年','3年'].map(v =>
       `<option value="${v}"${(s.gakunen||'')=== v?' selected':''}>${v||'—'}</option>`).join('');
     return `<tr style="${active?'':'opacity:0.55;'}">
       <td class="col-fixed" style="text-align:center;font-size:11px;color:var(--g4);padding:4px 6px;">${i+1}</td>
