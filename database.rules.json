@@ -19,9 +19,10 @@
     },
 
     "responses": {
+      ".read": "root.child('teachers').child(auth.uid).exists()",
       "$examId": {
         "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())",
+          ".read": "auth != null && auth.uid === $uid",
           ".write": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())"
         }
       }

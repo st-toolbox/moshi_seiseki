@@ -723,10 +723,9 @@ auth.onAuthStateChanged(async user => {
 async function loadAllData() {
   showLoading('データを読み込み中...');
   try {
-    // 模試マスタ + 回答データを並行取得
-    const [examSnap, respSnap, stuSnap] = await Promise.all([
+    // 模試マスタ + 学生リストを並行取得
+    const [examSnap, stuSnap] = await Promise.all([
       db.ref('exams').once('value'),
-      db.ref('responses').once('value'),
       db.ref('students').once('value'),
     ]);
 
@@ -744,14 +743,29 @@ async function loadAllData() {
       students.push({ uid: child.key, ...child.val() });
     });
 
-    // 回答データ
-    respSnap.forEach(examChild => {
-      const examName = examChild.key;
-      if (!allData[examName]) allData[examName] = { master: {}, responses: {} };
-      examChild.forEach(userChild => {
-        allData[examName].responses[userChild.key] = userChild.val();
+    // 回答データ — 教員は全件読み、学生は自分のデータのみ読む
+    if (isTeacher) {
+      const respSnap = await db.ref('responses').once('value');
+      respSnap.forEach(examChild => {
+        const examName = examChild.key;
+        if (!allData[examName]) allData[examName] = { master: {}, responses: {} };
+        examChild.forEach(userChild => {
+          allData[examName].responses[userChild.key] = userChild.val();
+        });
       });
-    });
+    } else {
+      const uid = currentUser.uid;
+      const perExamSnaps = await Promise.all(
+        examList.map(e => db.ref('responses/' + e.name + '/' + uid).once('value'))
+      );
+      perExamSnaps.forEach((snap, i) => {
+        const examName = examList[i].name;
+        if (snap.exists()) {
+          if (!allData[examName]) allData[examName] = { master: {}, responses: {} };
+          allData[examName].responses[uid] = snap.val();
+        }
+      });
+    }
 
     // ソート（新しい順）
     examList.sort((a, b) => {
