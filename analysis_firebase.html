@@ -323,8 +323,8 @@ tbody tr:hover td{background:var(--g1);}
   <nav class="sidebar">
     <div class="nav-section-label" style="padding-top:4px;">学年フィルター</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 8px;">
-      <button class="gakunen-filter-btn active" data-val="全員" onclick="onGakunenFilterChange('全員')">全員</button>
-      <button class="gakunen-filter-btn" data-val="3年" onclick="onGakunenFilterChange('3年')">3年</button>
+      <button class="gakunen-filter-btn" data-val="全員" onclick="onGakunenFilterChange('全員')">全員</button>
+      <button class="gakunen-filter-btn active" data-val="3年" onclick="onGakunenFilterChange('3年')">3年</button>
       <button class="gakunen-filter-btn" data-val="2年" onclick="onGakunenFilterChange('2年')">2年</button>
     </div>
     <div class="nav-section-label">全体分析</div>
@@ -631,15 +631,22 @@ let editPart      = 'AM';
 let questionCache = {};
 let _threshTimer  = null;
 
-let currentGakunenFilter = '全員'; // '全員' | '1年' | '2年' | '3年' | '4年'
+let currentGakunenFilter = '3年'; // '全員' | '2年' | '3年'
 
-// active !== false かつ学年フィルターに合致する学生を返す（分析用）
+// active !== false かつ学年フィルターに合致する学生を返す（学年降順→メール昇順でソート済み）
 function getActiveStudents() {
-  return students.filter(s => {
-    if (s.active === false) return false;
-    if (currentGakunenFilter === '全員') return true;
-    return (s.gakunen || '') === currentGakunenFilter;
-  });
+  return students
+    .filter(s => {
+      if (s.active === false) return false;
+      if (currentGakunenFilter === '全員') return true;
+      return (s.gakunen || '') === currentGakunenFilter;
+    })
+    .sort((a, b) => {
+      const ga = a.gakunen || '', gb = b.gakunen || '';
+      if (ga > gb) return -1;
+      if (ga < gb) return  1;
+      return (a.email || '').localeCompare(b.email || '');
+    });
 }
 
 function onGakunenFilterChange(val) {
