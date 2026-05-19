@@ -759,9 +759,9 @@ auth.onAuthStateChanged(async user => {
         const pendingKey = emailToKey(email);
         const pendingSnap = await db.ref('pending_teachers/' + pendingKey).once('value');
         if (pendingSnap.exists()) {
-          isTeacher = true;  // 先に昇格、DB書き込み失敗でも教員として続行
-          db.ref('teachers/' + user.uid).set(email).catch(()=>{});
+          await db.ref('teachers/' + user.uid).set(email);  // 先に DB 登録を完了させてから続行
           db.ref('pending_teachers/' + pendingKey).remove().catch(()=>{});
+          isTeacher = true;
         }
       } catch(e) {
         // pending_teachers 読み取り失敗（ルール未更新等）は無視
