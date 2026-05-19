@@ -5,7 +5,15 @@
 
     "teachers": {
       ".read": "auth != null",
-      ".write": false
+      ".write": "root.child('teachers').child(auth.uid).exists()"
+    },
+
+    "pending_teachers": {
+      ".read": "root.child('teachers').child(auth.uid).exists()",
+      ".write": "root.child('teachers').child(auth.uid).exists()",
+      "$emailKey": {
+        ".read": "auth != null"
+      }
     },
 
     "exams": {
