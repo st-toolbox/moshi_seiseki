@@ -376,6 +376,9 @@ tbody tr:hover td{background:var(--g1);}
     <button class="nav-item nav-item-admin" onclick="showPage('responses',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="5" y1="9" x2="5" y2="15"/></svg>回答データ
     </button>
+    <button class="nav-item nav-item-admin" onclick="showPage('admin_teacher',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3.3 2.7-5 5-5"/><circle cx="12" cy="10" r="2.5"/><line x1="12" y1="7" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="13"/><line x1="9" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="15" y2="10"/></svg>教員リスト編集
+    </button>
   </nav>
 
   <main class="main">
@@ -516,6 +519,45 @@ tbody tr:hover td{background:var(--g1);}
           <table>
             <thead><tr><th>学生</th><th>模試</th><th>時間帯</th><th>得点</th><th>状態</th><th>操作</th></tr></thead>
             <tbody id="respTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 教員リスト編集 -->
+    <div class="page" id="page-admin_teacher">
+      <div class="page-header-row">
+        <div><div class="page-title">教員リスト編集</div><div class="page-sub">教員の追加・削除ができます</div></div>
+      </div>
+
+      <!-- 事前登録フォーム -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:10px;">メールアドレスで事前登録</div>
+        <div style="font-size:12px;color:var(--g4);margin-bottom:10px;">登録したメールアドレスで次回ログインした際に自動で教員として認識されます。</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="email" id="pendingTeacherEmail" class="filter-input" placeholder="xxxx@asahi.ac.jp" style="flex:1;max-width:340px;">
+          <button class="btn-admin-add" onclick="addPendingTeacher()">追加</button>
+        </div>
+      </div>
+
+      <!-- 登録済み教員 -->
+      <div class="card" style="padding:0;margin-bottom:16px;">
+        <div style="padding:12px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--g2);">登録済み教員</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>メールアドレス</th><th>UID</th><th>操作</th></tr></thead>
+            <tbody id="teacherTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 事前登録待ち -->
+      <div class="card" style="padding:0;">
+        <div style="padding:12px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--g2);">事前登録待ち（未ログイン）</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>メールアドレス</th><th>操作</th></tr></thead>
+            <tbody id="pendingTeacherTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -705,15 +747,28 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('userAv').textContent = email.slice(0,2).toUpperCase();
     document.getElementById('userName').textContent = email;
 
-    // 教員判定
+    // 教員判定（事前登録メールからの自動昇格も含む）
     const tSnap = await db.ref('teachers/' + user.uid).once('value');
     isTeacher = tSnap.exists();
+    if (isTeacher) {
+      // メールアドレスをDBに反映（既存の true エントリを更新）
+      if (tSnap.val() !== email) await db.ref('teachers/' + user.uid).set(email);
+    } else {
+      // 事前登録リストを確認して自動昇格
+      const pendingKey = emailToKey(email);
+      const pendingSnap = await db.ref('pending_teachers/' + pendingKey).once('value');
+      if (pendingSnap.exists()) {
+        await db.ref('teachers/' + user.uid).set(email);
+        await db.ref('pending_teachers/' + pendingKey).remove();
+        isTeacher = true;
+      }
+    }
     document.getElementById('userRole').textContent = isTeacher ? '教員' : '学生';
     if (!isTeacher) {
       document.getElementById('userRole').style.background = 'var(--ok-bg)';
       document.getElementById('userRole').style.color = 'var(--ok)';
       // 学生は管理画面非表示
-      document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses').forEach(el => el.style.display='none');
+      document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses, #page-admin_teacher').forEach(el => el.style.display='none');
     }
 
     applyWeakMode();
@@ -820,6 +875,7 @@ function showPage(id, btn) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   btn.classList.add('active');
+  if (id === 'admin_teacher') renderAdminTeacherTable();
 }
 
 function onExamChange() {
@@ -2036,6 +2092,80 @@ function buildHistPrintHTML(stuLabel, examData, showHeader=false) {
 // ===== ローディング =====
 function showLoading(t){document.getElementById('loadingText').textContent=t||'処理中...';document.getElementById('loading').classList.add('show');}
 function hideLoading(){document.getElementById('loading').classList.remove('show');}
+
+// ===== 教員リスト編集 =====
+function emailToKey(email) {
+  return email.replace(/\./g, '_').replace(/@/g, '-at-');
+}
+
+async function renderAdminTeacherTable() {
+  if (!isTeacher) return;
+  const [tSnap, pSnap] = await Promise.all([
+    db.ref('teachers').once('value'),
+    db.ref('pending_teachers').once('value'),
+  ]);
+
+  // 登録済み教員
+  const tbody = document.getElementById('teacherTableBody');
+  if (!tbody) return;
+  const rows = [];
+  tSnap.forEach(child => {
+    const uid = child.key;
+    const emailVal = typeof child.val() === 'string' ? child.val() : '（未取得）';
+    const isSelf = uid === currentUser?.uid;
+    rows.push(`<tr>
+      <td>${esc(emailVal)}</td>
+      <td style="font-size:11px;color:var(--g4);font-family:'DM Mono',monospace;">${esc(uid)}</td>
+      <td style="text-align:center;">${isSelf
+        ? '<span style="font-size:11px;color:var(--g4);">（自分）</span>'
+        : `<button class="btn-admin-del" onclick="deleteTeacher('${esc(uid)}')">削除</button>`
+      }</td>
+    </tr>`);
+  });
+  tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" style="text-align:center;color:var(--g4);padding:16px;">教員が登録されていません</td></tr>';
+
+  // 事前登録待ち
+  const ptbody = document.getElementById('pendingTeacherTableBody');
+  if (!ptbody) return;
+  const prows = [];
+  pSnap.forEach(child => {
+    const emailVal = child.val();
+    const key = child.key;
+    prows.push(`<tr>
+      <td>${esc(emailVal)}</td>
+      <td style="text-align:center;"><button class="btn-admin-del" onclick="deletePendingTeacher('${esc(key)}')">削除</button></td>
+    </tr>`);
+  });
+  ptbody.innerHTML = prows.length ? prows.join('') : '<tr><td colspan="2" style="text-align:center;color:var(--g4);padding:16px;">事前登録待ちなし</td></tr>';
+}
+
+async function addPendingTeacher() {
+  if (!isTeacher) return;
+  const input = document.getElementById('pendingTeacherEmail');
+  const email = (input?.value || '').trim().toLowerCase();
+  if (!email) return alert('メールアドレスを入力してください');
+  if (!email.endsWith('@asahi.ac.jp') && !email.endsWith('@oky.asahi.ac.jp')) {
+    return alert('朝日医療大学のメールアドレスを入力してください');
+  }
+  const key = emailToKey(email);
+  await db.ref('pending_teachers/' + key).set(email);
+  if (input) input.value = '';
+  await renderAdminTeacherTable();
+}
+
+async function deleteTeacher(uid) {
+  if (!isTeacher) return;
+  if (!confirm('この教員を削除しますか？')) return;
+  await db.ref('teachers/' + uid).remove();
+  await renderAdminTeacherTable();
+}
+
+async function deletePendingTeacher(key) {
+  if (!isTeacher) return;
+  if (!confirm('事前登録を削除しますか？')) return;
+  await db.ref('pending_teachers/' + key).remove();
+  await renderAdminTeacherTable();
+}
 </script>
 </body>
 </html>
