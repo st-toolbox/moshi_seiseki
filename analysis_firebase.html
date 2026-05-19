@@ -750,18 +750,23 @@ auth.onAuthStateChanged(async user => {
     // 教員判定（事前登録メールからの自動昇格も含む）
     const tSnap = await db.ref('teachers/' + user.uid).once('value');
     isTeacher = tSnap.exists();
-    if (isTeacher) {
-      // メールアドレスをDBに反映（既存の true エントリを更新）
-      if (tSnap.val() !== email) await db.ref('teachers/' + user.uid).set(email);
-    } else {
-      // 事前登録リストを確認して自動昇格
-      const pendingKey = emailToKey(email);
-      const pendingSnap = await db.ref('pending_teachers/' + pendingKey).once('value');
-      if (pendingSnap.exists()) {
-        await db.ref('teachers/' + user.uid).set(email);
-        await db.ref('pending_teachers/' + pendingKey).remove();
-        isTeacher = true;
+    try {
+      if (isTeacher) {
+        // メールアドレスをDBに反映（既存の true エントリを更新）
+        if (tSnap.val() !== email) await db.ref('teachers/' + user.uid).set(email);
+      } else {
+        // 事前登録リストを確認して自動昇格
+        const pendingKey = emailToKey(email);
+        const pendingSnap = await db.ref('pending_teachers/' + pendingKey).once('value');
+        if (pendingSnap.exists()) {
+          await db.ref('teachers/' + user.uid).set(email);
+          await db.ref('pending_teachers/' + pendingKey).remove();
+          isTeacher = true;
+        }
       }
+    } catch(e) {
+      // Firebase ルール未更新時など — 判定済みの isTeacher のまま続行
+      console.warn('teacher update skipped:', e.message);
     }
     document.getElementById('userRole').textContent = isTeacher ? '教員' : '学生';
     if (!isTeacher) {
