@@ -750,23 +750,22 @@ auth.onAuthStateChanged(async user => {
     // 教員判定（事前登録メールからの自動昇格も含む）
     const tSnap = await db.ref('teachers/' + user.uid).once('value');
     isTeacher = tSnap.exists();
-    try {
-      if (isTeacher) {
-        // メールアドレスをDBに反映（既存の true エントリを更新）
-        if (tSnap.val() !== email) await db.ref('teachers/' + user.uid).set(email);
-      } else {
-        // 事前登録リストを確認して自動昇格
+    if (isTeacher) {
+      // メールアドレスをDBに反映（既存の true エントリを更新）
+      if (tSnap.val() !== email) db.ref('teachers/' + user.uid).set(email).catch(()=>{});
+    } else {
+      // 事前登録リストを確認して自動昇格
+      try {
         const pendingKey = emailToKey(email);
         const pendingSnap = await db.ref('pending_teachers/' + pendingKey).once('value');
         if (pendingSnap.exists()) {
-          await db.ref('teachers/' + user.uid).set(email);
-          await db.ref('pending_teachers/' + pendingKey).remove();
-          isTeacher = true;
+          isTeacher = true;  // 先に昇格、DB書き込み失敗でも教員として続行
+          db.ref('teachers/' + user.uid).set(email).catch(()=>{});
+          db.ref('pending_teachers/' + pendingKey).remove().catch(()=>{});
         }
+      } catch(e) {
+        // pending_teachers 読み取り失敗（ルール未更新等）は無視
       }
-    } catch(e) {
-      // Firebase ルール未更新時など — 判定済みの isTeacher のまま続行
-      console.warn('teacher update skipped:', e.message);
     }
     document.getElementById('userRole').textContent = isTeacher ? '教員' : '学生';
     if (!isTeacher) {
