@@ -2151,10 +2151,14 @@ async function addPendingTeacher() {
   if (!email.endsWith('@asahi.ac.jp') && !email.endsWith('@oky.asahi.ac.jp')) {
     return alert('朝日医療大学のメールアドレスを入力してください');
   }
-  const key = emailToKey(email);
-  await db.ref('pending_teachers/' + key).set(email);
-  if (input) input.value = '';
-  await renderAdminTeacherTable();
+  try {
+    const key = emailToKey(email);
+    await db.ref('pending_teachers/' + key).set(email);
+    if (input) input.value = '';
+    await renderAdminTeacherTable();
+  } catch(e) {
+    alert('登録に失敗しました。Firebase のセキュリティルールが更新されていない可能性があります。\n\nエラー: ' + e.message);
+  }
 }
 
 async function deleteTeacher(uid) {
