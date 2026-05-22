@@ -1675,7 +1675,7 @@ function renderGridMaster() {
 
   function makeSection(start, end, label) {
     let html = `<div style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:8px;padding:4px 0;border-bottom:2px solid var(--g2);">${label}</div>`;
-    html += '<div class="grid-wrap" style="margin-bottom:20px;overflow-y:visible;">';
+    html += '<div class="grid-wrap" style="margin-bottom:20px;overflow-y:clip;">';
     html += '<table class="grid-table"><thead><tr>';
     html += '<th class="col-fixed" style="min-width:60px;text-align:left;">項目</th>';
     for (let q = start; q <= end; q++) {
