@@ -365,7 +365,7 @@ tbody tr:hover td{background:var(--g1);}
     <hr style="border:none;border-top:1px solid #fca5a5;margin:10px 8px 2px;">
     <div class="nav-section-label" style="color:#b91c1c;">管理</div>
     <button class="nav-item nav-item-admin" onclick="showPage('admin_exam',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試実施計画
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試一覧・計画
     </button>
     <button class="nav-item nav-item-admin" onclick="showPage('data_edit',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
@@ -460,10 +460,10 @@ tbody tr:hover td{background:var(--g1);}
       <div id="histPrintWrap" style="display:none;"></div>
     </div>
 
-    <!-- 模試実施計画 -->
+    <!-- 模試一覧・計画 -->
     <div class="page" id="page-admin_exam">
       <div class="page-header-row">
-        <div><div class="page-title">模試実施計画</div><div class="page-sub">模試の追加・編集</div></div>
+        <div><div class="page-title">模試一覧・計画</div><div class="page-sub">模試の追加・編集</div></div>
         <button class="btn-admin-add" onclick="openExamModal(null)">＋ 模試を追加</button>
       </div>
       <div class="card" id="examListCard">
@@ -1281,7 +1281,10 @@ function renderAdminExamTable() {
         <option value="1" ${e.active?'selected':''}>受付中</option>
         <option value="0" ${!e.active?'selected':''}>締切</option>
       </select></td>
-      <td><button class="btn-admin-del" data-action="delete-exam">削除</button></td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-admin-save" style="padding:4px 10px;font-size:12px;" data-action="rename-exam">名前変更</button>
+        <button class="btn-admin-del" data-action="delete-exam">削除</button>
+      </td>
     </tr>`;
   }).join('');
 
@@ -1292,6 +1295,7 @@ function renderAdminExamTable() {
     const name = tr.dataset.exam;
     const action = ev.target.closest('[data-action]')?.dataset.action;
     if (action === 'delete-exam') deleteExam(name);
+    if (action === 'rename-exam') renameExam(name);
   };
   tbody.onchange = (ev) => {
     const tr = ev.target.closest('tr[data-exam]');
@@ -1320,6 +1324,41 @@ async function deleteExam(name) {
   examList = examList.filter(e=>e.name!==name);
   delete allData[name];
   renderAdminExamTable();
+}
+
+async function renameExam(oldName) {
+  if (!isTeacher) return;
+  const newName = prompt('新しい模試名を入力してください', oldName);
+  if (!newName || newName.trim() === oldName) return;
+  const n = newName.trim();
+  if (!/^[^.$#[\]/]{1,100}$/.test(n)) return alert('使えない文字が含まれています（. $ # [ ] / は不可）');
+  if (examList.find(e => e.name === n)) return alert('同じ名前の模試が既に存在します');
+  showLoading('名前を変更中...');
+  try {
+    // exams ノードをコピー → 旧削除
+    const examSnap = await db.ref('exams/' + oldName).once('value');
+    await db.ref('exams/' + n).set(examSnap.val());
+    await db.ref('exams/' + oldName).remove();
+    // responses ノードをコピー → 旧削除
+    const respSnap = await db.ref('responses/' + oldName).once('value');
+    if (respSnap.exists()) {
+      await db.ref('responses/' + n).set(respSnap.val());
+      await db.ref('responses/' + oldName).remove();
+    }
+    // ローカル状態を更新
+    const e = examList.find(x => x.name === oldName);
+    if (e) e.name = n;
+    if (allData[oldName]) { allData[n] = allData[oldName]; delete allData[oldName]; }
+    // UI 全体を再描画
+    const opts = examList.map(e => `<option value="${esc(e.name)}">${esc(e.name)}（${esc(formatDate(e.date))}）</option>`).join('');
+    document.getElementById('examSel').innerHTML = opts;
+    currentExam = examList[0]?.name || '';
+    renderAdminExamTable();
+    hideLoading();
+  } catch(e) {
+    hideLoading();
+    alert('エラーが発生しました: ' + e.message);
+  }
 }
 
 function openExamModal(name) {
