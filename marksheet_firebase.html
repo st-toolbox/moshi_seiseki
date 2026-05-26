@@ -258,9 +258,9 @@ auth.onAuthStateChanged(async user => {
     const stuRef = db.ref('students/' + user.uid);
     stuRef.once('value').then(snap => {
       if (!snap.exists()) {
-        stuRef.set({ email, name: email.split('@')[0], registeredAt: Date.now() });
+        stuRef.set({ email, name: email.split('@')[0], registeredAt: Date.now() }).catch(() => {});
       }
-    });
+    }).catch(() => {});
 
     loadExamList();
   } else {
