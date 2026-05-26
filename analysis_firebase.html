@@ -286,6 +286,26 @@ tbody tr:hover td{background:var(--g1);}
   .hptbl tr.bdiv td{border-top:1pt solid #3b5bdb;}
   .hptbl td.hprow-left{background:rgba(26,92,232,0.05);}
   .hptbl td.hprow-right{background:rgba(185,28,28,0.05);}
+  /* 回答詳細印刷モード */
+  body.print-resp-detail .layout,
+  body.print-resp-detail .topbar,
+  body.print-resp-detail .sidebar,
+  body.print-resp-detail .main,
+  body.print-resp-detail #loading{display:none!important;}
+  body.print-resp-detail .modal-overlay{display:block!important;position:static!important;background:none!important;padding:0!important;}
+  body.print-resp-detail #respDetailModal{display:block!important;}
+  body.print-resp-detail #examModal,
+  body.print-resp-detail .modal-cancel-btn{display:none!important;}
+  body.print-resp-detail .modal-box-wide{max-height:none!important;width:100%!important;max-width:none!important;border-radius:0!important;padding:4mm 6mm!important;box-shadow:none!important;border:none!important;}
+  body.print-resp-detail #respDetailTitle{font-size:13pt!important;font-weight:700!important;}
+  body.print-resp-detail #respDetailSummary{font-size:10pt!important;color:#333!important;margin-bottom:3mm!important;}
+  body.print-resp-detail .resp-detail-table{font-size:8pt!important;}
+  body.print-resp-detail .resp-detail-table th,
+  body.print-resp-detail .resp-detail-table td{padding:2px 5px!important;color:#000!important;background:#fff!important;}
+  body.print-resp-detail .resp-detail-table th{background:#eee!important;font-weight:700!important;}
+  body.print-resp-detail .resp-correct{color:#000!important;font-weight:700!important;}
+  body.print-resp-detail .resp-wrong{color:#000!important;font-weight:400!important;}
+
   /* 全学生印刷モード */
   body.print-all-students .page.active{display:none!important;}
   body.print-all-students .student-print-page{display:block!important;}
@@ -646,7 +666,10 @@ tbody tr:hover td{background:var(--g1);}
       <div class="modal-box-wide">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div id="respDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
-          <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
+          <div style="display:flex;gap:8px;">
+            <button class="modal-cancel-btn" onclick="printRespDetail()">🖨 印刷</button>
+            <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
+          </div>
         </div>
         <div id="respDetailSummary" style="font-size:13px;color:var(--g4);"></div>
         <div style="overflow-y:auto;flex:1;">
@@ -1846,6 +1869,19 @@ function showRespDetail(examName, uid, part) {
 
   const modal = document.getElementById('respDetailModal');
   modal.classList.remove('hidden'); modal.classList.add('show');
+}
+
+function printRespDetail() {
+  const st = document.createElement('style');
+  st.id = 'resp-detail-page-style';
+  st.textContent = '@page{size:A4 portrait;margin:10mm 12mm;}';
+  document.head.appendChild(st);
+  document.body.classList.add('print-resp-detail');
+  window.print();
+  setTimeout(() => {
+    document.body.classList.remove('print-resp-detail');
+    st.remove();
+  }, 1000);
 }
 
 function closeRespDetail() {
