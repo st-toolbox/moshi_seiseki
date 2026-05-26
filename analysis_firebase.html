@@ -1876,16 +1876,57 @@ function showRespDetail(examName, uid, part) {
 }
 
 function printRespDetail() {
+  const title   = document.getElementById('respDetailTitle').textContent;
+  const summary = document.getElementById('respDetailSummary').textContent;
+  const rows    = Array.from(document.querySelectorAll('#respDetailBody tr'));
+
+  const rowHtml = rows.map(tr => {
+    const cells = tr.querySelectorAll('td');
+    const ok    = cells[4]?.textContent.trim() === '○';
+    return `<div class="prow">
+      <span class="pq">${cells[0]?.textContent ?? ''}</span>
+      <span class="pcat">${cells[1]?.textContent ?? ''}</span>
+      <span class="pcor">${cells[2]?.textContent ?? ''}</span>
+      <span class="pans">${cells[3]?.textContent ?? ''}</span>
+      <span class="pjdg" style="font-weight:${ok ? '700' : '400'}">${cells[4]?.textContent ?? ''}</span>
+    </div>`;
+  }).join('');
+
+  const printDiv = document.createElement('div');
+  printDiv.id = 'resp-print-div';
+  printDiv.innerHTML = `
+    <div style="font-size:13pt;font-weight:700;margin-bottom:1mm;">${title}</div>
+    <div style="font-size:9pt;color:#333;margin-bottom:3mm;border-bottom:1pt solid #ccc;padding-bottom:2mm;">${summary}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 5mm;">
+      <div class="pcol-hd">問&nbsp;&nbsp;科目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;正解 回答 正誤</div>
+      <div class="pcol-hd">問&nbsp;&nbsp;科目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;正解 回答 正誤</div>
+      <div class="pcol-hd">問&nbsp;&nbsp;科目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;正解 回答 正誤</div>
+      ${rowHtml}
+    </div>`;
+  document.body.appendChild(printDiv);
+
   const st = document.createElement('style');
   st.id = 'resp-detail-page-style';
-  st.textContent = '@page{size:A4 portrait;margin:10mm 12mm;}';
+  st.textContent = `
+    @page{size:A4 portrait;margin:10mm 12mm;}
+    body.print-resp-detail>*:not(#resp-print-div){display:none!important;}
+    #resp-print-div{display:block!important;font-family:'Noto Sans JP',sans-serif;font-size:7.5pt;}
+    #resp-print-div .pcol-hd{font-size:6pt;font-weight:700;color:#888;border-bottom:0.5pt solid #ccc;margin-bottom:1px;padding-bottom:1px;}
+    #resp-print-div .prow{display:flex;align-items:baseline;gap:2px;padding:1px 0;border-bottom:0.3pt solid #eee;break-inside:avoid;}
+    #resp-print-div .pq{width:20px;color:#666;font-family:monospace;font-size:7pt;flex-shrink:0;text-align:right;}
+    #resp-print-div .pcat{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7pt;}
+    #resp-print-div .pcor{width:14px;text-align:center;font-family:monospace;font-size:7pt;color:#999;flex-shrink:0;}
+    #resp-print-div .pans{width:14px;text-align:center;font-family:monospace;font-size:7pt;flex-shrink:0;}
+    #resp-print-div .pjdg{width:12px;text-align:center;font-size:7pt;flex-shrink:0;}
+  `;
   document.head.appendChild(st);
   document.body.classList.add('print-resp-detail');
   window.print();
   setTimeout(() => {
     document.body.classList.remove('print-resp-detail');
     st.remove();
-  }, 1000);
+    printDiv.remove();
+  }, 1500);
 }
 
 function closeRespDetail() {
