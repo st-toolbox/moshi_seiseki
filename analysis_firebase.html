@@ -1018,7 +1018,7 @@ function renderSummary() {
     const r = allData[currentExam]?.responses?.[s.uid];
     const am = r?.AM?.status==='submitted' ? (r.AM.score||0) : null;
     const pm = r?.PM?.status==='submitted' ? (r.PM.score||0) : null;
-    return { email: s.email||s.name, am, pm, total:(am||0)+(pm||0) };
+    return { label: s.name || s.email, am, pm, total:(am||0)+(pm||0) };
   }).filter(r => r.am!==null || r.pm!==null);
 
   const totals = rows.map(r=>r.total).filter(t=>t>0);
@@ -1031,7 +1031,7 @@ function renderSummary() {
 
   document.getElementById('scoreBody').innerHTML = rows.map(r => {
     const col = r.total>=120?'color:var(--ok)':r.total>=100?'color:var(--warn)':'color:var(--ng)';
-    return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.email)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
+    return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.label)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
   }).join('');
 
   const bins=['80-99','100-119','120-139','140-159','160-179','180-200'];
