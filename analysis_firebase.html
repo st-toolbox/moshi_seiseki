@@ -1295,8 +1295,7 @@ function renderWeak(part) {
     block.appendChild(mkWRow(colW,`<div class="wcell qnum wrow-label" style="height:24px;border-bottom:none;">問</div>`,bqs.map((q,i)=>`<div class="wcell qnum${s5(i,bqs.length)}">${q.q}</div>`)));
     block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">正答</div>`,bqs.map((q,i)=>`<div class="wcell${sc(i)}${s5(i,bqs.length)}">${esc(q.ans)}</div>`)));
     block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;">正答率</div>`,bqs.map((q,i)=>{
-      const cls=q.pct>=80?'pct-ok':q.pct>=60?'pct-warn':'pct-ng';
-      return `<div class="wcell ${cls}${sc(i)}${s5(i,bqs.length)}">${q.pct!=null?q.pct+'%':'—'}</div>`;
+      return `<div class="wcell${sc(i)}${s5(i,bqs.length)}">${q.pct!=null?q.pct+'%':'—'}</div>`;
     })));
     block.appendChild(mkWRow(colW,`<div class="wrow-label" style="height:28px;" title="${esc(myLabel)}">あなた</div>`,bqs.map((q,i)=>{
       const nc=q.myAns===null?' my-none':'';
