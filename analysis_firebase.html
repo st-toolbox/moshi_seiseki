@@ -151,6 +151,23 @@ tbody tr:hover td{background:var(--g1);}
 .hist-tbl td.hist-data-td.c-ng{background:rgba(185,28,28,0.15);color:var(--ng);font-weight:700;}
 .hist-tbl .sec-div td{border-top:2px solid var(--accent);}
 
+/* LOW RATE */
+#page-lowrate{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;}
+#page-lowrate.active{display:flex;}
+#page-lowrate .filter-row{flex-shrink:0;margin-bottom:6px;}
+#page-lowrate #lrContent{flex:1;min-height:0;overflow-y:auto;}
+.lr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
+.lr-card{background:#fff;border-radius:10px;border:1px solid var(--g2);overflow:hidden;}
+.lr-card-head{background:var(--g1);padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--g2);}
+.lr-card-title{font-weight:700;font-size:13px;flex:1;}
+.lr-card-avg{font-size:12px;font-weight:700;}
+.lr-card-n{font-size:11px;color:var(--g4);}
+.lr-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.lr-tbl th{padding:4px 10px;background:var(--g1);text-align:center;border-bottom:1px solid var(--g2);font-size:11px;font-weight:600;color:var(--g4);}
+.lr-tbl td{padding:4px 10px;border-bottom:1px solid var(--g2);text-align:center;}
+.lr-tbl tr:last-child td{border-bottom:none;}
+.lr-empty{text-align:center;color:var(--g4);padding:40px;font-size:13px;}
+
 /* WEAK */
 .weak-blocks{display:flex;flex-direction:column;gap:12px;}
 .weak-block{background:#fff;border-radius:10px;border:1px solid var(--g2);overflow:hidden;}
@@ -383,6 +400,9 @@ tbody tr:hover td{background:var(--g1);}
     <button class="nav-item nav-item-view" onclick="showPage('category',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率【全員】
     </button>
+    <button class="nav-item nav-item-view" onclick="showPage('lowrate',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="1" width="3" height="14" rx="1"/></svg>科目別低正答率
+    </button>
     <button class="nav-item nav-item-view" onclick="showPage('weakness',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出【個人】
     </button>
@@ -485,6 +505,23 @@ tbody tr:hover td{background:var(--g1);}
         <div class="pm-break-label" style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:6px;padding:4px 0;border-bottom:2px solid var(--g2);">午後（第101〜200問）</div>
         <div class="weak-blocks" id="weakBlocksPM"></div>
       </div>
+    </div>
+
+    <!-- 科目別低正答率 -->
+    <div class="page" id="page-lowrate">
+      <div class="page-header-row">
+        <div><div class="page-title">科目別低正答率</div><div class="page-sub" id="lrSubtitle"></div></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">基準値：</span>
+        <div class="thresh-btns">
+          <button id="lr-40" onclick="setLrThresh(40)">40%</button>
+          <button id="lr-50" class="active" onclick="setLrThresh(50)">50%</button>
+          <button id="lr-60" onclick="setLrThresh(60)">60%</button>
+          <button id="lr-70" onclick="setLrThresh(70)">70%</button>
+        </div>
+      </div>
+      <div id="lrContent"><div class="lr-empty">模試を選択してください</div></div>
     </div>
 
     <!-- 個人模試成績一覧 -->
@@ -778,7 +815,7 @@ function onGakunenFilterChange(val) {
   });
   // サイドバー学生セレクタを更新してから全画面再描画
   initSidebarStudentSel();
-  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak(); renderStudentHistory();
+  renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak(); renderStudentHistory();
 }
 
 // 分野の表示順（固定）
@@ -947,6 +984,7 @@ function showPage(id, btn) {
   document.getElementById('page-' + id).classList.add('active');
   btn.classList.add('active');
   if (id === 'admin_teacher') renderAdminTeacherTable();
+  if (id === 'lowrate') renderLowRate();
 }
 
 function onExamChange() {
@@ -954,6 +992,7 @@ function onExamChange() {
   questionCache = {};
   renderSummary();
   renderCategory();
+  renderLowRate();
   loadAndRenderWeak();
 }
 
@@ -1217,6 +1256,92 @@ function renderCategory() {
   if(charts.catRight) charts.catRight.destroy();
   charts.catLeft  = buildChart('catChartLeft',  makeCatData(leftCats),  'rgba(26,92,232,0.72)', 'rgba(26,92,232,0.32)');
   charts.catRight = buildChart('catChartRight', makeCatData(rightCats), 'rgba(185,28,28,0.72)', 'rgba(185,28,28,0.32)');
+}
+
+// ===== 科目別低正答率 =====
+let lrThresh = 50;
+
+function setLrThresh(val) {
+  lrThresh = val;
+  [40,50,60,70].forEach(v => {
+    const b = document.getElementById('lr-'+v);
+    if (b) b.classList.toggle('active', v === val);
+  });
+  renderLowRate();
+}
+
+function renderLowRate() {
+  const content = document.getElementById('lrContent');
+  if (!content) return;
+  if (!currentExam) { content.innerHTML = '<div class="lr-empty">模試を選択してください</div>'; return; }
+  const master = allData[currentExam]?.master;
+  if (!master?.answers) { content.innerHTML = '<div class="lr-empty">データがありません</div>'; return; }
+
+  document.getElementById('lrSubtitle').textContent = getExamName();
+
+  const categories = master.categories || {};
+  const answers    = master.answers    || {};
+
+  // 問ごとのクラス正答統計
+  const qStat = {};
+  getActiveStudents().forEach(s => {
+    ['AM','PM'].forEach(part => {
+      const ans = allData[currentExam]?.responses?.[s.uid]?.[part]?.answers;
+      if (!ans) return;
+      const start = part==='AM'?1:101, end = part==='AM'?100:200;
+      for (let q=start; q<=end; q++) {
+        const correct = String(answers[q]||'');
+        if (!correct || correct==='解なし') continue;
+        if (!qStat[q]) qStat[q] = {correct:0, total:0};
+        const ua = String(ans[q]||'');
+        qStat[q].total++;
+        if (correct.includes(',') ? correct.split(',').includes(ua) : ua===correct) qStat[q].correct++;
+      }
+    });
+  });
+
+  // 科目ごとに低正答率の問題を集約
+  const catMap = {};
+  for (let q=1; q<=200; q++) {
+    const cat = categories[q];
+    if (!cat) continue;
+    const st = qStat[q];
+    if (!st || !st.total) continue;
+    const pct = Math.round(st.correct / st.total * 100);
+    if (pct >= lrThresh) continue;
+    if (!catMap[cat]) catMap[cat] = [];
+    catMap[cat].push({ q, part: q<=100?'AM':'PM', ans: String(answers[q]||''), pct });
+  }
+
+  const catList = Object.entries(catMap).map(([cat, qs]) => {
+    qs.sort((a,b) => a.pct - b.pct);
+    const avg = Math.round(qs.reduce((s,x) => s+x.pct, 0) / qs.length);
+    return { cat, qs, avg };
+  }).sort((a,b) => a.avg - b.avg);
+
+  if (!catList.length) {
+    content.innerHTML = `<div class="lr-empty">正答率 ${lrThresh}% 未満の問題はありません</div>`;
+    return;
+  }
+
+  content.innerHTML = '<div class="lr-grid">' + catList.map(({cat, qs, avg}) => {
+    const avgCol = avg<30 ? 'var(--ng)' : avg<50 ? 'var(--warn)' : 'var(--g4)';
+    const rows = qs.map(({q, part, ans, pct}) => {
+      const col = pct<30 ? 'color:var(--ng);font-weight:700' : pct<50 ? 'color:var(--warn);font-weight:600' : '';
+      return `<tr><td>${q}</td><td>${part}</td><td>${esc(ans)}</td><td style="${col}">${pct}%</td></tr>`;
+    }).join('');
+    return `<div class="lr-card">
+      <div class="lr-card-head">
+        <span class="lr-card-title">${esc(cat)}</span>
+        <span class="lr-card-avg" style="color:${avgCol}">平均 ${avg}%</span>
+        <span class="lr-card-n">${qs.length}問</span>
+      </div>
+      <table class="lr-tbl">
+        <thead><tr><th>問</th><th>時間帯</th><th>正答</th><th>正答率</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('') + '</div>';
 }
 
 // ===== 弱点抽出 =====
@@ -1563,7 +1688,7 @@ async function saveStudentGrid() {
     students = studentGridData.filter(s => s.uid).map(s => ({ ...s }));
     renderStudentGrid();
     initSidebarStudentSel();
-    renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
+    renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak();
     hideLoading();
     alert('✅ 保存しました');
   } catch(e) {
@@ -1979,7 +2104,7 @@ async function deleteResponse(examName, uid, part) {
   await db.ref('responses/' + examName + '/' + uid + '/' + part).remove();
   if (allData[examName]?.responses?.[uid]) delete allData[examName].responses[uid][part];
   renderResponsesPage();
-  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
+  renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak();
 }
 
 async function deleteAllResponses() {
@@ -1997,7 +2122,7 @@ async function deleteAllResponses() {
     Object.keys(allData).forEach(k => { if(allData[k]) allData[k].responses = {}; });
   }
   renderResponsesPage();
-  renderTrend(); renderSummary(); renderCategory(); loadAndRenderWeak();
+  renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak();
 }
 
 function isValidAns(v) {
