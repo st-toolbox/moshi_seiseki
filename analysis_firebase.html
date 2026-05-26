@@ -179,6 +179,13 @@ tbody tr:hover td{background:var(--g1);}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:800;display:none;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;}
+.modal-box-wide{background:#fff;border-radius:16px;padding:24px;width:96%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;gap:12px;}
+.resp-detail-table{width:100%;border-collapse:collapse;font-size:12px;}
+.resp-detail-table th{background:var(--g1);padding:5px 8px;text-align:center;border-bottom:1px solid var(--g2);position:sticky;top:0;}
+.resp-detail-table td{padding:4px 8px;border-bottom:1px solid var(--g1);text-align:center;}
+.resp-detail-table tr:hover td{background:#f5f8ff;}
+.resp-correct{color:var(--ok);font-weight:700;}
+.resp-wrong{color:var(--ng);font-weight:700;}
 .modal-box-title{font-size:16px;font-weight:700;margin-bottom:16px;}
 .form-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;margin-bottom:20px;font-size:13px;}
 .form-grid label{color:var(--g4);font-weight:500;white-space:nowrap;}
@@ -634,6 +641,23 @@ tbody tr:hover td{background:var(--g1);}
       </div>
     </div>
     <!-- 模試追加モーダル -->
+    <!-- 回答詳細モーダル -->
+    <div class="modal-overlay hidden" id="respDetailModal" onclick="if(event.target===this)closeRespDetail()">
+      <div class="modal-box-wide">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div id="respDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
+          <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
+        </div>
+        <div id="respDetailSummary" style="font-size:13px;color:var(--g4);"></div>
+        <div style="overflow-y:auto;flex:1;">
+          <table class="resp-detail-table">
+            <thead><tr><th style="width:48px;">問題</th><th>科目</th><th style="width:72px;">正解</th><th style="width:72px;">回答</th><th style="width:40px;">正誤</th></tr></thead>
+            <tbody id="respDetailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-overlay hidden" id="examModal">
       <div class="modal-box">
         <h3 class="modal-box-title" id="examModalTitle">模試を追加</h3>
@@ -1760,7 +1784,7 @@ function renderResponsesPage() {
   tbody.innerHTML = rows.map(row => {
     const col = row.score>=60?'color:var(--ok)':row.score>=40?'color:var(--warn)':'color:var(--ng)';
     const stBg = row.status==='submitted'?'background:var(--ok-bg);color:var(--ok)':'background:var(--warn-bg);color:var(--warn)';
-    return `<tr data-exam="${esc(row.examName)}" data-uid="${esc(row.uid)}" data-part="${esc(row.part)}">
+    return `<tr data-exam="${esc(row.examName)}" data-uid="${esc(row.uid)}" data-part="${esc(row.part)}" style="cursor:pointer;">
       <td>${esc(row.label)}</td>
       <td style="font-size:11px;color:var(--g4)">${esc(row.examName)}</td>
       <td style="font-weight:500">${esc(row.part)}</td>
@@ -1771,10 +1795,62 @@ function renderResponsesPage() {
   }).join('');
 
   tbody.onclick = (ev) => {
-    if (ev.target.dataset.action !== 'delete-resp') return;
-    const tr = ev.target.closest('tr');
-    if (tr) deleteResponse(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
+    if (ev.target.dataset.action === 'delete-resp') {
+      const tr = ev.target.closest('tr');
+      if (tr) deleteResponse(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
+      return;
+    }
+    const tr = ev.target.closest('tr[data-exam]');
+    if (tr) showRespDetail(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
   };
+}
+
+function showRespDetail(examName, uid, part) {
+  const resp = allData[examName]?.responses?.[uid]?.[part];
+  const master = allData[examName]?.master;
+  if (!resp || !master) return;
+  const s = students.find(x => x.uid === uid);
+  const label = s ? (s.name || s.email) : uid;
+  const [start, end] = part === 'AM' ? [1, 100] : [101, 200];
+  const answers = master.answers || {};
+  const categories = master.categories || {};
+  const myAns = resp.answers || {};
+
+  let correct = 0, total = 0;
+  const rows = [];
+  for (let q = start; q <= end; q++) {
+    const correctAns = String(answers[q] || '');
+    const studentAns = String(myAns[q] || '');
+    if (!correctAns || correctAns === '解なし') continue;
+    total++;
+    const isOk = correctAns.includes(',')
+      ? correctAns.split(',').map(v=>v.trim()).includes(studentAns)
+      : studentAns === correctAns;
+    if (isOk) correct++;
+    rows.push({ q, cat: categories[q] || '—', correctAns, studentAns, isOk });
+  }
+
+  document.getElementById('respDetailTitle').textContent =
+    `${label}　${examName}　${part}`;
+  document.getElementById('respDetailSummary').textContent =
+    `得点: ${resp.score ?? '—'} 点　　正答: ${correct} / ${total} 問　　状態: ${resp.status === 'submitted' ? '提出済' : '下書き'}`;
+  document.getElementById('respDetailBody').innerHTML = rows.map(r =>
+    `<tr>
+      <td style="color:var(--g4)">${r.q}</td>
+      <td style="text-align:left">${esc(r.cat)}</td>
+      <td>${esc(r.correctAns)}</td>
+      <td>${esc(r.studentAns) || '<span style="color:var(--g3)">未回答</span>'}</td>
+      <td class="${r.isOk ? 'resp-correct' : 'resp-wrong'}">${r.isOk ? '○' : '✕'}</td>
+    </tr>`
+  ).join('');
+
+  const modal = document.getElementById('respDetailModal');
+  modal.classList.remove('hidden'); modal.classList.add('show');
+}
+
+function closeRespDetail() {
+  const modal = document.getElementById('respDetailModal');
+  modal.classList.remove('show'); modal.classList.add('hidden');
 }
 
 async function deleteResponse(examName, uid, part) {
