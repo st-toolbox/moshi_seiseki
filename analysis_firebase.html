@@ -553,7 +553,15 @@ tbody tr:hover td{background:var(--g1);}
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>学生</th><th>模試</th><th>時間帯</th><th>得点</th><th>状態</th><th>操作</th></tr></thead>
+            <thead><tr>
+              <th style="cursor:pointer;" onclick="sortResp('name')">学生 <span id="rsh-name"></span></th>
+              <th style="cursor:pointer;" onclick="sortResp('exam')">模試 <span id="rsh-exam"></span></th>
+              <th style="cursor:pointer;" onclick="sortResp('part')">時間帯 <span id="rsh-part"></span></th>
+              <th style="cursor:pointer;" onclick="sortResp('score')">得点 <span id="rsh-score"></span></th>
+              <th style="cursor:pointer;" onclick="sortResp('status')">状態 <span id="rsh-status"></span></th>
+              <th style="cursor:pointer;" onclick="sortResp('ts')">日時 <span id="rsh-ts">▼</span></th>
+              <th>操作</th>
+            </tr></thead>
             <tbody id="respTableBody"></tbody>
           </table>
         </div>
@@ -1773,6 +1781,19 @@ function renderGridMaster() {
 }
 
 // ===== 回答データページ =====
+let respSort = { col: 'ts', dir: -1 };
+
+function sortResp(col) {
+  if (respSort.col === col) { respSort.dir *= -1; }
+  else { respSort.col = col; respSort.dir = col === 'ts' ? -1 : 1; }
+  renderResponsesPage();
+}
+
+function fmtTs(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 function initRespExamSel() {
   const sel = document.getElementById('respExamSel');
   if (!sel) return;
@@ -1793,15 +1814,34 @@ function renderResponsesPage() {
       ['AM','PM'].forEach(part => {
         const r = allData[examName]?.responses?.[s.uid]?.[part];
         if (!r) return;
-        rows.push({ examName, uid: s.uid, label: s.name || s.email || s.uid, part, score: r.score, status: r.status });
+        const ts = r.submittedAt || r.updatedAt || 0;
+        rows.push({ examName, uid: s.uid, label: s.name || s.email || s.uid, part, score: r.score, status: r.status, ts });
       });
     });
   });
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--g4);padding:24px;">データなし</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--g4);padding:24px;">データなし</td></tr>';
     return;
   }
+
+  rows.sort((a, b) => {
+    let va, vb;
+    switch (respSort.col) {
+      case 'name':   va = a.label;    vb = b.label;    break;
+      case 'exam':   va = a.examName; vb = b.examName; break;
+      case 'part':   va = a.part;     vb = b.part;     break;
+      case 'score':  va = a.score??-1; vb = b.score??-1; break;
+      case 'status': va = a.status;   vb = b.status;   break;
+      default:       va = a.ts;       vb = b.ts;
+    }
+    return va < vb ? -respSort.dir : va > vb ? respSort.dir : 0;
+  });
+
+  ['name','exam','part','score','status','ts'].forEach(c => {
+    const el = document.getElementById('rsh-'+c);
+    if (el) el.textContent = respSort.col === c ? (respSort.dir === 1 ? '▲' : '▼') : '';
+  });
 
   tbody.innerHTML = rows.map(row => {
     const col = row.score>=60?'color:var(--ok)':row.score>=40?'color:var(--warn)':'color:var(--ng)';
@@ -1812,6 +1852,7 @@ function renderResponsesPage() {
       <td style="font-weight:500">${esc(row.part)}</td>
       <td class="mono" style="${col}">${row.score??'—'}</td>
       <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':'下書き'}</span></td>
+      <td style="font-size:11px;color:var(--g4);white-space:nowrap;">${fmtTs(row.ts)}</td>
       <td><button class="btn-admin-del" data-action="delete-resp">削除</button></td>
     </tr>`;
   }).join('');
