@@ -1085,12 +1085,23 @@ function renderSummary() {
     return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.label)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
   }).join('');
 
-  const bins=['80-99','100-119','120-139','140-159','160-179','180-200'];
-  const binData=[0,0,0,0,0,0];
-  totals.forEach(t=>{const i=Math.min(Math.floor((t-80)/20),5);if(i>=0)binData[i]++;});
+  const binSize = 20, numBins = 6;
+  const medBin   = Math.floor(med / binSize) * binSize;
+  const startBin = Math.max(0, medBin - Math.floor(numBins / 2) * binSize);
+  const bins = Array.from({length: numBins}, (_, i) => {
+    const lo = startBin + i * binSize, hi = lo + binSize - 1;
+    if (i === 0 && startBin > 0) return `~${hi}`;
+    if (i === numBins - 1)        return `${lo}~`;
+    return `${lo}-${hi}`;
+  });
+  const binData = new Array(numBins).fill(0);
+  totals.forEach(t => {
+    const i = Math.max(0, Math.min(numBins - 1, Math.floor((t - startBin) / binSize)));
+    binData[i]++;
+  });
   if(charts.dist)charts.dist.destroy();
   charts.dist=new Chart(document.getElementById('distChart'),{
-    type:'bar',data:{labels:bins,datasets:[{label:'人数',data:binData,backgroundColor:bins.map((_,i)=>i>=3?'rgba(21,128,61,0.75)':i>=1?'rgba(180,83,9,0.65)':'rgba(185,28,28,0.65)'),borderRadius:6}]},
+    type:'bar',data:{labels:bins,datasets:[{label:'人数',data:binData,backgroundColor:bins.map((_,i)=>{const lo=startBin+i*binSize;return lo>=120?'rgba(21,128,61,0.75)':lo>=100?'rgba(180,83,9,0.65)':'rgba(185,28,28,0.65)';}),borderRadius:6}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:1,font:{size:11}},grid:{color:'#f0eeeb'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
   });
 }
