@@ -179,6 +179,13 @@ tbody tr:hover td{background:var(--g1);}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:800;display:none;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;}
+.modal-box-wide{background:#fff;border-radius:16px;padding:24px;width:96%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;gap:12px;}
+.resp-detail-table{width:100%;border-collapse:collapse;font-size:12px;}
+.resp-detail-table th{background:var(--g1);padding:5px 8px;text-align:center;border-bottom:1px solid var(--g2);position:sticky;top:0;}
+.resp-detail-table td{padding:4px 8px;border-bottom:1px solid var(--g1);text-align:center;}
+.resp-detail-table tr:hover td{background:#f5f8ff;}
+.resp-correct{color:var(--ok);font-weight:700;}
+.resp-wrong{color:var(--ng);font-weight:700;}
 .modal-box-title{font-size:16px;font-weight:700;margin-bottom:16px;}
 .form-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;margin-bottom:20px;font-size:13px;}
 .form-grid label{color:var(--g4);font-weight:500;white-space:nowrap;}
@@ -279,6 +286,26 @@ tbody tr:hover td{background:var(--g1);}
   .hptbl tr.bdiv td{border-top:1pt solid #3b5bdb;}
   .hptbl td.hprow-left{background:rgba(26,92,232,0.05);}
   .hptbl td.hprow-right{background:rgba(185,28,28,0.05);}
+  /* 回答詳細印刷モード */
+  body.print-resp-detail .layout,
+  body.print-resp-detail .topbar,
+  body.print-resp-detail .sidebar,
+  body.print-resp-detail .main,
+  body.print-resp-detail #loading{display:none!important;}
+  body.print-resp-detail .modal-overlay{display:block!important;position:static!important;background:none!important;padding:0!important;}
+  body.print-resp-detail #respDetailModal{display:block!important;}
+  body.print-resp-detail #examModal,
+  body.print-resp-detail .modal-cancel-btn{display:none!important;}
+  body.print-resp-detail .modal-box-wide{max-height:none!important;width:100%!important;max-width:none!important;border-radius:0!important;padding:4mm 6mm!important;box-shadow:none!important;border:none!important;}
+  body.print-resp-detail #respDetailTitle{font-size:13pt!important;font-weight:700!important;}
+  body.print-resp-detail #respDetailSummary{font-size:10pt!important;color:#333!important;margin-bottom:3mm!important;}
+  body.print-resp-detail .resp-detail-table{font-size:8pt!important;}
+  body.print-resp-detail .resp-detail-table th,
+  body.print-resp-detail .resp-detail-table td{padding:2px 5px!important;color:#000!important;background:#fff!important;}
+  body.print-resp-detail .resp-detail-table th{background:#eee!important;font-weight:700!important;}
+  body.print-resp-detail .resp-correct{color:#000!important;font-weight:700!important;}
+  body.print-resp-detail .resp-wrong{color:#000!important;font-weight:400!important;}
+
   /* 全学生印刷モード */
   body.print-all-students .page.active{display:none!important;}
   body.print-all-students .student-print-page{display:block!important;}
@@ -608,8 +635,8 @@ tbody tr:hover td{background:var(--g1);}
         <div style="flex:1 1 300px;background:#f8f9fa;border:1px solid var(--g2);border-radius:var(--rs);padding:14px 16px;font-size:12px;">
           <div style="font-weight:700;margin-bottom:8px;color:var(--g5);">📚 使用可能な科目名一覧</div>
           <div style="columns:4;column-gap:16px;column-rule:1px solid var(--g2);">
-            <div style="break-inside:avoid;margin-bottom:8px;">
-              <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:2px;">基礎医学系</div>
+            <div style="margin-bottom:4px;">
+              <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:2px;break-after:avoid;">基礎医学系</div>
               <ol style="margin:0;padding-left:16px;line-height:1.75;font-size:11px;">
                 <li>医学総論</li><li>解剖学</li><li>生理学</li><li>病理学</li><li>内科学</li>
                 <li>小児科学</li><li>精神医学</li><li>リハビリテーション医学</li><li>耳鼻咽喉科学</li>
@@ -619,8 +646,8 @@ tbody tr:hover td{background:var(--g1);}
                 <li>言語学</li><li>言語発達学</li><li>社会福祉・教育</li><li>リハビリテーション概論</li>
               </ol>
             </div>
-            <div style="break-inside:avoid;">
-              <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:2px;">言語聴覚障害学系</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:2px;break-after:avoid;">言語聴覚障害学系</div>
               <ol start="26" style="margin:0;padding-left:16px;line-height:1.75;font-size:11px;">
                 <li>失語症</li><li>高次脳機能障害</li><li>言語発達障害学</li><li>音声障害</li>
                 <li>機能性構音障害</li><li>器質性構音障害</li><li>運動障害性構音障害</li><li>嚥下障害</li>
@@ -634,6 +661,26 @@ tbody tr:hover td{background:var(--g1);}
       </div>
     </div>
     <!-- 模試追加モーダル -->
+    <!-- 回答詳細モーダル -->
+    <div class="modal-overlay hidden" id="respDetailModal" onclick="if(event.target===this)closeRespDetail()">
+      <div class="modal-box-wide">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div id="respDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="modal-cancel-btn" onclick="printRespDetail()">🖨 印刷</button>
+            <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
+          </div>
+        </div>
+        <div id="respDetailSummary" style="font-size:13px;color:var(--g4);"></div>
+        <div style="overflow-y:auto;flex:1;">
+          <table class="resp-detail-table">
+            <thead><tr><th style="width:48px;">問題</th><th>科目</th><th style="width:72px;">正解</th><th style="width:72px;">回答</th><th style="width:40px;">正誤</th></tr></thead>
+            <tbody id="respDetailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-overlay hidden" id="examModal">
       <div class="modal-box">
         <h3 class="modal-box-title" id="examModalTitle">模試を追加</h3>
@@ -1018,7 +1065,7 @@ function renderSummary() {
     const r = allData[currentExam]?.responses?.[s.uid];
     const am = r?.AM?.status==='submitted' ? (r.AM.score||0) : null;
     const pm = r?.PM?.status==='submitted' ? (r.PM.score||0) : null;
-    return { email: s.email||s.name, am, pm, total:(am||0)+(pm||0) };
+    return { label: s.name || s.email, am, pm, total:(am||0)+(pm||0) };
   }).filter(r => r.am!==null || r.pm!==null);
 
   const totals = rows.map(r=>r.total).filter(t=>t>0);
@@ -1031,7 +1078,7 @@ function renderSummary() {
 
   document.getElementById('scoreBody').innerHTML = rows.map(r => {
     const col = r.total>=120?'color:var(--ok)':r.total>=100?'color:var(--warn)':'color:var(--ng)';
-    return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.email)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
+    return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.label)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
   }).join('');
 
   const bins=['80-99','100-119','120-139','140-159','160-179','180-200'];
@@ -1675,7 +1722,7 @@ function renderGridMaster() {
 
   function makeSection(start, end, label) {
     let html = `<div style="font-size:12px;font-weight:700;color:var(--g4);margin-bottom:8px;padding:4px 0;border-bottom:2px solid var(--g2);">${label}</div>`;
-    html += '<div class="grid-wrap" style="margin-bottom:20px;overflow-y:visible;">';
+    html += '<div class="grid-wrap" style="margin-bottom:20px;overflow-y:clip;">';
     html += '<table class="grid-table"><thead><tr>';
     html += '<th class="col-fixed" style="min-width:60px;text-align:left;">項目</th>';
     for (let q = start; q <= end; q++) {
@@ -1760,7 +1807,7 @@ function renderResponsesPage() {
   tbody.innerHTML = rows.map(row => {
     const col = row.score>=60?'color:var(--ok)':row.score>=40?'color:var(--warn)':'color:var(--ng)';
     const stBg = row.status==='submitted'?'background:var(--ok-bg);color:var(--ok)':'background:var(--warn-bg);color:var(--warn)';
-    return `<tr data-exam="${esc(row.examName)}" data-uid="${esc(row.uid)}" data-part="${esc(row.part)}">
+    return `<tr data-exam="${esc(row.examName)}" data-uid="${esc(row.uid)}" data-part="${esc(row.part)}" style="cursor:pointer;">
       <td>${esc(row.label)}</td>
       <td style="font-size:11px;color:var(--g4)">${esc(row.examName)}</td>
       <td style="font-weight:500">${esc(row.part)}</td>
@@ -1771,10 +1818,75 @@ function renderResponsesPage() {
   }).join('');
 
   tbody.onclick = (ev) => {
-    if (ev.target.dataset.action !== 'delete-resp') return;
-    const tr = ev.target.closest('tr');
-    if (tr) deleteResponse(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
+    if (ev.target.dataset.action === 'delete-resp') {
+      const tr = ev.target.closest('tr');
+      if (tr) deleteResponse(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
+      return;
+    }
+    const tr = ev.target.closest('tr[data-exam]');
+    if (tr) showRespDetail(tr.dataset.exam, tr.dataset.uid, tr.dataset.part);
   };
+}
+
+function showRespDetail(examName, uid, part) {
+  const resp = allData[examName]?.responses?.[uid]?.[part];
+  const master = allData[examName]?.master;
+  if (!resp || !master) return;
+  const s = students.find(x => x.uid === uid);
+  const label = s ? (s.name || s.email) : uid;
+  const [start, end] = part === 'AM' ? [1, 100] : [101, 200];
+  const answers = master.answers || {};
+  const categories = master.categories || {};
+  const myAns = resp.answers || {};
+
+  let correct = 0, total = 0;
+  const rows = [];
+  for (let q = start; q <= end; q++) {
+    const correctAns = String(answers[q] || '');
+    const studentAns = String(myAns[q] || '');
+    if (!correctAns || correctAns === '解なし') continue;
+    total++;
+    const isOk = correctAns.includes(',')
+      ? correctAns.split(',').map(v=>v.trim()).includes(studentAns)
+      : studentAns === correctAns;
+    if (isOk) correct++;
+    rows.push({ q, cat: categories[q] || '—', correctAns, studentAns, isOk });
+  }
+
+  document.getElementById('respDetailTitle').textContent =
+    `${label}　${examName}　${part}`;
+  document.getElementById('respDetailSummary').textContent =
+    `得点: ${resp.score ?? '—'} 点　　正答: ${correct} / ${total} 問　　状態: ${resp.status === 'submitted' ? '提出済' : '下書き'}`;
+  document.getElementById('respDetailBody').innerHTML = rows.map(r =>
+    `<tr>
+      <td style="color:var(--g4)">${r.q}</td>
+      <td style="text-align:left">${esc(r.cat)}</td>
+      <td>${esc(r.correctAns)}</td>
+      <td>${esc(r.studentAns) || '<span style="color:var(--g3)">未回答</span>'}</td>
+      <td class="${r.isOk ? 'resp-correct' : 'resp-wrong'}">${r.isOk ? '○' : '✕'}</td>
+    </tr>`
+  ).join('');
+
+  const modal = document.getElementById('respDetailModal');
+  modal.classList.remove('hidden'); modal.classList.add('show');
+}
+
+function printRespDetail() {
+  const st = document.createElement('style');
+  st.id = 'resp-detail-page-style';
+  st.textContent = '@page{size:A4 portrait;margin:10mm 12mm;}';
+  document.head.appendChild(st);
+  document.body.classList.add('print-resp-detail');
+  window.print();
+  setTimeout(() => {
+    document.body.classList.remove('print-resp-detail');
+    st.remove();
+  }, 1000);
+}
+
+function closeRespDetail() {
+  const modal = document.getElementById('respDetailModal');
+  modal.classList.remove('show'); modal.classList.add('hidden');
 }
 
 async function deleteResponse(examName, uid, part) {
