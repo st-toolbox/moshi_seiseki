@@ -156,16 +156,16 @@ tbody tr:hover td{background:var(--g1);}
 #page-lowrate.active{display:flex;}
 #page-lowrate .filter-row{flex-shrink:0;margin-bottom:6px;}
 #page-lowrate #lrContent{flex:1;min-height:0;overflow-y:auto;}
-.lr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
-.lr-card{background:#fff;border-radius:10px;border:1px solid var(--g2);overflow:hidden;}
-.lr-card-head{background:var(--g1);padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--g2);}
-.lr-card-title{font-weight:700;font-size:13px;flex:1;}
-.lr-card-avg{font-size:12px;font-weight:700;}
-.lr-card-n{font-size:11px;color:var(--g4);}
-.lr-tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.lr-tbl th{padding:4px 10px;background:var(--g1);text-align:center;border-bottom:1px solid var(--g2);font-size:11px;font-weight:600;color:var(--g4);}
-.lr-tbl td{padding:4px 10px;border-bottom:1px solid var(--g2);text-align:center;}
-.lr-tbl tr:last-child td{border-bottom:none;}
+.lr-table{width:100%;border-collapse:collapse;font-size:12px;}
+.lr-table thead th{padding:6px 12px;background:var(--g1);text-align:left;border-bottom:2px solid var(--g2);font-size:11px;font-weight:600;color:var(--g4);position:sticky;top:0;z-index:1;}
+.lr-table tbody td{padding:6px 12px;border-bottom:1px solid var(--g2);vertical-align:top;}
+.lr-table tbody tr:last-child td{border-bottom:none;}
+.lr-cat-name{width:150px;font-weight:600;font-size:12px;white-space:nowrap;color:var(--g5);}
+.lr-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.lr-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;}
+.lr-chip.ng{background:rgba(185,28,28,0.1);color:var(--ng);}
+.lr-chip.warn{background:rgba(180,83,9,0.08);color:var(--warn);}
+.lr-chip.lo{background:var(--g1);color:var(--g5);}
 .lr-empty{text-align:center;color:var(--g4);padding:40px;font-size:13px;}
 
 /* WEAK */
@@ -401,7 +401,7 @@ tbody tr:hover td{background:var(--g1);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率【全員】
     </button>
     <button class="nav-item nav-item-view" onclick="showPage('lowrate',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="1" width="3" height="14" rx="1"/></svg>科目別低正答率
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="1" width="3" height="14" rx="1"/></svg>科目別低正答率【全員】
     </button>
     <button class="nav-item nav-item-view" onclick="showPage('weakness',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出【個人】
@@ -510,7 +510,7 @@ tbody tr:hover td{background:var(--g1);}
     <!-- 科目別低正答率 -->
     <div class="page" id="page-lowrate">
       <div class="page-header-row">
-        <div><div class="page-title">科目別低正答率</div><div class="page-sub" id="lrSubtitle"></div></div>
+        <div><div class="page-title">科目別低正答率【全員】</div><div class="page-sub" id="lrSubtitle"></div></div>
       </div>
       <div class="filter-row">
         <span class="filter-label">基準値：</span>
@@ -1310,38 +1310,44 @@ function renderLowRate() {
     const pct = Math.round(st.correct / st.total * 100);
     if (pct >= lrThresh) continue;
     if (!catMap[cat]) catMap[cat] = [];
-    catMap[cat].push({ q, part: q<=100?'AM':'PM', ans: String(answers[q]||''), pct });
+    catMap[cat].push({ q, pct });
   }
 
-  const catList = Object.entries(catMap).map(([cat, qs]) => {
-    qs.sort((a,b) => a.pct - b.pct);
-    const avg = Math.round(qs.reduce((s,x) => s+x.pct, 0) / qs.length);
-    return { cat, qs, avg };
-  }).sort((a,b) => a.avg - b.avg);
+  // CATEGORY_ORDER の順に並べ、該当問題がある科目のみ抽出
+  const catList = CATEGORY_ORDER
+    .filter(cat => catMap[cat]?.length)
+    .map(cat => {
+      const qs = catMap[cat].slice().sort((a,b) => a.q - b.q);
+      return { cat, qs };
+    });
+
+  // CATEGORY_ORDER にない科目は末尾に追加
+  Object.keys(catMap).forEach(cat => {
+    if (!CATEGORY_ORDER.includes(cat)) {
+      catList.push({ cat, qs: catMap[cat].slice().sort((a,b) => a.q - b.q) });
+    }
+  });
 
   if (!catList.length) {
     content.innerHTML = `<div class="lr-empty">正答率 ${lrThresh}% 未満の問題はありません</div>`;
     return;
   }
 
-  content.innerHTML = '<div class="lr-grid">' + catList.map(({cat, qs, avg}) => {
-    const avgCol = avg<30 ? 'var(--ng)' : avg<50 ? 'var(--warn)' : 'var(--g4)';
-    const rows = qs.map(({q, part, ans, pct}) => {
-      const col = pct<30 ? 'color:var(--ng);font-weight:700' : pct<50 ? 'color:var(--warn);font-weight:600' : '';
-      return `<tr><td>${q}</td><td>${part}</td><td>${esc(ans)}</td><td style="${col}">${pct}%</td></tr>`;
+  const rows = catList.map(({cat, qs}) => {
+    const chips = qs.map(({q, pct}) => {
+      const cls = pct<30 ? 'ng' : pct<50 ? 'warn' : 'lo';
+      return `<span class="lr-chip ${cls}">${q}-${pct}%</span>`;
     }).join('');
-    return `<div class="lr-card">
-      <div class="lr-card-head">
-        <span class="lr-card-title">${esc(cat)}</span>
-        <span class="lr-card-avg" style="color:${avgCol}">平均 ${avg}%</span>
-        <span class="lr-card-n">${qs.length}問</span>
-      </div>
-      <table class="lr-tbl">
-        <thead><tr><th>問</th><th>時間帯</th><th>正答</th><th>正答率</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-  }).join('') + '</div>';
+    return `<tr>
+      <td class="lr-cat-name">${esc(cat)}</td>
+      <td><div class="lr-chips">${chips}</div></td>
+    </tr>`;
+  }).join('');
+
+  content.innerHTML = `<table class="lr-table">
+    <thead><tr><th style="width:150px;">科目</th><th>問題（問番号-正答率）</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 // ===== 弱点抽出 =====
