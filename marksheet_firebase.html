@@ -239,7 +239,7 @@ auth.onAuthStateChanged(async user => {
   if (user) {
     const email = user.email || '';
     // ドメインチェック
-    if (!email.includes('@asahi.ac.jp') && !email.includes('@oky.asahi.ac.jp')) {
+    if (!email.endsWith('@asahi.ac.jp') && !email.endsWith('@oky.asahi.ac.jp')) {
       await auth.signOut();
       showAlert('朝日医療大学のアカウントでログインしてください');
       return;
