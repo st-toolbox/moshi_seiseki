@@ -660,42 +660,43 @@ tbody tr:hover td{background:var(--g1);}
 
       </div>
     </div>
-    <!-- 模試追加モーダル -->
-    <!-- 回答詳細モーダル -->
-    <div class="modal-overlay hidden" id="respDetailModal" onclick="if(event.target===this)closeRespDetail()">
-      <div class="modal-box-wide">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div id="respDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
-          <div style="display:flex;gap:8px;">
-            <button class="modal-cancel-btn" onclick="printRespDetail()">🖨 印刷</button>
-            <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
-          </div>
-        </div>
-        <div id="respDetailSummary" style="font-size:13px;color:var(--g4);"></div>
-        <div style="overflow-y:auto;flex:1;">
-          <table class="resp-detail-table">
-            <thead><tr><th style="width:48px;">問題</th><th>科目</th><th style="width:72px;">正解</th><th style="width:72px;">回答</th><th style="width:40px;">正誤</th></tr></thead>
-            <tbody id="respDetailBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-overlay hidden" id="examModal">
-      <div class="modal-box">
-        <h3 class="modal-box-title" id="examModalTitle">模試を追加</h3>
-        <div class="form-grid">
-          <label>模試名</label><input type="text" id="mName" placeholder="例：第28回 国試模試">
-          <label>実施日</label><input type="date" id="mDate">
-          <label>受付状態</label><select id="mActive"><option value="1">受付中</option><option value="0">締切</option></select>
-        </div>
-        <div class="modal-box-btns">
-          <button class="modal-cancel-btn" onclick="closeExamModal()">キャンセル</button>
-          <button class="btn-admin-save" onclick="confirmExamModal()">OK</button>
-        </div>
-      </div>
-    </div>
   </main>
+</div>
+
+<!-- 回答詳細モーダル -->
+<div class="modal-overlay hidden" id="respDetailModal" onclick="if(event.target===this)closeRespDetail()">
+  <div class="modal-box-wide">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div id="respDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="modal-cancel-btn" onclick="printRespDetail()">🖨 印刷</button>
+        <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
+      </div>
+    </div>
+    <div id="respDetailSummary" style="font-size:13px;color:var(--g4);"></div>
+    <div style="overflow-y:auto;flex:1;">
+      <table class="resp-detail-table">
+        <thead><tr><th style="width:48px;">問題</th><th>科目</th><th style="width:72px;">正解</th><th style="width:72px;">回答</th><th style="width:40px;">正誤</th></tr></thead>
+        <tbody id="respDetailBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 模試追加モーダル -->
+<div class="modal-overlay hidden" id="examModal">
+  <div class="modal-box">
+    <h3 class="modal-box-title" id="examModalTitle">模試を追加</h3>
+    <div class="form-grid">
+      <label>模試名</label><input type="text" id="mName" placeholder="例：第28回 国試模試">
+      <label>実施日</label><input type="date" id="mDate">
+      <label>受付状態</label><select id="mActive"><option value="1">受付中</option><option value="0">締切</option></select>
+    </div>
+    <div class="modal-box-btns">
+      <button class="modal-cancel-btn" onclick="closeExamModal()">キャンセル</button>
+      <button class="btn-admin-save" onclick="confirmExamModal()">OK</button>
+    </div>
+  </div>
 </div>
 
 <script>
