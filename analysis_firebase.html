@@ -1311,25 +1311,16 @@ function renderLowRate() {
     catMap[cat].push({ q, pct });
   }
 
-  // CATEGORY_ORDER の順に並べ、該当問題がある科目のみ抽出
-  const catList = CATEGORY_ORDER
-    .filter(cat => catMap[cat]?.length)
-    .map(cat => {
-      const qs = catMap[cat].slice().sort((a,b) => a.q - b.q);
-      return { cat, qs };
-    });
-
+  // CATEGORY_ORDER 全科目を表示（該当なしは空欄）
+  const catList = CATEGORY_ORDER.map(cat => ({
+    cat,
+    qs: (catMap[cat] || []).slice().sort((a,b) => a.q - b.q),
+  }));
   // CATEGORY_ORDER にない科目は末尾に追加
   Object.keys(catMap).forEach(cat => {
-    if (!CATEGORY_ORDER.includes(cat)) {
+    if (!CATEGORY_ORDER.includes(cat))
       catList.push({ cat, qs: catMap[cat].slice().sort((a,b) => a.q - b.q) });
-    }
   });
-
-  if (!catList.length) {
-    content.innerHTML = `<div class="lr-empty">正答率 ${lrThresh}% 未満の問題はありません</div>`;
-    return;
-  }
 
   const rows = catList.map(({cat, qs}) => {
     const chips = qs.map(({q}) => `<span class="lr-chip">${q}</span>`).join('');
