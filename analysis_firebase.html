@@ -1086,17 +1086,14 @@ function renderSummary() {
     return `<tr><td style="font-size:11px;color:var(--g4)">${esc(r.label)}</td><td class="mono">${r.am??'—'}</td><td class="mono">${r.pm??'—'}</td><td class="mono" style="font-weight:700;${col}">${r.total}</td></tr>`;
   }).join('');
 
-  const binSize = 20;
-  const startBin = totals.length ? Math.floor(Math.min(...totals) / binSize) * binSize : 0;
-  const endBin   = totals.length ? Math.ceil((Math.max(...totals) + 1) / binSize) * binSize : binSize;
-  const numBins  = Math.max(1, (endBin - startBin) / binSize);
+  const binSize = 20, startBin = 0, numBins = 10;
   const bins = Array.from({length: numBins}, (_, i) => {
-    const lo = startBin + i * binSize, hi = lo + binSize - 1;
+    const lo = i * binSize, hi = lo + binSize - 1;
     return `${lo}-${hi}`;
   });
   const binData = new Array(numBins).fill(0);
   totals.forEach(t => {
-    const i = Math.min(numBins - 1, Math.floor((t - startBin) / binSize));
+    const i = Math.min(numBins - 1, Math.floor(t / binSize));
     binData[i]++;
   });
   if(charts.dist)charts.dist.destroy();
