@@ -2055,8 +2055,8 @@ function printRespDetail() {
   const printDiv = document.createElement('div');
   printDiv.id = 'resp-print-div';
   printDiv.innerHTML = `
-    <div style="font-size:13pt;font-weight:700;margin-bottom:1mm;">${title}</div>
-    <div style="font-size:9pt;color:#333;margin-bottom:3mm;border-bottom:1pt solid #ccc;padding-bottom:2mm;">${summary}</div>
+    <div style="font-size:13pt;font-weight:700;margin-bottom:1mm;">${esc(title)}</div>
+    <div style="font-size:9pt;color:#333;margin-bottom:3mm;border-bottom:1pt solid #ccc;padding-bottom:2mm;">${esc(summary)}</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 5mm;">
       <div class="pcol-hd">問&nbsp;&nbsp;科目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;正解 回答 正誤</div>
       <div class="pcol-hd">問&nbsp;&nbsp;科目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;正解 回答 正誤</div>
