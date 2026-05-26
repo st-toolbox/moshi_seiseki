@@ -162,10 +162,7 @@ tbody tr:hover td{background:var(--g1);}
 .lr-table tbody tr:last-child td{border-bottom:none;}
 .lr-cat-name{width:150px;font-weight:600;font-size:12px;white-space:nowrap;color:var(--g5);}
 .lr-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
-.lr-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;}
-.lr-chip.ng{background:rgba(185,28,28,0.1);color:var(--ng);}
-.lr-chip.warn{background:rgba(180,83,9,0.08);color:var(--warn);}
-.lr-chip.lo{background:var(--g1);color:var(--g5);}
+.lr-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--g1);color:var(--g5);}
 .lr-empty{text-align:center;color:var(--g4);padding:40px;font-size:13px;}
 
 /* WEAK */
@@ -515,10 +512,11 @@ tbody tr:hover td{background:var(--g1);}
       <div class="filter-row">
         <span class="filter-label">基準値：</span>
         <div class="thresh-btns">
-          <button id="lr-40" onclick="setLrThresh(40)">40%</button>
-          <button id="lr-50" class="active" onclick="setLrThresh(50)">50%</button>
-          <button id="lr-60" onclick="setLrThresh(60)">60%</button>
-          <button id="lr-70" onclick="setLrThresh(70)">70%</button>
+          <button id="lr-20" onclick="setLrThresh(20)">20%以下</button>
+          <button id="lr-30" onclick="setLrThresh(30)">30%以下</button>
+          <button id="lr-40" onclick="setLrThresh(40)">40%以下</button>
+          <button id="lr-50" class="active" onclick="setLrThresh(50)">50%以下</button>
+          <button id="lr-60" onclick="setLrThresh(60)">60%以下</button>
         </div>
       </div>
       <div id="lrContent"><div class="lr-empty">模試を選択してください</div></div>
@@ -1263,7 +1261,7 @@ let lrThresh = 50;
 
 function setLrThresh(val) {
   lrThresh = val;
-  [40,50,60,70].forEach(v => {
+  [20,30,40,50,60].forEach(v => {
     const b = document.getElementById('lr-'+v);
     if (b) b.classList.toggle('active', v === val);
   });
@@ -1334,10 +1332,7 @@ function renderLowRate() {
   }
 
   const rows = catList.map(({cat, qs}) => {
-    const chips = qs.map(({q, pct}) => {
-      const cls = pct<30 ? 'ng' : pct<50 ? 'warn' : 'lo';
-      return `<span class="lr-chip ${cls}">${q}-${pct}%</span>`;
-    }).join('');
+    const chips = qs.map(({q}) => `<span class="lr-chip">${q}</span>`).join('');
     return `<tr>
       <td class="lr-cat-name">${esc(cat)}</td>
       <td><div class="lr-chips">${chips}</div></td>
@@ -1345,7 +1340,7 @@ function renderLowRate() {
   }).join('');
 
   content.innerHTML = `<table class="lr-table">
-    <thead><tr><th style="width:150px;">科目</th><th>問題（問番号-正答率）</th></tr></thead>
+    <thead><tr><th style="width:150px;">科目</th><th>問題番号</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
