@@ -932,7 +932,10 @@ async function loadAllData() {
         });
       });
       // 回答データにあるがstudentsノードにない学生を補完（自己登録失敗ケース対応）
+      // push-key登録済みの場合はそのエントリのUIDをauth UIDに上書きして紐付け
       const studentUids = new Set(students.map(s => s.uid));
+      const emailToStudentIdx = new Map();
+      students.forEach((s, i) => { if (s.email) emailToStudentIdx.set(s.email, i); });
       respSnap.forEach(examChild => {
         examChild.forEach(userChild => {
           const uid = userChild.key;
@@ -941,7 +944,13 @@ async function loadAllData() {
           const anyPart = respData?.AM || respData?.PM;
           if (!anyPart?.email) return;
           const email = anyPart.email;
-          students.push({ uid, email, name: email.split('@')[0], active: true });
+          const idx = emailToStudentIdx.get(email);
+          if (idx !== undefined) {
+            students[idx].uid = uid; // push-keyエントリのUIDをauth UIDに更新
+          } else {
+            students.push({ uid, email, name: email.split('@')[0], active: true });
+            emailToStudentIdx.set(email, students.length - 1);
+          }
           studentUids.add(uid);
         });
       });
