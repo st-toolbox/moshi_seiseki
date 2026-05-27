@@ -560,13 +560,13 @@ tbody tr:hover td{background:var(--g1);}
         </div>
       </div>
       <div class="paste-hint">
-        💡 Excelのセルをコピー（<kbd>Ctrl+C</kbd>）して、グリッドのセルをクリックしてから貼り付け（<kbd>Ctrl+V</kbd>）できます。列順：メールアドレス → 名前 → 年次 → 学年
+        💡 Excelのセルをコピー（<kbd>Ctrl+C</kbd>）して、グリッドのセルをクリックしてから貼り付け（<kbd>Ctrl+V</kbd>）できます。列順：名前 → 年次 → 学年
       </div>
       <div class="grid-wrap" id="studentGridWrap">
         <table class="grid-table">
           <thead><tr id="studentGridHead">
             <th class="col-fixed" style="min-width:32px;">#</th>
-            <th style="min-width:260px;cursor:pointer;" onclick="sortStudentGrid('email')">メールアドレス <span id="sort-email"></span></th>
+            <th style="min-width:260px;color:var(--g4);">メールアドレス（自動）</th>
             <th style="min-width:160px;cursor:pointer;" onclick="sortStudentGrid('name')">名前 <span id="sort-name"></span></th>
             <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('nendo')">年次 <span id="sort-nendo"></span></th>
             <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('gakunen')">学年 <span id="sort-gakunen"></span></th>
@@ -1615,7 +1615,7 @@ function renderStudentGrid() {
       `<option value="${v}"${(s.gakunen||'')=== v?' selected':''}>${v||'—'}</option>`).join('');
     return `<tr style="${active?'':'opacity:0.55;'}">
       <td class="col-fixed" style="text-align:center;font-size:11px;color:var(--g4);padding:4px 6px;">${i+1}</td>
-      <td><input class="grid-cell" style="width:100%;" type="text" value="${esc(s.email||'')}" data-si="${i}" data-type="email" onchange="onStudentCellChange(this)"></td>
+      <td><span style="font-size:12px;color:var(--g4);padding:4px 6px;display:block;">${esc(s.email||'—')}</span></td>
       <td><input class="grid-cell" style="width:100%;" type="text" value="${esc(s.name||'')}" data-si="${i}" data-type="name" onchange="onStudentCellChange(this)"></td>
       <td><input class="grid-cell" style="width:100%;text-align:center;" type="text" placeholder="例:2024" value="${esc(s.nendo||'')}" data-si="${i}" data-type="nendo" onchange="onStudentCellChange(this)"></td>
       <td style="padding:0 4px;"><select class="grid-cell" style="width:100%;font-size:12px;" data-si="${i}" data-type="gakunen" onchange="onStudentCellChange(this)">${gakunenOpts}</select></td>
@@ -1664,7 +1664,7 @@ function toggleStudentGridActive(i) {
 
 function deleteStudentRow(i) {
   const s = studentGridData[i];
-  const label = s.email || s.name || '（新規行）';
+  const label = s.name || s.email || '（新規行）';
   if (!confirm(`「${label}」を削除しますか？\n回答データは残ります。`)) return;
   studentGridData.splice(i, 1);
   renderStudentGrid();
@@ -1683,14 +1683,15 @@ async function saveStudentGrid() {
   showLoading('保存中...');
   try {
     for (const s of studentGridData) {
-      if (!s.email.trim()) continue;
+      if (!s.name?.trim() && !s.email?.trim()) continue; // 名前もメールも空はスキップ
       if (s.isNew || !s.uid) {
-        const ref  = db.ref('students').push();
-        s.uid    = ref.key;
-        s.isNew  = false;
-        await ref.set({ email: s.email, name: s.name || s.email.split('@')[0], nendo: s.nendo||'', gakunen: s.gakunen||'', active: s.active !== false, registeredAt: null });
+        const ref = db.ref('students').push();
+        s.uid   = ref.key;
+        s.isNew = false;
+        await ref.set({ name: s.name || '', nendo: s.nendo||'', gakunen: s.gakunen||'', active: s.active !== false, registeredAt: null });
       } else {
-        await db.ref('students/' + s.uid).update({ email: s.email, name: s.name || '', nendo: s.nendo||'', gakunen: s.gakunen||'', active: s.active !== false });
+        // メールは上書きしない（自己登録で書き込まれた値を保持）
+        await db.ref('students/' + s.uid).update({ name: s.name || '', nendo: s.nendo||'', gakunen: s.gakunen||'', active: s.active !== false });
       }
     }
     // 削除された学生をFirebaseから消す
@@ -1735,7 +1736,7 @@ function setupStudentPaste() {
     const rows = text.split('\n').map(r => r.split('\t'));
     const startI = parseInt(active.dataset.si);
     const type   = active.dataset.type;
-    const allCols = ['email','name','nendo','gakunen'];
+    const allCols = ['name','nendo','gakunen'];
     const startCol = allCols.indexOf(type);
     const colOrder = startCol >= 0 ? allCols.slice(startCol) : [type];
     rows.forEach((row, ri) => {
