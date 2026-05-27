@@ -25,9 +25,10 @@
     },
 
     "students": {
-      ".read": "auth != null",
+      ".read": "root.child('teachers').child(auth.uid).exists()",
       ".write": "root.child('teachers').child(auth.uid).exists()",
       "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
         ".write": "root.child('teachers').child(auth.uid).exists() || (auth.uid === $uid && !data.exists())"
       }
     },

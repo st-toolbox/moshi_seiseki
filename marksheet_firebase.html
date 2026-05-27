@@ -258,9 +258,10 @@ auth.onAuthStateChanged(async user => {
     const stuRef = db.ref('students/' + user.uid);
     stuRef.once('value').then(snap => {
       if (!snap.exists()) {
-        stuRef.set({ email, name: email.split('@')[0], registeredAt: Date.now() }).catch(() => {});
+        stuRef.set({ email, name: email.split('@')[0], registeredAt: Date.now() })
+          .catch(e => console.warn('Student registration failed:', e.message));
       }
-    }).catch(() => {});
+    }).catch(e => console.warn('Student read failed:', e.message));
 
     loadExamList();
   } else {
