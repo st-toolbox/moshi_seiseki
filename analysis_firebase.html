@@ -168,10 +168,33 @@ tbody tr:hover td{background:var(--g1);}
 .lr-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
 .lr-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--g1);color:var(--g5);}
 .lr-empty{text-align:center;color:var(--g4);padding:40px;font-size:13px;}
-.lr-print-cat-btn{padding:2px 8px;border:1px solid var(--g3);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;color:var(--g4);font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
-.lr-print-cat-btn:hover{background:var(--g1);border-color:var(--g4);}
+.lr-detail-btn{padding:2px 10px;border:1px solid var(--g3);border-radius:4px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:var(--g4);font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
+.lr-detail-btn:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
 .lr-print-all-btn{padding:5px 12px;border:1.5px solid var(--g3);border-radius:var(--rs);background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:var(--g5);transition:all .15s;display:none;}
 .lr-print-all-btn:hover{background:var(--g1);border-color:var(--g4);}
+
+/* 科目別低正答率 詳細モーダル */
+.lrd-question{padding:10px 0;border-bottom:1px solid var(--g2);}
+.lrd-question:last-child{border-bottom:none;}
+.lrd-qhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+.lrd-qno{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
+.lrd-rate{font-size:12px;font-weight:700;color:var(--ng);}
+.lrd-ans{font-size:12px;color:var(--g4);}
+.lrd-total{font-size:11px;color:var(--g3);}
+.lrd-qtext{font-size:13px;line-height:1.65;margin-bottom:6px;color:var(--g5);}
+.lrd-opts{display:flex;flex-direction:column;gap:3px;}
+.lrd-opt{display:flex;align-items:center;gap:8px;padding:1px 0;}
+.lrd-opt.correct .lrd-key,.lrd-opt.correct .lrd-otext{color:var(--ng);font-weight:700;}
+.lrd-key{width:20px;font-family:'DM Mono',monospace;font-size:12px;color:var(--g4);flex-shrink:0;}
+.lrd-otext{flex:1;font-size:12px;line-height:1.4;}
+.lrd-bar-wrap{width:64px;flex-shrink:0;background:var(--g2);border-radius:3px;overflow:hidden;height:7px;}
+.lrd-bar{height:100%;border-radius:3px;background:var(--g3);}
+.lrd-opt.correct .lrd-bar{background:var(--ng);}
+.lrd-pct{width:32px;font-size:11px;font-family:'DM Mono',monospace;text-align:right;flex-shrink:0;color:var(--g4);}
+.lrd-opt.correct .lrd-pct{color:var(--ng);font-weight:700;}
+.lrd-choices{margin-top:6px;padding-top:6px;border-top:1px dashed var(--g2);display:flex;flex-direction:column;gap:3px;}
+.lrd-choices-label{font-size:10px;color:var(--g3);font-weight:600;margin-bottom:2px;letter-spacing:.05em;}
+.lrd-nodata{font-size:12px;color:var(--g4);padding:4px 0;}
 
 /* 科目別低正答率 印刷プレビュー */
 #lr-print-overlay{display:none;}
@@ -183,12 +206,16 @@ tbody tr:hover td{background:var(--g1);}
 .lrp-ans{font-size:8.5pt;color:#555;font-weight:400;}
 .lrp-qtext{font-size:10pt;line-height:1.65;margin:2mm 0 3mm 0;}
 .lrp-opts{font-size:9pt;line-height:1.85;margin-left:2mm;}
-.lrp-opt{display:flex;gap:3mm;}
+.lrp-opt{display:flex;align-items:baseline;gap:3mm;}
 .lrp-opt.correct{font-weight:700;color:#b91c1c;}
 .lrp-opt-key{min-width:7mm;font-family:'DM Mono',monospace;flex-shrink:0;}
+.lrp-opt-text{flex:1;}
+.lrp-opt-pct{min-width:28px;text-align:right;font-family:'DM Mono',monospace;font-size:8pt;color:#888;flex-shrink:0;}
+.lrp-opt.correct .lrp-opt-pct{color:#b91c1c;}
 .lrp-choices{font-size:9pt;line-height:1.85;margin:2mm 0 0 2mm;}
-.lrp-choice{display:flex;gap:3mm;}
+.lrp-choice{display:flex;align-items:baseline;gap:3mm;}
 .lrp-choice.correct{font-weight:700;color:#b91c1c;}
+.lrp-choice.correct .lrp-opt-pct{color:#b91c1c;}
 
 /* WEAK */
 .weak-blocks{display:flex;flex-direction:column;gap:12px;}
@@ -369,6 +396,7 @@ tbody tr:hover td{background:var(--g1);}
   body.print-lowrate #lr-print-overlay{display:block!important;padding:4mm 8mm;}
   .lrp-cat-header{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#e0e0e0!important;}
   .lrp-opt.correct,.lrp-choice.correct{color:#b91c1c!important;}
+  .lrp-opt.correct .lrp-opt-pct,.lrp-choice.correct .lrp-opt-pct{color:#b91c1c!important;}
 }
 </style>
 </head>
@@ -764,6 +792,23 @@ tbody tr:hover td{background:var(--g1);}
       </div>
     </div>
   </main>
+</div>
+
+<!-- 科目別低正答率 詳細モーダル -->
+<div class="modal-overlay hidden" id="lrDetailModal" onclick="if(event.target===this)closeLrDetail()">
+  <div class="modal-box-wide">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;margin-bottom:8px;">
+      <div>
+        <div id="lrDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
+        <div id="lrDetailSub" style="font-size:12px;color:var(--g4);margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="modal-cancel-btn" onclick="printLrDetail()">🖨 印刷</button>
+        <button class="modal-cancel-btn" onclick="closeLrDetail()">✕ 閉じる</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;flex:1;" id="lrDetailBody"></div>
+  </div>
 </div>
 
 <!-- 科目別低正答率 印刷用オーバーレイ -->
@@ -1326,6 +1371,7 @@ function renderCategory() {
 let lrThresh = 50;
 let lrQStat  = {};   // { qNum: {correct, total} }
 let lrCatList = [];  // [{ cat, qs:[{q,pct}] }]
+let lrOptStat = {};  // { qNum: { "optionKey": count } }
 
 function setLrThresh(val) {
   lrThresh = val;
@@ -1349,8 +1395,8 @@ function renderLowRate() {
   const answers      = master.answers    || {};
   const hasQuestions = master.questions && Object.keys(master.questions).length > 0;
 
-  // 問ごとのクラス正答統計
-  const qStat = {};
+  // 問ごとのクラス正答統計 + 選択肢別選択数
+  const qStat = {}, optStat = {};
   getActiveStudents().forEach(s => {
     ['AM','PM'].forEach(part => {
       const ans = allData[currentExam]?.responses?.[s.uid]?.[part]?.answers;
@@ -1360,13 +1406,16 @@ function renderLowRate() {
         const correct = String(answers[q]||'');
         if (!correct || correct==='解なし') continue;
         if (!qStat[q]) qStat[q] = {correct:0, total:0};
+        if (!optStat[q]) optStat[q] = {};
         const ua = String(ans[q]||'');
         qStat[q].total++;
+        if (ua) optStat[q][ua] = (optStat[q][ua] || 0) + 1;
         if (correct.includes(',') ? correct.split(',').includes(ua) : ua===correct) qStat[q].correct++;
       }
     });
   });
   lrQStat = qStat;
+  lrOptStat = optStat;
 
   // 科目ごとに低正答率の問題を集約
   const catMap = {};
@@ -1397,33 +1446,129 @@ function renderLowRate() {
   const printAllBtn = document.getElementById('lrPrintAllBtn');
   if (printAllBtn) printAllBtn.style.display = hasQuestions && catList.some(c => c.qs.length > 0) ? '' : 'none';
 
-  const printTh = hasQuestions ? `<th style="width:44px;text-align:center;">印刷</th>` : '';
+  const detailTh = hasQuestions ? `<th style="width:50px;text-align:center;">詳細</th>` : '';
   const rows = catList.map(({cat, qs}) => {
     const chips = qs.map(({q, pct}) => `<span class="lr-chip" title="${pct}%">${q}</span>`).join('');
-    const printTd = hasQuestions
+    const detailTd = hasQuestions
       ? `<td style="text-align:center;">${qs.length > 0
-          ? `<button class="lr-print-cat-btn" onclick="printLowRateCat(this)" data-cat="${esc(cat)}">🖨</button>`
+          ? `<button class="lr-detail-btn" onclick="showLrDetail(this)" data-cat="${esc(cat)}">詳細</button>`
           : ''}</td>`
       : '';
     return `<tr>
       <td class="lr-cat-name">${esc(cat)}</td>
       <td><div class="lr-chips">${chips}</div></td>
-      ${printTd}
+      ${detailTd}
     </tr>`;
   }).join('');
 
   content.innerHTML = `<table class="lr-table">
-    <thead><tr><th style="width:150px;">科目</th><th>問題番号</th>${printTh}</tr></thead>
+    <thead><tr><th style="width:150px;">科目</th><th>問題番号</th>${detailTh}</tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
 
-// ===== 科目別低正答率 印刷 =====
-function printLowRateCat(btn) {
+// ===== 科目別低正答率 詳細モーダル =====
+function showLrDetail(btn) {
   const cat = btn.dataset.cat;
   const item = lrCatList.find(c => c.cat === cat);
   if (!item || item.qs.length === 0) return;
+  document.getElementById('lrDetailTitle').textContent = cat;
+  document.getElementById('lrDetailSub').textContent =
+    `${getExamName()} — ${lrThresh}%以下（${item.qs.length}問）`;
+  document.getElementById('lrDetailBody').innerHTML = buildLrDetailHTML(item);
+  const modal = document.getElementById('lrDetailModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('show');
+}
+
+function closeLrDetail() {
+  const modal = document.getElementById('lrDetailModal');
+  modal.classList.remove('show');
+  modal.classList.add('hidden');
+}
+
+function printLrDetail() {
+  const cat = document.getElementById('lrDetailTitle').textContent;
+  const item = lrCatList.find(c => c.cat === cat);
+  if (!item) return;
   triggerLrPrint(buildLrPrintHTML([item]));
+}
+
+function buildLrDetailHTML(item) {
+  const master    = allData[currentExam]?.master || {};
+  const questions = master.questions || {};
+  const answers   = master.answers   || {};
+  let html = '';
+  for (const { q, pct } of item.qs) {
+    const qdata     = questions[q];
+    const correct   = String(answers[q] || '');
+    const part      = q <= 100 ? 'AM' : 'PM';
+    const dispNo    = q <= 100 ? q : q - 100;
+    const total     = lrQStat[q]?.total || 0;
+    const optCounts = lrOptStat[q]     || {};
+
+    html += `<div class="lrd-question">
+      <div class="lrd-qhead">
+        <span class="lrd-qno">${part} 第${dispNo}問</span>
+        <span class="lrd-rate">クラス正答率 ${pct}%</span>
+        <span class="lrd-ans">正解: ${esc(correct)}</span>
+        <span class="lrd-total">(${total}名回答)</span>
+      </div>`;
+
+    if (qdata?.question) {
+      html += `<div class="lrd-qtext">${esc(qdata.question)}</div>`;
+
+      if (qdata.type === 'single') {
+        const opts = Object.entries(qdata.options || {}).sort((a,b) => Number(a[0])-Number(b[0]));
+        html += `<div class="lrd-opts">`;
+        for (const [key, val] of opts) {
+          const isCorrect = correct.includes(',')
+            ? correct.split(',').map(x=>x.trim()).includes(key) : key===correct;
+          const chosen    = optCounts[key] || 0;
+          const chosenPct = total > 0 ? Math.round(chosen/total*100) : 0;
+          html += `<div class="lrd-opt${isCorrect?' correct':''}">
+            <span class="lrd-key">${esc(key)}.</span>
+            <span class="lrd-otext">${esc(String(val))}</span>
+            <div class="lrd-bar-wrap"><div class="lrd-bar" style="width:${chosenPct}%"></div></div>
+            <span class="lrd-pct">${chosenPct}%</span>
+          </div>`;
+        }
+        html += `</div>`;
+
+      } else if (qdata.type === 'combination') {
+        const opts = Object.entries(qdata.options||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+        html += `<div class="lrd-opts">`;
+        for (const [key, val] of opts) {
+          html += `<div class="lrd-opt">
+            <span class="lrd-key">${esc(key)}.</span>
+            <span class="lrd-otext">${esc(String(val))}</span>
+          </div>`;
+        }
+        html += `</div>`;
+        if (qdata.choices?.length) {
+          html += `<div class="lrd-choices"><div class="lrd-choices-label">組合せ選択肢</div>`;
+          for (const ch of qdata.choices) {
+            const chKey     = String(ch).match(/^(\d+)/)?.[1];
+            const isCorrect = chKey && (correct.includes(',')
+              ? correct.split(',').map(x=>x.trim()).includes(chKey) : chKey===correct);
+            const chosen    = chKey ? (optCounts[chKey]||0) : 0;
+            const chosenPct = total>0 && chKey ? Math.round(chosen/total*100) : 0;
+            html += `<div class="lrd-opt${isCorrect?' correct':''}">
+              <span class="lrd-key">${esc(chKey||'')}.</span>
+              <span class="lrd-otext">${esc(String(ch))}</span>
+              <div class="lrd-bar-wrap"><div class="lrd-bar" style="width:${chosenPct}%"></div></div>
+              <span class="lrd-pct">${chosenPct}%</span>
+            </div>`;
+          }
+          html += `</div>`;
+        }
+      }
+    } else {
+      html += `<div class="lrd-nodata">（問題文データなし）</div>`;
+    }
+    html += `</div>`; // lrd-question
+  }
+  return html;
 }
 
 function printLowRateAll() {
@@ -1457,17 +1602,21 @@ function buildLrPrintHTML(catList) {
 
       if (qdata?.question) {
         html += `<div class="lrp-qtext">${esc(qdata.question)}</div>`;
+        const total     = lrQStat[q]?.total || 0;
+        const optCounts = lrOptStat[q]      || {};
 
         if (qdata.type === 'single') {
           const opts = Object.entries(qdata.options || {}).sort((a,b) => Number(a[0]) - Number(b[0]));
           html += `<div class="lrp-opts">`;
           for (const [key, val] of opts) {
             const isCorrect = correct.includes(',')
-              ? correct.split(',').map(x => x.trim()).includes(key)
-              : key === correct;
+              ? correct.split(',').map(x => x.trim()).includes(key) : key === correct;
+            const chosen    = optCounts[key] || 0;
+            const pctStr    = total > 0 ? `${Math.round(chosen/total*100)}%` : '—';
             html += `<div class="lrp-opt${isCorrect ? ' correct' : ''}">
               <span class="lrp-opt-key">${esc(key)}.</span>
-              <span>${esc(String(val))}${isCorrect ? '　◀ 正解' : ''}</span>
+              <span class="lrp-opt-text">${esc(String(val))}${isCorrect ? '　◀ 正解' : ''}</span>
+              <span class="lrp-opt-pct">${pctStr}</span>
             </div>`;
           }
           html += `</div>`;
@@ -1478,19 +1627,21 @@ function buildLrPrintHTML(catList) {
           for (const [key, val] of opts) {
             html += `<div class="lrp-opt">
               <span class="lrp-opt-key">${esc(key)}.</span>
-              <span>${esc(String(val))}</span>
+              <span class="lrp-opt-text">${esc(String(val))}</span>
             </div>`;
           }
           html += `</div>`;
           if (qdata.choices?.length) {
             html += `<div class="lrp-choices">`;
             for (const ch of qdata.choices) {
-              const chKey = String(ch).match(/^(\d+)/)?.[1];
+              const chKey     = String(ch).match(/^(\d+)/)?.[1];
               const isCorrect = chKey && (correct.includes(',')
-                ? correct.split(',').map(x => x.trim()).includes(chKey)
-                : chKey === correct);
+                ? correct.split(',').map(x => x.trim()).includes(chKey) : chKey === correct);
+              const chosen    = chKey ? (optCounts[chKey]||0) : 0;
+              const pctStr    = total>0 && chKey ? `${Math.round(chosen/total*100)}%` : '—';
               html += `<div class="lrp-choice${isCorrect ? ' correct' : ''}">
-                <span>${esc(String(ch))}${isCorrect ? '　◀ 正解' : ''}</span>
+                <span class="lrp-opt-text">${esc(String(ch))}${isCorrect ? '　◀ 正解' : ''}</span>
+                <span class="lrp-opt-pct">${pctStr}</span>
               </div>`;
             }
             html += `</div>`;
@@ -1510,9 +1661,14 @@ function triggerLrPrint(html) {
   const overlay = document.getElementById('lr-print-overlay');
   if (!overlay) return;
   overlay.innerHTML = html;
+  // A4縦で印刷（グローバルのlandscapeを上書き）
+  const pageStyle = document.createElement('style');
+  pageStyle.textContent = '@media print { @page { size: A4 portrait; margin: 12mm 15mm; } }';
+  document.head.appendChild(pageStyle);
   document.body.classList.add('print-lowrate');
   window.print();
   document.body.classList.remove('print-lowrate');
+  document.head.removeChild(pageStyle);
   overlay.innerHTML = '';
 }
 
