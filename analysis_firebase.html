@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<!-- build: 20260526 -->
+<!-- build: 20260527 -->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -168,6 +168,27 @@ tbody tr:hover td{background:var(--g1);}
 .lr-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
 .lr-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--g1);color:var(--g5);}
 .lr-empty{text-align:center;color:var(--g4);padding:40px;font-size:13px;}
+.lr-print-cat-btn{padding:2px 8px;border:1px solid var(--g3);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;color:var(--g4);font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
+.lr-print-cat-btn:hover{background:var(--g1);border-color:var(--g4);}
+.lr-print-all-btn{padding:5px 12px;border:1.5px solid var(--g3);border-radius:var(--rs);background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:var(--g5);transition:all .15s;display:none;}
+.lr-print-all-btn:hover{background:var(--g1);border-color:var(--g4);}
+
+/* 科目別低正答率 印刷プレビュー */
+#lr-print-overlay{display:none;}
+.lrp-cat-header{font-size:12pt;font-weight:700;margin-bottom:4mm;background:#e0e0e0;padding:2mm 4mm;border-radius:2pt;break-after:avoid;page-break-after:avoid;}
+.lrp-question{margin-bottom:5mm;break-inside:avoid;page-break-inside:avoid;}
+.lrp-qhead{font-size:10.5pt;font-weight:700;margin-bottom:1mm;display:flex;align-items:baseline;gap:5mm;flex-wrap:wrap;}
+.lrp-qno{font-family:'DM Mono',monospace;color:#222;}
+.lrp-rate{font-size:8.5pt;color:#555;font-weight:400;}
+.lrp-ans{font-size:8.5pt;color:#555;font-weight:400;}
+.lrp-qtext{font-size:10pt;line-height:1.65;margin:2mm 0 3mm 0;}
+.lrp-opts{font-size:9pt;line-height:1.85;margin-left:2mm;}
+.lrp-opt{display:flex;gap:3mm;}
+.lrp-opt.correct{font-weight:700;color:#b91c1c;}
+.lrp-opt-key{min-width:7mm;font-family:'DM Mono',monospace;flex-shrink:0;}
+.lrp-choices{font-size:9pt;line-height:1.85;margin:2mm 0 0 2mm;}
+.lrp-choice{display:flex;gap:3mm;}
+.lrp-choice.correct{font-weight:700;color:#b91c1c;}
 
 /* WEAK */
 .weak-blocks{display:flex;flex-direction:column;gap:12px;}
@@ -337,6 +358,17 @@ tbody tr:hover td{background:var(--g1);}
   .student-print-page{page-break-before:always;}
   .student-print-page:first-of-type{page-break-before:auto;}
   .print-student-header{font-size:11pt;font-weight:700;margin-bottom:3mm;background:#e0e0e0!important;padding:2mm 4mm;border-radius:2pt;}
+
+  /* 科目別低正答率 印刷モード */
+  body.print-lowrate .layout,
+  body.print-lowrate .topbar,
+  body.print-lowrate .sidebar,
+  body.print-lowrate .main,
+  body.print-lowrate #loading,
+  body.print-lowrate .modal-overlay{display:none!important;}
+  body.print-lowrate #lr-print-overlay{display:block!important;padding:4mm 8mm;}
+  .lrp-cat-header{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#e0e0e0!important;}
+  .lrp-opt.correct,.lrp-choice.correct{color:#b91c1c!important;}
 }
 </style>
 </head>
@@ -522,6 +554,8 @@ tbody tr:hover td{background:var(--g1);}
           <button id="lr-50" class="active" onclick="setLrThresh(50)">50%以下</button>
           <button id="lr-60" onclick="setLrThresh(60)">60%以下</button>
         </div>
+        <div class="vdiv"></div>
+        <button id="lrPrintAllBtn" class="lr-print-all-btn" onclick="printLowRateAll()">🖨 全科目印刷</button>
       </div>
       <div id="lrContent"><div class="lr-empty">模試を選択してください</div></div>
     </div>
@@ -669,6 +703,14 @@ tbody tr:hover td{background:var(--g1);}
         <select class="exam-inline-sel" id="gridExamSel" onchange="renderGridMaster()" style="min-width:200px;"></select>
       </div>
 
+      <!-- 問題データ取込 -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#f8f9fa;border:1px solid var(--g2);border-radius:var(--rs);">
+        <span style="font-size:13px;font-weight:600;color:var(--g5);white-space:nowrap;">📋 問題データ取込</span>
+        <input type="file" id="qJsonInput" accept=".json" style="font-size:12px;flex:1;min-width:0;max-width:380px;">
+        <button class="btn-admin-add" onclick="importQuestionJson()" style="white-space:nowrap;flex-shrink:0;">取込実行</button>
+        <span id="qImportStatus" style="font-size:12px;color:var(--g4);"></span>
+      </div>
+
       <div id="gridWrap"></div>
 
       <!-- 入力ルール・科目リスト -->
@@ -723,6 +765,9 @@ tbody tr:hover td{background:var(--g1);}
     </div>
   </main>
 </div>
+
+<!-- 科目別低正答率 印刷用オーバーレイ -->
+<div id="lr-print-overlay"></div>
 
 <!-- 回答詳細モーダル -->
 <div class="modal-overlay hidden" id="respDetailModal" onclick="if(event.target===this)closeRespDetail()">
@@ -1279,6 +1324,8 @@ function renderCategory() {
 
 // ===== 科目別低正答率 =====
 let lrThresh = 50;
+let lrQStat  = {};   // { qNum: {correct, total} }
+let lrCatList = [];  // [{ cat, qs:[{q,pct}] }]
 
 function setLrThresh(val) {
   lrThresh = val;
@@ -1298,8 +1345,9 @@ function renderLowRate() {
 
   document.getElementById('lrSubtitle').textContent = getExamName();
 
-  const categories = master.categories || {};
-  const answers    = master.answers    || {};
+  const categories   = master.categories || {};
+  const answers      = master.answers    || {};
+  const hasQuestions = master.questions && Object.keys(master.questions).length > 0;
 
   // 問ごとのクラス正答統計
   const qStat = {};
@@ -1318,6 +1366,7 @@ function renderLowRate() {
       }
     });
   });
+  lrQStat = qStat;
 
   // 科目ごとに低正答率の問題を集約
   const catMap = {};
@@ -1327,7 +1376,7 @@ function renderLowRate() {
     const st = qStat[q];
     if (!st || !st.total) continue;
     const pct = Math.round(st.correct / st.total * 100);
-    if (pct >= lrThresh) continue;
+    if (pct > lrThresh) continue;
     if (!catMap[cat]) catMap[cat] = [];
     catMap[cat].push({ q, pct });
   }
@@ -1342,19 +1391,174 @@ function renderLowRate() {
     if (!CATEGORY_ORDER.includes(cat))
       catList.push({ cat, qs: catMap[cat].slice().sort((a,b) => a.q - b.q) });
   });
+  lrCatList = catList;
 
+  // 全科目印刷ボタン表示制御
+  const printAllBtn = document.getElementById('lrPrintAllBtn');
+  if (printAllBtn) printAllBtn.style.display = hasQuestions && catList.some(c => c.qs.length > 0) ? '' : 'none';
+
+  const printTh = hasQuestions ? `<th style="width:44px;text-align:center;">印刷</th>` : '';
   const rows = catList.map(({cat, qs}) => {
-    const chips = qs.map(({q}) => `<span class="lr-chip">${q}</span>`).join('');
+    const chips = qs.map(({q, pct}) => `<span class="lr-chip" title="${pct}%">${q}</span>`).join('');
+    const printTd = hasQuestions
+      ? `<td style="text-align:center;">${qs.length > 0
+          ? `<button class="lr-print-cat-btn" onclick="printLowRateCat(this)" data-cat="${esc(cat)}">🖨</button>`
+          : ''}</td>`
+      : '';
     return `<tr>
       <td class="lr-cat-name">${esc(cat)}</td>
       <td><div class="lr-chips">${chips}</div></td>
+      ${printTd}
     </tr>`;
   }).join('');
 
   content.innerHTML = `<table class="lr-table">
-    <thead><tr><th style="width:150px;">科目</th><th>問題番号</th></tr></thead>
+    <thead><tr><th style="width:150px;">科目</th><th>問題番号</th>${printTh}</tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+// ===== 科目別低正答率 印刷 =====
+function printLowRateCat(btn) {
+  const cat = btn.dataset.cat;
+  const item = lrCatList.find(c => c.cat === cat);
+  if (!item || item.qs.length === 0) return;
+  triggerLrPrint(buildLrPrintHTML([item]));
+}
+
+function printLowRateAll() {
+  const targets = lrCatList.filter(c => c.qs.length > 0);
+  if (targets.length === 0) { alert('印刷する問題がありません'); return; }
+  triggerLrPrint(buildLrPrintHTML(targets));
+}
+
+function buildLrPrintHTML(catList) {
+  const master    = allData[currentExam]?.master || {};
+  const questions = master.questions || {};
+  const answers   = master.answers   || {};
+
+  let html = `<div style="font-size:11pt;font-weight:700;margin-bottom:5mm;border-bottom:1pt solid #aaa;padding-bottom:2mm;">` +
+    `科目別低正答率 問題一覧 &nbsp;—&nbsp; ${esc(getExamName())} &nbsp;（${lrThresh}%以下）</div>`;
+
+  for (const { cat, qs } of catList) {
+    html += `<div class="lrp-cat-header">${esc(cat)}</div>`;
+    for (const { q, pct } of qs) {
+      const qdata   = questions[q];
+      const correct = String(answers[q] || '');
+      const part    = q <= 100 ? 'AM' : 'PM';
+      const dispNo  = q <= 100 ? q : q - 100;
+
+      html += `<div class="lrp-question">`;
+      html += `<div class="lrp-qhead">
+        <span class="lrp-qno">${part} 第${dispNo}問</span>
+        <span class="lrp-rate">クラス正答率 ${pct}%</span>
+        <span class="lrp-ans">正解: ${esc(correct)}</span>
+      </div>`;
+
+      if (qdata?.question) {
+        html += `<div class="lrp-qtext">${esc(qdata.question)}</div>`;
+
+        if (qdata.type === 'single') {
+          const opts = Object.entries(qdata.options || {}).sort((a,b) => Number(a[0]) - Number(b[0]));
+          html += `<div class="lrp-opts">`;
+          for (const [key, val] of opts) {
+            const isCorrect = correct.includes(',')
+              ? correct.split(',').map(x => x.trim()).includes(key)
+              : key === correct;
+            html += `<div class="lrp-opt${isCorrect ? ' correct' : ''}">
+              <span class="lrp-opt-key">${esc(key)}.</span>
+              <span>${esc(String(val))}${isCorrect ? '　◀ 正解' : ''}</span>
+            </div>`;
+          }
+          html += `</div>`;
+
+        } else if (qdata.type === 'combination') {
+          const opts = Object.entries(qdata.options || {}).sort((a,b) => a[0].localeCompare(b[0]));
+          html += `<div class="lrp-opts">`;
+          for (const [key, val] of opts) {
+            html += `<div class="lrp-opt">
+              <span class="lrp-opt-key">${esc(key)}.</span>
+              <span>${esc(String(val))}</span>
+            </div>`;
+          }
+          html += `</div>`;
+          if (qdata.choices?.length) {
+            html += `<div class="lrp-choices">`;
+            for (const ch of qdata.choices) {
+              const chKey = String(ch).match(/^(\d+)/)?.[1];
+              const isCorrect = chKey && (correct.includes(',')
+                ? correct.split(',').map(x => x.trim()).includes(chKey)
+                : chKey === correct);
+              html += `<div class="lrp-choice${isCorrect ? ' correct' : ''}">
+                <span>${esc(String(ch))}${isCorrect ? '　◀ 正解' : ''}</span>
+              </div>`;
+            }
+            html += `</div>`;
+          }
+        }
+      } else {
+        html += `<div style="font-size:9pt;color:#777;margin:2mm 0;">（問題文データなし）</div>`;
+      }
+
+      html += `</div>`; // lrp-question
+    }
+  }
+  return html;
+}
+
+function triggerLrPrint(html) {
+  const overlay = document.getElementById('lr-print-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = html;
+  document.body.classList.add('print-lowrate');
+  window.print();
+  document.body.classList.remove('print-lowrate');
+  overlay.innerHTML = '';
+}
+
+// ===== 問題データ取込 =====
+async function importQuestionJson() {
+  const examName = document.getElementById('gridExamSel')?.value;
+  if (!examName) { alert('模試を先に選択してください'); return; }
+
+  const input = document.getElementById('qJsonInput');
+  const file  = input?.files?.[0];
+  if (!file) { alert('JSONファイルを選択してください'); return; }
+
+  const status = document.getElementById('qImportStatus');
+  if (status) status.textContent = '取込中...';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('配列形式のJSONが必要です');
+
+      const questions = {};
+      for (const q of data) {
+        const num = q.exam === 'PM' ? (q.no + 100) : q.no;
+        const entry = { exam: q.exam, no: q.no, question: q.question, options: q.options, type: q.type };
+        if (q.choices) entry.choices = q.choices;
+        questions[num] = entry;
+      }
+
+      await db.ref('exams/' + examName + '/questions').set(questions);
+
+      // ローカルキャッシュを更新
+      if (!allData[examName])          allData[examName]         = { master: {}, responses: {} };
+      if (!allData[examName].master)   allData[examName].master  = {};
+      allData[examName].master.questions = questions;
+
+      const count = Object.keys(questions).length;
+      if (status) status.textContent = `✅ ${count}問 取込完了`;
+      if (input)  input.value = '';
+      renderLowRate(); // 印刷ボタンを表示
+    } catch (err) {
+      if (status) status.textContent = `❌ エラー: ${err.message}`;
+    }
+  };
+  reader.onerror = () => { if (status) status.textContent = '❌ ファイル読込エラー'; };
+  reader.readAsText(file, 'utf-8');
 }
 
 // ===== 弱点抽出 =====
