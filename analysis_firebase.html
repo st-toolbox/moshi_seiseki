@@ -874,6 +874,20 @@ async function loadAllData() {
           allData[examName].responses[userChild.key] = userChild.val();
         });
       });
+      // 回答データにあるがstudentsノードにない学生を補完（自己登録失敗ケース対応）
+      const studentUids = new Set(students.map(s => s.uid));
+      respSnap.forEach(examChild => {
+        examChild.forEach(userChild => {
+          const uid = userChild.key;
+          if (studentUids.has(uid)) return;
+          const respData = userChild.val();
+          const anyPart = respData?.AM || respData?.PM;
+          if (!anyPart?.email) return;
+          const email = anyPart.email;
+          students.push({ uid, email, name: email.split('@')[0], active: true });
+          studentUids.add(uid);
+        });
+      });
     } else {
       const uid = currentUser.uid;
       const perExamSnaps = await Promise.all(
