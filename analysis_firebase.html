@@ -933,11 +933,9 @@ async function loadAllData() {
           allData[examName].responses[userChild.key] = userChild.val();
         });
       });
-      // 回答データにあるがstudentsノードにない学生を補完（自己登録失敗ケース対応）
-      // push-key登録済みの場合はそのエントリのUIDをauth UIDに上書きして紐付け
+      // 回答データにあるがstudentsノードにない学生を補完（自己登録済みだがstudents/未作成のケース）
+      // メール照合によるUID上書きは誤マッピングを起こすため行わない
       const studentUids = new Set(students.map(s => s.uid));
-      const emailToStudentIdx = new Map();
-      students.forEach((s, i) => { if (s.email) emailToStudentIdx.set(s.email, i); });
       respSnap.forEach(examChild => {
         examChild.forEach(userChild => {
           const uid = userChild.key;
@@ -946,13 +944,7 @@ async function loadAllData() {
           const anyPart = respData?.AM || respData?.PM;
           if (!anyPart?.email) return;
           const email = anyPart.email;
-          const idx = emailToStudentIdx.get(email);
-          if (idx !== undefined) {
-            students[idx].uid = uid; // push-keyエントリのUIDをauth UIDに更新
-          } else {
-            students.push({ uid, email, name: email.split('@')[0], active: true });
-            emailToStudentIdx.set(email, students.length - 1);
-          }
+          students.push({ uid, email, name: email.split('@')[0], active: true });
           studentUids.add(uid);
         });
       });
@@ -2004,8 +1996,8 @@ function renderResponsesPage() {
       <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':'下書き'}</span></td>
       <td style="font-size:11px;color:var(--g4);white-space:nowrap;">${fmtTs(row.ts)}</td>
       <td style="font-size:10px;font-family:'DM Mono',monospace;">
-        ${row.respEmail && row.respEmail !== row.studentEmail
-          ? `<span style="color:var(--ng);font-weight:700;" title="登録メールと不一致">${esc(row.respEmail)}</span>`
+        ${row.respEmail && row.studentEmail && row.respEmail !== row.studentEmail
+          ? `<span style="color:var(--ng);font-weight:700;" title="登録メールと不一致（要確認）">${esc(row.respEmail)}</span>`
           : `<span style="color:var(--g4);">${esc(row.respEmail||'—')}</span>`}
         <br><span style="color:var(--g3);user-select:all;">${esc(row.uid)}</span>
       </td>
