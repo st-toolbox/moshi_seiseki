@@ -603,6 +603,7 @@ tbody tr:hover td{background:var(--g1);}
               <th style="cursor:pointer;" onclick="sortResp('score')">得点 <span id="rsh-score"></span></th>
               <th style="cursor:pointer;" onclick="sortResp('status')">状態 <span id="rsh-status"></span></th>
               <th style="cursor:pointer;" onclick="sortResp('ts')">日時 <span id="rsh-ts">▼</span></th>
+              <th>送信アカウント / UID</th>
               <th>操作</th>
             </tr></thead>
             <tbody id="respTableBody"></tbody>
@@ -1964,13 +1965,13 @@ function renderResponsesPage() {
         const r = allData[examName]?.responses?.[s.uid]?.[part];
         if (!r) return;
         const ts = r.submittedAt || r.updatedAt || 0;
-        rows.push({ examName, uid: s.uid, label: s.name || s.email || s.uid, part, score: r.score, status: r.status, ts });
+        rows.push({ examName, uid: s.uid, studentEmail: s.email || '', label: s.name || s.email || s.uid, part, score: r.score, status: r.status, ts, respEmail: r.email || '' });
       });
     });
   });
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--g4);padding:24px;">データなし</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--g4);padding:24px;">データなし</td></tr>';
     return;
   }
 
@@ -2002,6 +2003,12 @@ function renderResponsesPage() {
       <td class="mono" style="${col}">${row.score??'—'}</td>
       <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':'下書き'}</span></td>
       <td style="font-size:11px;color:var(--g4);white-space:nowrap;">${fmtTs(row.ts)}</td>
+      <td style="font-size:10px;font-family:'DM Mono',monospace;">
+        ${row.respEmail && row.respEmail !== row.studentEmail
+          ? `<span style="color:var(--ng);font-weight:700;" title="登録メールと不一致">${esc(row.respEmail)}</span>`
+          : `<span style="color:var(--g4);">${esc(row.respEmail||'—')}</span>`}
+        <br><span style="color:var(--g3);user-select:all;">${esc(row.uid)}</span>
+      </td>
       <td><button class="btn-admin-del" data-action="delete-resp">削除</button></td>
     </tr>`;
   }).join('');
