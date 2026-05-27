@@ -572,6 +572,7 @@ tbody tr:hover td{background:var(--g1);}
             <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('gakunen')">学年 <span id="sort-gakunen"></span></th>
             <th style="min-width:80px;cursor:pointer;" onclick="sortStudentGrid('active')">状態 <span id="sort-active"></span></th>
             <th style="min-width:100px;cursor:pointer;" onclick="sortStudentGrid('registeredAt')">登録日時 <span id="sort-registeredAt"></span></th>
+            <th style="min-width:200px;">Firebase UID</th>
             <th style="min-width:60px;">操作</th>
           </tr></thead>
           <tbody id="studentGridBody"></tbody>
@@ -1627,6 +1628,7 @@ function renderStudentGrid() {
       <td style="padding:0 4px;"><select class="grid-cell" style="width:100%;font-size:12px;" data-si="${i}" data-type="gakunen" onchange="onStudentCellChange(this)">${gakunenOpts}</select></td>
       <td style="text-align:center;"><button onclick="toggleStudentGridActive(${i})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;${toggleStyle}">${active?'有効':'無効'}</button></td>
       <td style="font-size:11px;color:var(--g4);padding:4px 8px;">${dateStr}</td>
+      <td style="font-size:10px;color:var(--g3);padding:4px 8px;font-family:'DM Mono',monospace;user-select:all;">${esc(s.uid||'—')}</td>
       <td style="text-align:center;"><button class="btn-admin-del" onclick="deleteStudentRow(${i})">削除</button></td>
     </tr>`;
   }).join('');
