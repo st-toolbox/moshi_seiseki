@@ -1455,14 +1455,14 @@ function renderLowRate() {
           : ''}</td>`
       : '';
     return `<tr>
+      ${detailTd}
       <td class="lr-cat-name">${esc(cat)}</td>
       <td><div class="lr-chips">${chips}</div></td>
-      ${detailTd}
     </tr>`;
   }).join('');
 
   content.innerHTML = `<table class="lr-table">
-    <thead><tr><th style="width:150px;">科目</th><th>問題番号</th>${detailTh}</tr></thead>
+    <thead><tr>${detailTh}<th style="width:150px;">科目</th><th>問題番号</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
