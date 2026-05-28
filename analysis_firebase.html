@@ -195,6 +195,8 @@ tbody tr:hover td{background:var(--g1);}
 .lrd-choices{margin-top:6px;padding-top:6px;border-top:1px dashed var(--g2);display:flex;flex-direction:column;gap:3px;}
 .lrd-choices-label{font-size:10px;color:var(--g3);font-weight:600;margin-bottom:2px;letter-spacing:.05em;}
 .lrd-nodata{font-size:12px;color:var(--g4);padding:4px 0;}
+.ws-wrong-opt .lrd-key,.ws-wrong-opt .lrd-otext{color:var(--ng);}
+.ws-wrong-opt{background:rgba(185,28,28,0.06);border-radius:3px;}
 
 /* 科目別低正答率 印刷プレビュー */
 #lr-print-overlay{display:none;}
@@ -554,6 +556,8 @@ tbody tr:hover td{background:var(--g1);}
           <button id="thresh-90" onclick="setThresh(90)">90%</button>
         </div>
         <input type="hidden" id="thresh" value="80">
+        <div class="vdiv"></div>
+        <button class="lr-print-all-btn" id="weakStarBtn" style="display:inline-block;" onclick="showWeakStarModal()">★ 一覧・印刷</button>
       </div>
       <div class="legend-row">
         <span>判定：</span>
@@ -808,6 +812,23 @@ tbody tr:hover td{background:var(--g1);}
       </div>
     </div>
     <div style="overflow-y:auto;flex:1;" id="lrDetailBody"></div>
+  </div>
+</div>
+
+<!-- 弱点抽出 ★問題モーダル -->
+<div class="modal-overlay hidden" id="weakStarModal" onclick="if(event.target===this)closeWeakStarModal()">
+  <div class="modal-box-wide">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;margin-bottom:8px;">
+      <div>
+        <div id="weakStarTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
+        <div id="weakStarSub" style="font-size:12px;color:var(--g4);margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="modal-cancel-btn" onclick="printWeakStar()">🖨 印刷</button>
+        <button class="modal-cancel-btn" onclick="closeWeakStarModal()">✕ 閉じる</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;flex:1;" id="weakStarBody"></div>
   </div>
 </div>
 
@@ -1715,6 +1736,197 @@ async function importQuestionJson() {
   };
   reader.onerror = () => { if (status) status.textContent = '❌ ファイル読込エラー'; };
   reader.readAsText(file, 'utf-8');
+}
+
+// ===== 弱点抽出 ★モーダル =====
+function getStarQs() {
+  const master = allData[currentExam]?.master;
+  if (!master?.answers) return [];
+  const thresh    = parseInt(document.getElementById('thresh').value) || 80;
+  const targetUid = getWeakStudentUid();
+  const result    = [];
+  for (const part of ['AM','PM']) {
+    const myAnsData = allData[currentExam]?.responses?.[targetUid]?.[part]?.answers || {};
+    const start = part==='AM'?1:101, end = part==='AM'?100:200;
+    const classStat = {};
+    getActiveStudents().forEach(s => {
+      const ans = allData[currentExam]?.responses?.[s.uid]?.[part]?.answers;
+      if (!ans) return;
+      for (let q=start;q<=end;q++) {
+        if (!classStat[q]) classStat[q]={correct:0,total:0};
+        const correct=String(master.answers[q]||''), ua=String(ans[q]||'');
+        classStat[q].total++;
+        if (correct&&correct!=='解なし'&&(correct.includes(',')?correct.split(',').includes(ua):ua===correct))
+          classStat[q].correct++;
+      }
+    });
+    for (let q=start;q<=end;q++) {
+      const correct=String(master.answers[q]||'');
+      if (!correct||correct==='解なし') continue;
+      const st=classStat[q];
+      const pct=st?.total?Math.round(st.correct/st.total*100):null;
+      if (pct===null||pct<thresh) continue;
+      const myAns=myAnsData[q]?Number(myAnsData[q]):null;
+      if (myAns!==null && myAns===Number(correct)) continue; // 正解はスキップ
+      result.push({q, correct, pct, myAns, part, cat: master.categories?.[q]||'（科目未設定）'});
+    }
+  }
+  return result;
+}
+
+function showWeakStarModal() {
+  if (!currentExam) { alert('模試を選択してください'); return; }
+  const starQs = getStarQs();
+  const label  = getWeakLabel();
+  const thresh = parseInt(document.getElementById('thresh').value)||80;
+  document.getElementById('weakStarTitle').textContent =
+    '★ 優先復習問題' + (label ? ' — ' + label : '');
+  document.getElementById('weakStarSub').textContent =
+    `${getExamName()} — クラス正答率${thresh}%以上で不正解（${starQs.length}問）`;
+  document.getElementById('weakStarBody').innerHTML = starQs.length > 0
+    ? buildWeakStarHTML(starQs)
+    : '<div style="padding:32px;text-align:center;color:var(--g4);">★問題はありません</div>';
+  const modal = document.getElementById('weakStarModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('show');
+}
+
+function closeWeakStarModal() {
+  const modal = document.getElementById('weakStarModal');
+  modal.classList.remove('show');
+  modal.classList.add('hidden');
+}
+
+function buildWeakStarHTML(starQs) {
+  const master    = allData[currentExam]?.master || {};
+  const questions = master.questions || {};
+  const bycat     = {};
+  for (const item of starQs) (bycat[item.cat]=bycat[item.cat]||[]).push(item);
+  const orderedCats = CATEGORY_ORDER.filter(c=>bycat[c]);
+  Object.keys(bycat).forEach(c=>{ if (!CATEGORY_ORDER.includes(c)) orderedCats.push(c); });
+
+  let html = '';
+  for (const cat of orderedCats) {
+    html += `<div style="font-size:12px;font-weight:700;background:var(--g1);padding:5px 10px;border-radius:4px;margin:8px 0 4px;color:var(--g5);">${esc(cat)}</div>`;
+    for (const {q, correct, pct, myAns, part} of bycat[cat]) {
+      const dispNo = q<=100?q:q-100;
+      const qdata  = questions[q];
+      html += `<div class="lrd-question">
+        <div class="lrd-qhead">
+          <span class="lrd-qno">${part} 第${dispNo}問</span>
+          <span class="lrd-rate">クラス正答率 ${pct}%</span>
+          <span class="lrd-ans">正解: ${esc(correct)}</span>
+          <span style="font-size:12px;color:var(--ng);font-weight:600;">あなた: ${myAns??'—'}</span>
+        </div>`;
+      if (qdata?.question) {
+        html += `<div class="lrd-qtext">${esc(qdata.question)}</div>`;
+        if (qdata.type==='single') {
+          const opts=Object.entries(qdata.options||{}).sort((a,b)=>Number(a[0])-Number(b[0]));
+          html += `<div class="lrd-opts">`;
+          for (const [key,val] of opts) {
+            const isCorrect=correct.includes(',')?correct.split(',').map(x=>x.trim()).includes(key):key===correct;
+            const isMyAns=String(myAns)===key;
+            html += `<div class="lrd-opt${isCorrect?' correct':''}${isMyAns&&!isCorrect?' ws-wrong-opt':''}">
+              <span class="lrd-key">${esc(key)}.</span>
+              <span class="lrd-otext">${esc(String(val))}${isCorrect?'　◀ 正解':''}${isMyAns&&!isCorrect?'　← あなた':''}</span>
+            </div>`;
+          }
+          html += `</div>`;
+        } else if (qdata.type==='combination') {
+          const opts=Object.entries(qdata.options||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+          html += `<div class="lrd-opts">`;
+          for (const [key,val] of opts)
+            html += `<div class="lrd-opt"><span class="lrd-key">${esc(key)}.</span><span class="lrd-otext">${esc(String(val))}</span></div>`;
+          html += `</div>`;
+          if (qdata.choices?.length) {
+            html += `<div class="lrd-choices"><div class="lrd-choices-label">組合せ選択肢</div>`;
+            for (const ch of qdata.choices) {
+              const chKey=String(ch).match(/^(\d+)/)?.[1];
+              const isCorrect=chKey&&(correct.includes(',')?correct.split(',').map(x=>x.trim()).includes(chKey):chKey===correct);
+              const isMyAns=String(myAns)===chKey;
+              html += `<div class="lrd-opt${isCorrect?' correct':''}${isMyAns&&!isCorrect?' ws-wrong-opt':''}">
+                <span class="lrd-key">${esc(chKey||'')}.</span>
+                <span class="lrd-otext">${esc(String(ch))}${isCorrect?'　◀ 正解':''}${isMyAns&&!isCorrect?'　← あなた':''}</span>
+              </div>`;
+            }
+            html += `</div>`;
+          }
+        }
+      }
+      html += `</div>`; // lrd-question
+    }
+  }
+  return html;
+}
+
+function printWeakStar() {
+  const starQs = getStarQs();
+  if (starQs.length === 0) { alert('★問題がありません'); return; }
+  const master    = allData[currentExam]?.master || {};
+  const questions = master.questions || {};
+  const label     = getWeakLabel();
+  const thresh    = parseInt(document.getElementById('thresh').value)||80;
+  const bycat     = {};
+  for (const item of starQs) (bycat[item.cat]=bycat[item.cat]||[]).push(item);
+  const orderedCats = CATEGORY_ORDER.filter(c=>bycat[c]);
+  Object.keys(bycat).forEach(c=>{ if (!CATEGORY_ORDER.includes(c)) orderedCats.push(c); });
+
+  let html = `<div style="font-size:11pt;font-weight:700;margin-bottom:5mm;border-bottom:1pt solid #aaa;padding-bottom:2mm;">
+    ★ 優先復習問題${label?' — '+esc(label):''} &nbsp;—&nbsp; ${esc(getExamName())}
+    &nbsp;（クラス正答率${thresh}%以上・不正解 ${starQs.length}問）
+  </div>`;
+  for (const cat of orderedCats) {
+    html += `<div class="lrp-cat-header">${esc(cat)}</div>`;
+    for (const {q, correct, pct, myAns, part} of bycat[cat]) {
+      const dispNo=q<=100?q:q-100;
+      const qdata=questions[q];
+      html += `<div class="lrp-question">
+        <div class="lrp-qhead">
+          <span class="lrp-qno">${part} 第${dispNo}問</span>
+          <span class="lrp-rate">クラス正答率 ${pct}%</span>
+          <span class="lrp-ans">正解: ${esc(correct)}</span>
+          <span style="font-size:8.5pt;color:#b91c1c;font-weight:700;">あなた: ${myAns??'—'}</span>
+        </div>`;
+      if (qdata?.question) {
+        html += `<div class="lrp-qtext">${esc(qdata.question)}</div>`;
+        if (qdata.type==='single') {
+          const opts=Object.entries(qdata.options||{}).sort((a,b)=>Number(a[0])-Number(b[0]));
+          html += `<div class="lrp-opts">`;
+          for (const [key,val] of opts) {
+            const isCorrect=correct.includes(',')?correct.split(',').map(x=>x.trim()).includes(key):key===correct;
+            const isMyAns=String(myAns)===key;
+            html += `<div class="lrp-opt${isCorrect?' correct':''}">
+              <span class="lrp-opt-key">${esc(key)}.</span>
+              <span class="lrp-opt-text">${esc(String(val))}${isCorrect?'　◀ 正解':''}${isMyAns&&!isCorrect?'　← あなた':''}</span>
+            </div>`;
+          }
+          html += `</div>`;
+        } else if (qdata.type==='combination') {
+          const opts=Object.entries(qdata.options||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+          html += `<div class="lrp-opts">`;
+          for (const [key,val] of opts)
+            html += `<div class="lrp-opt"><span class="lrp-opt-key">${esc(key)}.</span><span class="lrp-opt-text">${esc(String(val))}</span></div>`;
+          html += `</div>`;
+          if (qdata.choices?.length) {
+            html += `<div class="lrp-choices">`;
+            for (const ch of qdata.choices) {
+              const chKey=String(ch).match(/^(\d+)/)?.[1];
+              const isCorrect=chKey&&(correct.includes(',')?correct.split(',').map(x=>x.trim()).includes(chKey):chKey===correct);
+              const isMyAns=String(myAns)===chKey;
+              html += `<div class="lrp-choice${isCorrect?' correct':''}">
+                <span class="lrp-opt-text">${esc(String(ch))}${isCorrect?'　◀ 正解':''}${isMyAns&&!isCorrect?'　← あなた':''}</span>
+              </div>`;
+            }
+            html += `</div>`;
+          }
+        }
+      } else {
+        html += `<div style="font-size:9pt;color:#777;margin:2mm 0;">（問題文データなし）</div>`;
+      }
+      html += `</div>`; // lrp-question
+    }
+  }
+  triggerLrPrint(html);
 }
 
 // ===== 弱点抽出 =====
