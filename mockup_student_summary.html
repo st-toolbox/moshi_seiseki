@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>学生別科目サマリーレポート（イメージ）</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+@page { size: A4 portrait; margin: 12mm 15mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans JP', sans-serif; font-size: 10pt; color: #222; background: #f5f5f5; padding: 16px; }
+
+.paper {
+  background: #fff;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 14mm 16mm;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+
+/* ── ヘッダー ── */
+.rpt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2.5pt solid #1a1a1a;
+  padding-bottom: 5mm;
+  margin-bottom: 5mm;
+}
+.rpt-title { font-size: 14pt; font-weight: 700; letter-spacing: .04em; }
+.rpt-subtitle { font-size: 8.5pt; color: #666; margin-top: 2px; }
+.rpt-meta { text-align: right; font-size: 8.5pt; color: #555; line-height: 1.8; }
+.rpt-meta strong { font-size: 11pt; color: #111; font-weight: 700; display: block; }
+
+/* ── サマリーカード ── */
+.score-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 6mm;
+}
+.score-card {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 5px 8px;
+  text-align: center;
+}
+.score-card .sc-label { font-size: 7.5pt; color: #888; margin-bottom: 2px; }
+.score-card .sc-val { font-size: 15pt; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+.score-card .sc-sub { font-size: 7pt; color: #aaa; margin-top: 2px; }
+.sc-val.ok  { color: #15803d; }
+.sc-val.warn{ color: #b45309; }
+.sc-val.ng  { color: #b91c1c; }
+
+/* ── 科目テーブル ── */
+.section-label {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+  margin-top: 5mm;
+}
+table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+thead th {
+  background: #2d2c2a;
+  color: #fff;
+  padding: 4px 7px;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 8pt;
+}
+thead th.th-cat { text-align: left; width: 34mm; }
+thead th.th-exam { width: 18mm; }
+thead th.th-trend { width: 12mm; }
+thead th.th-flag { width: 14mm; }
+tbody td {
+  padding: 3px 7px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+tbody tr:hover td { background: #fafafa; }
+.cat-name { font-weight: 500; white-space: nowrap; }
+.rate-cell {
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5pt;
+  font-weight: 600;
+}
+.c-ok   { background: rgba(21,128,61,0.12);  color: #15803d; }
+.c-warn { background: rgba(180,83,9,0.12);   color: #b45309; }
+.c-ng   { background: rgba(185,28,28,0.13);  color: #b91c1c; }
+.c-na   { color: #bbb; text-align: center; font-size: 8pt; }
+.trend-cell { text-align: center; font-size: 10pt; }
+.t-up   { color: #15803d; font-weight: 700; }
+.t-dn   { color: #b91c1c; font-weight: 700; }
+.t-fl   { color: #aaa; }
+.flag-cell { text-align: center; font-size: 7.5pt; }
+.flag-warn { color: #b45309; font-weight: 700; }
+.flag-ng   { color: #b91c1c; font-weight: 700; }
+.cat-group-hd td {
+  background: #f0f0f0;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #555;
+  padding: 2px 7px;
+  letter-spacing: .05em;
+  border-bottom: 1px solid #ddd;
+}
+
+/* ── フッター ── */
+.rpt-footer {
+  margin-top: 8mm;
+  font-size: 7.5pt;
+  color: #aaa;
+  border-top: 1px solid #eee;
+  padding-top: 3mm;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ── 凡例 ── */
+.legend {
+  display: flex;
+  gap: 10px;
+  font-size: 7.5pt;
+  color: #555;
+  margin-bottom: 4mm;
+  flex-wrap: wrap;
+}
+.leg-item { display: flex; align-items: center; gap: 4px; }
+.leg-box { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .paper { box-shadow: none; padding: 0; width: 100%; min-height: 0; }
+}
+</style>
+</head>
+<body>
+<div class="paper">
+
+  <!-- ヘッダー -->
+  <div class="rpt-header">
+    <div>
+      <div class="rpt-title">学生別 科目サマリーレポート</div>
+      <div class="rpt-subtitle">朝日医療大学　言語聴覚学科　模試結果分析</div>
+    </div>
+    <div class="rpt-meta">
+      <strong>田中 さくら</strong>
+      3年生 &nbsp;｜&nbsp; 出力日: 2026/05/28
+    </div>
+  </div>
+
+  <!-- サマリーカード -->
+  <div class="score-row">
+    <div class="score-card">
+      <div class="sc-label">最新合計点</div>
+      <div class="sc-val warn">118</div>
+      <div class="sc-sub">/ 200点</div>
+    </div>
+    <div class="score-card">
+      <div class="sc-label">最新正答率</div>
+      <div class="sc-val warn">59%</div>
+      <div class="sc-sub">3回目</div>
+    </div>
+    <div class="score-card">
+      <div class="sc-label">初回→最新</div>
+      <div class="sc-val ok">＋14</div>
+      <div class="sc-sub">点 推移</div>
+    </div>
+    <div class="score-card">
+      <div class="sc-label">要注意科目数</div>
+      <div class="sc-val ng">7</div>
+      <div class="sc-sub">50%未満</div>
+    </div>
+  </div>
+
+  <!-- 凡例 -->
+  <div class="legend">
+    <span style="font-weight:700;color:#555;">正答率：</span>
+    <div class="leg-item"><div class="leg-box" style="background:rgba(21,128,61,0.2);border:1px solid #86efac;"></div>70%以上</div>
+    <div class="leg-item"><div class="leg-box" style="background:rgba(180,83,9,0.15);border:1px solid #fcd34d;"></div>50〜69%</div>
+    <div class="leg-item"><div class="leg-box" style="background:rgba(185,28,28,0.13);border:1px solid #fca5a5;"></div>50%未満</div>
+    <div class="leg-item" style="margin-left:8px;"><span class="t-up">↑</span> 上昇</div>
+    <div class="leg-item"><span class="t-dn">↓</span> 低下</div>
+    <div class="leg-item"><span class="t-fl">→</span> 横ばい</div>
+    <div class="leg-item" style="margin-left:8px;color:#b91c1c;font-weight:700;">★ 要優先復習</div>
+  </div>
+
+  <!-- 科目テーブル -->
+  <div class="section-label">模試別 科目正答率</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="th-cat">科目</th>
+        <th class="th-exam">1回目<br><span style="font-weight:400;font-size:7pt;">2023/10</span></th>
+        <th class="th-exam">2回目<br><span style="font-weight:400;font-size:7pt;">2024/01</span></th>
+        <th class="th-exam">3回目<br><span style="font-weight:400;font-size:7pt;">2024/03</span></th>
+        <th class="th-trend">推移</th>
+        <th class="th-flag">判定</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <!-- 基礎医学系 -->
+      <tr class="cat-group-hd"><td colspan="6">基礎医学・関連科学系</td></tr>
+      <tr><td class="cat-name">解剖学</td><td class="rate-cell c-warn">62%</td><td class="rate-cell c-ok">71%</td><td class="rate-cell c-ok">75%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">生理学</td><td class="rate-cell c-ok">70%</td><td class="rate-cell c-ok">74%</td><td class="rate-cell c-ok">72%</td><td class="trend-cell t-fl">→</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">病理学</td><td class="rate-cell c-ng">40%</td><td class="rate-cell c-ng">45%</td><td class="rate-cell c-warn">55%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">内科学</td><td class="rate-cell c-warn">58%</td><td class="rate-cell c-warn">55%</td><td class="rate-cell c-warn">57%</td><td class="trend-cell t-fl">→</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">精神医学</td><td class="rate-cell c-warn">50%</td><td class="rate-cell c-ng">44%</td><td class="rate-cell c-ng">47%</td><td class="trend-cell t-dn">↓</td><td class="flag-cell flag-warn">要確認</td></tr>
+      <tr><td class="cat-name">臨床神経学</td><td class="rate-cell c-ng">33%</td><td class="rate-cell c-ng">38%</td><td class="rate-cell c-ng">36%</td><td class="trend-cell t-fl">→</td><td class="flag-cell flag-ng">★</td></tr>
+      <tr><td class="cat-name">音声学</td><td class="rate-cell c-ok">80%</td><td class="rate-cell c-ok">83%</td><td class="rate-cell c-ok">85%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">音響学・聴覚心理学</td><td class="rate-cell c-warn">60%</td><td class="rate-cell c-warn">65%</td><td class="rate-cell c-ok">70%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">言語発達学</td><td class="rate-cell c-ok">75%</td><td class="rate-cell c-ok">72%</td><td class="rate-cell c-ok">78%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">学習認知心理学</td><td class="rate-cell c-ng">45%</td><td class="rate-cell c-warn">52%</td><td class="rate-cell c-warn">50%</td><td class="trend-cell t-fl">→</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">社会福祉・教育</td><td class="rate-cell c-ok">73%</td><td class="rate-cell c-ok">70%</td><td class="rate-cell c-ok">76%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+
+      <!-- 言語聴覚障害学系 -->
+      <tr class="cat-group-hd"><td colspan="6">言語聴覚障害学系</td></tr>
+      <tr><td class="cat-name">失語症</td><td class="rate-cell c-warn">65%</td><td class="rate-cell c-ok">71%</td><td class="rate-cell c-ok">74%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">高次脳機能障害</td><td class="rate-cell c-ng">42%</td><td class="rate-cell c-ng">40%</td><td class="rate-cell c-ng">38%</td><td class="trend-cell t-dn">↓</td><td class="flag-cell flag-ng">★</td></tr>
+      <tr><td class="cat-name">言語発達障害学</td><td class="rate-cell c-ok">72%</td><td class="rate-cell c-ok">75%</td><td class="rate-cell c-ok">80%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">嚥下障害</td><td class="rate-cell c-ng">48%</td><td class="rate-cell c-warn">53%</td><td class="rate-cell c-warn">56%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">運動障害性構音障害</td><td class="rate-cell c-ng">35%</td><td class="rate-cell c-ng">33%</td><td class="rate-cell c-ng">40%</td><td class="trend-cell t-up">↑</td><td class="flag-cell flag-ng">★</td></tr>
+      <tr><td class="cat-name">音声障害</td><td class="rate-cell c-ok">70%</td><td class="rate-cell c-warn">67%</td><td class="rate-cell c-warn">65%</td><td class="trend-cell t-dn">↓</td><td class="flag-cell flag-warn">要確認</td></tr>
+      <tr><td class="cat-name">聴覚障害</td><td class="rate-cell c-warn">55%</td><td class="rate-cell c-warn">60%</td><td class="rate-cell c-warn">62%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">聴覚検査</td><td class="rate-cell c-ok">78%</td><td class="rate-cell c-ok">80%</td><td class="rate-cell c-ok">82%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+      <tr><td class="cat-name">補聴器・人工内耳</td><td class="rate-cell c-ng">44%</td><td class="rate-cell c-ng">48%</td><td class="rate-cell c-warn">53%</td><td class="trend-cell t-up">↑</td><td class="flag-cell">—</td></tr>
+
+    </tbody>
+  </table>
+
+  <!-- 所見欄 -->
+  <div style="margin-top:7mm;border:1px solid #ddd;border-radius:5px;padding:8px 12px;">
+    <div style="font-size:8pt;font-weight:700;color:#888;letter-spacing:.06em;margin-bottom:4px;">MEMO（教員コメント）</div>
+    <div style="height:18mm;color:#ccc;font-size:8.5pt;">ここに記入</div>
+  </div>
+
+  <!-- フッター -->
+  <div class="rpt-footer">
+    <span>朝日医療大学 言語聴覚学科 ／ 模試結果分析システム</span>
+    <span>※ このレポートはサンプルデータです</span>
+  </div>
+
+</div>
+</body>
+</html>
