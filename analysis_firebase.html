@@ -721,6 +721,24 @@ thead th{border-bottom:1px solid var(--g5);}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 /* 統合：推移・落としたところ・問題ごとの正誤 */
+.sm-tools{display:flex;justify-content:flex-end;align-items:center;gap:4px;font-size:11px;color:var(--g4);margin:-4px 0 6px;}
+.sm-tools button{font:inherit;font-size:11px;padding:1px 8px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--g5);cursor:pointer;}
+.sm-tools button:hover{background:var(--g1);}
+.sm-tools button.on{border-color:var(--g4);}
+.sm-tools button:first-of-type{margin-left:4px;}
+@media print{ .sm-tools{display:none;} }
+.sv{position:relative;}
+.sv-btn{padding:6px 12px;font-size:12px;border:1px solid var(--g3);border-radius:var(--rs);background:transparent;color:var(--g5);cursor:pointer;white-space:nowrap;font-family:inherit;}
+.sv-btn:hover{background:var(--g1);}
+.sv-on .sv-btn{background:var(--g5);color:var(--paper);border-color:var(--g5);}
+.sv-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;background:var(--paper);border:1px solid var(--g3);border-radius:var(--rs);padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);width:260px;}
+.sv-pop-h{font-size:11px;color:var(--g4);letter-spacing:.06em;margin-bottom:6px;}
+.sv-pop select{width:100%;font-size:13px;border:1px solid var(--line);border-radius:4px;padding:2px;font-family:inherit;}
+.sv-pop-n{font-size:10.5px;color:var(--g4);margin-top:6px;line-height:1.5;}
+.sv-bar{position:sticky;top:0;z-index:55;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:6px 16px;background:var(--g5);color:var(--paper);font-size:12.5px;}
+.sv-bar button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--paper);border-radius:4px;background:transparent;color:var(--paper);cursor:pointer;}
+.sv-on .teacher-only,.sv-on #page-admin_exam,.sv-on #page-admin_student,.sv-on #page-data_edit,.sv-on #page-responses,.sv-on #page-admin_teacher,.sv-on #page-secclass{display:none!important;}
+@media print{ .sv,.sv-bar{display:none!important;} }
 .cr{flex:1 1 420px;border-top:2px solid var(--g5);padding-top:10px;font-size:12px;min-width:0;}
 .cr-h{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-bottom:10px;}
 .cr-h b{font-size:13px;color:var(--g5);}
@@ -871,7 +889,16 @@ thead th{border-bottom:1px solid var(--g5);}
     <span id="userName">読込中...</span>
     <span class="role-badge" id="userRole">教員</span>
   </div>
+  <div class="sv" id="svWrap" style="display:none;">
+    <button class="sv-btn" id="svBtn" onclick="svToggle()">学生の立場で見る</button>
+    <div class="sv-pop" id="svPop" hidden>
+      <div class="sv-pop-h">どの学生の画面を見るか</div>
+      <select id="svSel" size="12" onchange="svEnter(this.value)"></select>
+      <div class="sv-pop-n">見るだけ。この間はデータベースに何も書きません。</div>
+    </div>
+  </div>
 </div>
+<div class="sv-bar" id="svBar" hidden><span id="svBarTxt"></span><button onclick="svExit()">教員の画面に戻る</button></div>
 
 <div class="layout" id="mainLayout" style="display:none;">
   <!-- SIDEBAR -->
@@ -1458,6 +1485,7 @@ auth.onAuthStateChanged(async user => {
       }
     }
     document.getElementById('userRole').textContent = isTeacher ? '教員' : '学生';
+    document.getElementById('svWrap').style.display = isTeacher ? '' : 'none';
     if (!isTeacher) {
       document.getElementById('userRole').style.background = 'var(--ok-bg)';
       document.getElementById('userRole').style.color = 'var(--ok)';
@@ -1556,6 +1584,20 @@ async function loadAllData() {
       if (da) return -1; if (db2) return 1; return 0;
     });
 
+    await refP;
+    renderAll();
+    if (isTeacher) publishStats().catch(e => console.warn(e));
+    if (!document.querySelector('.page.active')) showPage(isTeacher ? 'exam' : 'karte'); else renderV2();
+
+  } catch(e) {
+    console.error(e);
+    alert('データ取得エラー: ' + e.message);
+  }
+  hideLoading();
+}
+
+// 読み込み済みのデータで全画面を描き直す（ログイン直後・学生の立場で見るの出入り）
+function renderAll() {
     // セレクト設定
     const nResp = n => Object.keys(allData[n]?.responses || {}).length;
     const opts = examList.map(e => {
@@ -1565,7 +1607,7 @@ async function loadAllData() {
     document.getElementById('examSel').innerHTML = opts;
     currentExam = (examList.find(e => nResp(e.name)) || examList[0])?.name || '';
     document.getElementById('examSel').value = currentExam;
-    if (!isTeacher) { const nk = document.getElementById('navKarte'); if (nk) nk.textContent = 'わたしのカルテ'; }
+    { const nk = document.getElementById('navKarte'); if (nk) nk.textContent = isTeacher ? '学生カルテ' : 'わたしのカルテ'; }
 
     // サイドバー学生セレクト
     initSidebarStudentSel();
@@ -1580,17 +1622,67 @@ async function loadAllData() {
     initGridExamSel();
     initRespExamSel();
     renderStudentHistory();
-    await refP;
     renderSecViews();
-    if (isTeacher) publishStats().catch(e => console.warn(e));
-    if (!document.querySelector('.page.active')) showPage(isTeacher ? 'exam' : 'karte'); else renderV2();
-
-  } catch(e) {
-    console.error(e);
-    alert('データ取得エラー: ' + e.message);
-  }
-  hideLoading();
 }
+
+// ===== 学生の立場で見る（教員だけ・確認用） =====
+// 学生がログインしたときと同じ材料だけを残す：自分の回答・自分の学生レコード・模試に置いた stats。書き込みは全部止める
+let svUid = '', svSaved = null;
+const _dbRef = db.ref.bind(db);
+db.ref = function (path) {
+  const r = _dbRef(path);
+  if (!svUid) return r;
+  const block = () => { console.warn('学生の立場で表示中のため書き込みを止めました', path); return Promise.resolve(); };
+  return { once: (...a) => r.once(...a), on: (...a) => r.on(...a), off: (...a) => r.off(...a), set: block, update: block, remove: block, push: block, transaction: block };
+};
+function svToggle() {
+  if (svUid) return svExit();
+  const pop = document.getElementById('svPop'), sel = document.getElementById('svSel');
+  if (!pop.hidden) { pop.hidden = true; return; }
+  const list = students.filter(s => s.active !== false).slice()
+    .sort((a, b) => (a.gakunen || '').localeCompare(b.gakunen || '') || stuNo(a).localeCompare(stuNo(b), 'ja', { numeric: true }));
+  sel.innerHTML = list.map(s => `<option value="${esc(s.uid)}">${esc(stuNo(s))}　${esc(s.name || '')}${s.gakunen ? '（' + esc(s.gakunen) + '）' : ''}</option>`).join('');
+  pop.hidden = false; sel.focus();
+}
+function svEnter(uid) {
+  if (!uid) return;
+  if (!svSaved) svSaved = { user: currentUser, students, gak: currentGakunenFilter, stu: currentStudent,
+    resp: Object.fromEntries(Object.entries(allData).map(([k, v]) => [k, v.responses])) };
+  const me = svSaved.students.find(s => s.uid === uid);
+  if (!me) return;
+  svUid = uid;
+  isTeacher = false;
+  currentUser = { uid, email: me.email || '' };
+  students = [me];
+  currentGakunenFilter = '全員';
+  Object.entries(allData).forEach(([k, v]) => { const r = svSaved.resp[k]?.[uid]; v.responses = r ? { [uid]: r } : {}; });
+  ctxMemo = {}; questionCache = {};
+  document.body.classList.add('sv-on');
+  document.getElementById('svPop').hidden = true;
+  document.getElementById('svBtn').textContent = '教員の画面に戻る';
+  document.getElementById('svBar').hidden = false;
+  document.getElementById('svBarTxt').textContent = `学生の立場で表示中：${stuNo(me)}　${me.name || ''}　（見るだけ・書き込みなし）`;
+  document.getElementById('userRole').textContent = '学生として表示';
+  renderAll();
+  showPage('karte');
+}
+function svExit() {
+  if (!svSaved) return;
+  svUid = '';
+  isTeacher = true;
+  currentUser = svSaved.user; students = svSaved.students; currentGakunenFilter = svSaved.gak;
+  Object.entries(allData).forEach(([k, v]) => { v.responses = svSaved.resp[k] || {}; });
+  const stu = svSaved.stu; svSaved = null;
+  ctxMemo = {}; questionCache = {};
+  document.body.classList.remove('sv-on');
+  document.getElementById('svBtn').textContent = '学生の立場で見る';
+  document.getElementById('svBar').hidden = true;
+  document.getElementById('userRole').textContent = '教員';
+  renderAll();
+  if (stu) { currentStudent = stu; const sel = document.getElementById('sidebarStudentSel'); if (sel) sel.value = stu; }
+  showPage('karte');
+}
+document.addEventListener('click', e => { const w = document.getElementById('svWrap'); if (w && !w.contains(e.target)) document.getElementById('svPop').hidden = true; });
 
 // ===== NAV =====
 function showPage(id, btn) {
@@ -4645,6 +4737,13 @@ function exLowHtml(ex, st) {
     by[c].sort((a, b) => a.r - b.r || a.n - b.n).map(o => exQHtml(ex, o.n, o.r, st)).join('') + '</div>').join('') + '</section>';
 }
 
+// 出題マップの一括展開：lv 1=科目を開く 2=章も 3=節も 0=全部たたむ
+function smOpen(btn, lv) {
+  const sm = btn.parentElement.nextElementSibling;
+  if (!sm) return;
+  [['details.sm-s', 1], ['details.sm-c', 2], ['details.sm-x', 3]].forEach(([q, n]) => sm.querySelectorAll(q).forEach(d => { d.open = lv >= n; }));
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+}
 // 出題マップ（科目 ▸ 章 ▸ 節）。クラス正答率は stats から。uid があれば本人の正誤も並べる
 function secMapHtml(ex, st, uid) {
   const m = allData[ex]?.master || {}, r = uid ? allData[ex]?.responses?.[uid] : null;
@@ -4682,7 +4781,8 @@ function secMapHtml(ex, st, uid) {
     : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
-  let h = `<div class="sm${uid ? ' sm-u' : ''}"><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試の出題</span></div>`;
+  let h = `<div class="sm-tools">まとめて開く<button onclick="smOpen(this,1)" title="全科目を開いて章を並べる">科目</button><button onclick="smOpen(this,2)" title="全部の章を開いて節を並べる">章</button>${uid ? '' : '<button onclick="smOpen(this,3)" title="全部の節を開いて問題と選択肢の分布まで出す">節</button>'}<button onclick="smOpen(this,0)">たたむ</button></div>` +
+    `<div class="sm${uid ? ' sm-u' : ''}"><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試の出題</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   [...subs.entries()].sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || firstQ(a[1]) - firstQ(b[1]) || a[0].localeCompare(b[0])).forEach(([sid, S]) => {
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
