@@ -721,6 +721,22 @@ thead th{border-bottom:1px solid var(--g5);}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 /* 統合：推移・落としたところ・問題ごとの正誤 */
+.cr{flex:1 1 420px;border-top:2px solid var(--g5);padding-top:10px;font-size:12px;min-width:0;}
+.cr-h{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-bottom:10px;}
+.cr-h b{font-size:13px;color:var(--g5);}
+.cr-h span{font-size:11px;color:var(--g4);}
+.cr-cols{columns:3 230px;column-gap:24px;column-rule:1px solid var(--line);}
+.cr-g{break-inside:avoid;margin-bottom:12px;}
+.cr-gh{font-size:11px;letter-spacing:.08em;color:var(--g4);border-bottom:1px solid var(--line);padding-bottom:3px;margin-bottom:3px;}
+.cr ol{margin:0;padding-left:22px;}
+.cr li{padding:2px 0;line-height:1.45;}
+.cr li::marker{color:var(--g3);font-size:10.5px;}
+.cr-n{color:var(--g5);}
+.cr-u{float:right;color:var(--g4);font-size:11px;}
+.cr-sub{display:block;font-size:10.5px;color:var(--g3);}
+.cr-sub.warn{color:var(--ng);opacity:.8;}
+.cr-odd{margin-top:8px;color:var(--ng);font-size:11.5px;}
+@media print{ .cr-cols{columns:3;} }
 .v2-tbl th.sort{cursor:pointer;user-select:none;}
 .v2-tbl th.sort:hover{color:var(--g5);}
 .v2-tbl th.sort.on{color:var(--accent);}
@@ -1245,31 +1261,7 @@ thead th{border-bottom:1px solid var(--g5);}
           <div style="margin-top:8px;color:var(--g4);font-size:11px;">科目名が正しくない場合は赤くなります。<br>赤いセルがある状態では保存できません。</div>
         </div>
 
-        <div style="flex:1 1 300px;background:#f8f9fa;border:1px solid var(--g2);border-radius:var(--rs);padding:14px 16px;font-size:12px;">
-          <div style="font-weight:700;margin-bottom:8px;color:var(--g5);">📚 使用可能な科目名一覧</div>
-          <div style="columns:4;column-gap:16px;column-rule:1px solid var(--g2);">
-            <div style="margin-bottom:4px;">
-              <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:2px;break-after:avoid;">基礎医学系</div>
-              <ol style="margin:0;padding-left:16px;line-height:1.75;font-size:11px;">
-                <li>医学総論</li><li>解剖学</li><li>生理学</li><li>病理学</li><li>内科学</li>
-                <li>小児科学</li><li>精神医学</li><li>リハビリテーション医学</li><li>耳鼻咽喉科学</li>
-                <li>臨床神経学</li><li>形成外科</li><li>臨床歯科学</li><li>発声発語系医学</li>
-                <li>聴覚系医学</li><li>神経系医学</li><li>学習認知心理学</li><li>心理測定法</li>
-                <li>臨床心理学</li><li>生涯発達心理学</li><li>音声学</li><li>音響学・聴覚心理学</li>
-                <li>言語学</li><li>言語発達学</li><li>社会福祉・教育</li><li>リハビリテーション概論</li>
-              </ol>
-            </div>
-            <div>
-              <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:2px;break-after:avoid;">言語聴覚障害学系</div>
-              <ol start="26" style="margin:0;padding-left:16px;line-height:1.75;font-size:11px;">
-                <li>失語症</li><li>高次脳機能障害</li><li>言語発達障害学</li><li>音声障害</li>
-                <li>機能性構音障害</li><li>器質性構音障害</li><li>運動障害性構音障害</li><li>嚥下障害</li>
-                <li>吃音</li><li>聴覚障害</li><li>聴覚検査</li><li>補聴器・人工内耳</li>
-                <li>言語聴覚障害概論</li>
-              </ol>
-            </div>
-          </div>
-        </div>
+        <div class="cr" id="catRefList"></div>
 
       </div>
     </div>
@@ -1617,6 +1609,7 @@ function showPage(id, btn) {
   if (id === 'sec') renderSec();
   if (id === 'secclass') renderSecClass();
   if (id === 'review') renderReview();
+  if (id === 'data_edit') renderCatRef();
 }
 
 function onExamChange() {
@@ -4745,6 +4738,44 @@ function karteStarHtml(ex, uid, st) {
       '</tbody></table></div><div class="v2-cap">★はみんなが取れている問題＝本番で差がつく。まずここから。</div>';
   }
   return h + '</section>';
+}
+
+// 模試データ編集：使用可能な科目名（CATEGORY_ORDER）を国試の区分で束ね、節マスターのどの科目が入るかと登録済み模試での使用数を添える
+const CAT_GROUPS = [
+  ['基礎・臨床医学', '医学総論', '臨床歯科学'],
+  ['音声・言語・聴覚医学', '発声発語系医学', '神経系医学'],
+  ['心理学', '学習認知心理学', '生涯発達心理学'],
+  ['言語学・音声学・音響学', '音声学', '言語発達学'],
+  ['社会福祉・教育', '社会福祉・教育', 'リハビリテーション概論'],
+  ['言語聴覚障害学', '失語症', '言語聴覚障害概論'],
+];
+function renderCatRef() {
+  const box = document.getElementById('catRefList');
+  if (!box) return;
+  const subs = {};   // 分野 → { 節マスターの科目名: 章数 }
+  Object.entries(refSections || {}).forEach(([key, r]) => {
+    if (!r.g) return;
+    const o = (subs[r.g] ||= {}), sid = key.split('|')[0];
+    (o[sid] ||= { name: r.s || sid, ch: new Set() }).ch.add(key.split('|')[1]);
+  });
+  const used = {}; let nEx = 0;
+  examList.forEach(e => {
+    const c = allData[e.name]?.master?.categories; if (!c) return; nEx++;
+    (Array.isArray(c) ? c : Object.values(c)).forEach(v => { if (v) used[v] = (used[v] || 0) + 1; });
+  });
+  const odd = Object.keys(used).filter(c => !CATEGORY_ORDER.includes(c));
+  let no = 0;
+  const grp = CAT_GROUPS.map(([label, from, to]) => {
+    const cats = CATEGORY_ORDER.slice(CATEGORY_ORDER.indexOf(from), CATEGORY_ORDER.indexOf(to) + 1);
+    return `<div class="cr-g"><div class="cr-gh">${esc(label)}</div><ol start="${no + 1}">` + cats.map(c => { no++;
+      const ns = Object.values(subs[c] || {}), note = ns.filter(x => x.name !== c);
+      const map = refState !== 'ok' ? '' : !ns.length ? '<span class="cr-sub warn">節マスターなし</span>'
+        : note.length ? `<span class="cr-sub">${note.map(x => esc(x.name)).join('・')}</span>` : '';
+      return `<li><span class="cr-n">${esc(c)}</span><span class="cr-u mn">${used[c] ? used[c] + '問' : '—'}</span>${map}</li>`; }).join('') + '</ol></div>';
+  }).join('');
+  box.innerHTML = `<div class="cr-h"><b>使用可能な科目名</b><span>${CATEGORY_ORDER.length}科目 ／ 右の数字＝登録済み${nEx}模試でその科目を付けた問題数 ／ 小さい字＝その科目に入る節マスターの科目</span></div>` +
+    `<div class="cr-cols">${grp}</div>` +
+    (odd.length ? `<div class="cr-odd">一覧にない科目名が模試に残っています：${odd.map(c => `${esc(c)}（${used[c]}問）`).join('、')}</div>` : '');
 }
 
 function renderV2() {
