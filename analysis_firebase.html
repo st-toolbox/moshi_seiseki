@@ -743,6 +743,15 @@ tbody tr:hover td{background:var(--g1);}
         <span id="qImportStatus" style="font-size:12px;color:var(--g4);"></span>
       </div>
 
+      <!-- 模試まとめて取込（moshi_all.json：{模試名:{active,answers,categories,questions}}） -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#f8f9fa;border:1px solid var(--g2);border-radius:var(--rs);">
+        <span style="font-size:13px;font-weight:600;color:var(--g5);white-space:nowrap;">📦 模試まとめて取込</span>
+        <input type="file" id="bulkJsonInput" accept=".json" style="font-size:12px;flex:1;min-width:0;max-width:380px;">
+        <button class="btn-admin-add" onclick="importBulkJson()" style="white-space:nowrap;flex-shrink:0;">取込実行</button>
+        <span id="bulkImportStatus" style="font-size:12px;color:var(--g4);"></span>
+        <div style="flex-basis:100%;font-size:11px;color:var(--g4);">正答・科目・問題文を模試ごとに差し替えます。実施日・公開設定・学生の解答はそのまま。新しい模試は非公開で作ります。</div>
+      </div>
+
       <div id="gridWrap"></div>
 
       <!-- 入力ルール・科目リスト -->
@@ -1736,6 +1745,63 @@ async function importQuestionJson() {
   };
   reader.onerror = () => { if (status) status.textContent = '❌ ファイル読込エラー'; };
   reader.readAsText(file, 'utf-8');
+}
+
+// ===== 模試まとめて取込 =====
+async function importBulkJson() {
+  if (!isTeacher) return;
+  const input  = document.getElementById('bulkJsonInput');
+  const status = document.getElementById('bulkImportStatus');
+  const file   = input?.files?.[0];
+  if (!file) { alert('JSONファイルを選択してください'); return; }
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch (e) { alert('❌ JSONを読めません: ' + e.message); return; }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) { alert('❌ {模試名: {...}} の形のJSONが必要です'); return; }
+
+  // 検証：名前に使えない文字・キー1〜200・正答の形・科目名
+  const errs = [];
+  for (const [name, m] of Object.entries(data)) {
+    if (/[.#$\[\]\/]/.test(name)) errs.push(`${name}：名前に使えない文字`);
+    if (!m?.answers || !m?.categories) { errs.push(`${name}：answers/categories がない`); continue; }
+    for (const [k, v] of Object.entries(m.answers)) {
+      if (!(Number(k) >= 1 && Number(k) <= 200)) errs.push(`${name}：番号 ${k}`);
+      if (!(v === '解なし' || /^[1-5](,[1-5])*$/.test(v))) errs.push(`${name} 問${k}：正答「${v}」`);
+    }
+    for (const [k, v] of Object.entries(m.categories)) {
+      if (v && !CATEGORY_ORDER.includes(v)) errs.push(`${name} 問${k}：科目「${v}」`);
+    }
+  }
+  if (errs.length) {
+    alert(`❌ 取り込めません（${errs.length}件）\n` + errs.slice(0, 15).join('\n') + (errs.length > 15 ? '\n…' : ''));
+    return;
+  }
+
+  const names = Object.keys(data);
+  const exist = names.filter(n => examList.some(e => e.name === n));
+  const msg = `${names.length}回を取り込みます。\n新規 ${names.length - exist.length}回（非公開で作成）\n`
+    + (exist.length ? `既存 ${exist.length}回は正答・科目・問題文を上書き：\n  ${exist.join('\n  ')}\n` : '')
+    + '\nよろしいですか？';
+  if (!confirm(msg)) return;
+
+  showLoading('Firebaseに保存中...');
+  try {
+    const upd = {};
+    for (const [name, m] of Object.entries(data)) {
+      upd[name + '/answers']    = m.answers;
+      upd[name + '/categories'] = m.categories;
+      if (m.questions) upd[name + '/questions'] = m.questions;
+      if (!exist.includes(name)) upd[name + '/active'] = false;
+    }
+    await db.ref('exams').update(upd);
+    hideLoading();
+    if (status) status.textContent = `✅ ${names.length}回 取込完了`;
+    if (input)  input.value = '';
+    await loadAllData();
+  } catch (e) {
+    hideLoading();
+    alert('❌ 保存エラー: ' + e.message);
+  }
 }
 
 // ===== 弱点抽出 ★モーダル =====
