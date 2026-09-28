@@ -920,7 +920,7 @@ thead th{border-bottom:1px solid var(--g5);}
     <div class="nav-section-label">印刷</div>
     <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
     <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
-    <details class="nav-legacy">
+    <details class="nav-legacy teacher-only">
       <summary>旧画面<span>10月末まで</span></summary>
       <button class="nav-item" data-page="trend" onclick="showPage('trend',this)">成績推移</button>
       <button class="nav-item" data-page="summary" onclick="showPage('summary',this)">個別模試集計</button>
@@ -1110,7 +1110,6 @@ thead th{border-bottom:1px solid var(--g5);}
         <div><div class="v2-kicker" id="kaKicker">学生カルテ</div><h1 class="v2-title" id="kaTitle"></h1><div class="v2-sub" id="kaSub"></div></div>
         <div class="v2-ctrl">
           <label>節の範囲 <span class="seg" id="kaScopeBtns"><button data-val="exam" class="active" onclick="setKarteScope('exam')">この模試</button><button data-val="all" onclick="setKarteScope('all')">全模試通算</button></span></label>
-          <label>国試の類題 <span class="seg" id="kaKqBtns"><button data-val="0" onclick="setKarteKq(0)">なし</button><button data-val="1" onclick="setKarteKq(1)">1問</button><button data-val="3" class="active" onclick="setKarteKq(3)">3問</button></span></label>
         </div>
       </header>
       <div id="kaBody"></div>
@@ -4120,7 +4119,7 @@ async function deletePendingTeacher(key) {
 // クラスの数字は教員が開いたときに exams/<模試>/stats へ集計を置く（名前は入れない）。学生はそれを読んで自分の位置を見る
 const PASS_LINE = 120;
 let karteScope   = 'exam';   // 節の範囲 'exam' | 'all'
-let karteKqN     = 3;        // 節ごとに出す国試の類題
+let karteKqN     = 0;        // 節ごとに出す国試の類題（復習リストをカルテから外したので読まない）
 let karteShowAll = false;    // 優先節 上位10 ／ すべて
 let karteSeq     = 0;
 let rosterView   = 'exam';   // 学生一覧 'exam' | 'trend'
@@ -4542,25 +4541,6 @@ function karteHtml(uid, rows, showAll) {
   }
   h += '</section>';
 
-  // 復習リスト（優先節の順・印刷は改ページ）
-  if (!ns && rows.length) {
-    const kqHtml = id => { const k = kqCache[id];
-      if (!k) return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}</div><div class="rv-text rv-none">（読み込めませんでした）</div></div>`;
-      return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}${k.r != null ? `<span class="rv-rate">参考正答率 ${k.r}%</span>` : ''}</div><div class="rv-text">${esc(k.q)}</div><div class="rv-ans"><span>正答 <b>${esc(k.a)}</b></span></div></div>`; };
-    const nMiss = shown.reduce((a, r) => a + r.miss.length, 0);
-    h += `<section class="v2-block ka-review"><div class="v2-h"><h2>復習リスト</h2><span class="v2-note">落とした ${nMiss}問 ／ ${shown.length}節　<span class="star">★</span>＝クラスの8割以上が正解した問題</span></div>` +
-      shown.map((g, gi) => `<section class="rv-sec"><div class="rv-sec-hd"><span class="rv-no">${String(gi + 1).padStart(2, '0')}</span>
-          <div class="rv-sec-name">${g.info.g ? `<div class="rv-sec-g">${esc(g.info.g)}</div>` : ''}<div>${secPathHtml(g.k)}</div></div>
-          <div class="rv-sec-meta">この節 ${g.ok}/${g.n} 正解<br>国試の出題 ${g.kq.length}問</div></div>
-        <div class="rv-h">落とした模試の問題</div>
-        ${g.miss.map(m => { const cr = qRate(ctx(m.exam), m.q);
-          return `<div class="rv-item"><div class="rv-src">${cr != null && cr >= 0.8 ? '<span class="star">★</span>' : ''}${esc(mockQLabel(m.exam, m.q))}${cr != null ? `<span class="rv-rate">クラス正答率 ${Math.round(cr * 100)}%</span>` : ''}</div>
-          ${mockQHtml(m.exam, m.q)}
-          <div class="rv-ans"><span>${isTeacher ? '本人' : 'あなた'}の解答 <b class="rv-my">${esc(m.my === '' ? '無回答' : m.my)}</b></span><span>正答 <b>${esc(m.correct)}</b></span></div></div>`; }).join('')}
-        ${karteKqN && g.kq.length ? '<div class="rv-h">国試で同じ節から出た問題（新しい順）</div>' + g.kq.slice(0, karteKqN).map(kqHtml).join('') : ''}
-      </section>`).join('') +
-      (karteKqN && refState === 'ok' ? '<div class="rv-foot">参考正答率＝オンライン演習で初めて解いたときの正答率（30人以上が解いた問題のみ）。</div>' : '') + '</section>';
-  }
   return h;
 }
 async function renderKarte() {
