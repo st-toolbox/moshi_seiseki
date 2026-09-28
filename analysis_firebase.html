@@ -295,6 +295,42 @@ tbody tr:hover td{background:var(--g1);}
 .print-btn:hover{background:var(--g1);border-color:var(--g4);box-shadow:0 2px 4px rgba(0,0,0,0.12);}
 .print-btn:active{box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);transform:translateY(1px);}
 
+/* 節別の弱点・復習リスト */
+.sec-notice{background:var(--warn-bg);color:var(--warn);border:1px solid #fcd34d;border-radius:var(--rs);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+.sec-summary{font-size:13px;color:var(--g5);margin:0 0 8px;}
+.sec-summary b{font-size:15px;}
+.sec-hint{font-size:11px;color:var(--g4);margin-left:6px;}
+.sec-card{padding:0;}
+.sec-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.sec-tbl th{background:var(--g1);font-size:11px;color:var(--g4);font-weight:700;text-align:left;padding:7px 10px;border-bottom:1px solid var(--g2);white-space:nowrap;}
+.sec-tbl td{padding:6px 10px;border-bottom:1px solid var(--g2);vertical-align:top;}
+.sec-tbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.sec-g{font-size:11px;color:var(--g4);white-space:nowrap;}
+.sec-path{font-size:11px;color:var(--g4);}
+.sec-t{font-weight:600;}
+.sec-miss{color:var(--ng);font-weight:700;}
+.sec-p.c-ok{color:var(--ok);font-weight:700;}
+.sec-p.c-warn{color:var(--warn);font-weight:700;}
+.sec-p.c-ng{color:var(--ng);font-weight:700;}
+.rv-sec{border:1px solid var(--g2);border-radius:var(--r);background:#fff;padding:12px 14px;margin-bottom:12px;}
+.rv-sec-hd{display:flex;align-items:flex-start;gap:10px;border-bottom:2px solid var(--g2);padding-bottom:8px;margin-bottom:6px;}
+.rv-no{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.rv-sec-name{flex:1;font-size:14px;}
+.rv-sec-g{font-size:11px;color:var(--g4);}
+.rv-sec-meta{font-size:11px;color:var(--g4);text-align:right;white-space:nowrap;}
+.rv-h{font-size:11px;font-weight:700;color:var(--g4);letter-spacing:.05em;margin:10px 0 4px;}
+.rv-item{border-left:3px solid var(--ng);padding:6px 10px;margin:6px 0;background:var(--g1);border-radius:0 var(--rs) var(--rs) 0;}
+.rv-item.rv-kq{border-left-color:var(--accent);background:var(--accent-bg);}
+.rv-src{font-size:11px;font-weight:700;color:var(--g4);margin-bottom:3px;display:flex;gap:10px;flex-wrap:wrap;}
+.rv-rate{font-weight:600;color:var(--accent);}
+.rv-text{font-size:12.5px;line-height:1.65;white-space:pre-wrap;}
+.rv-none{color:var(--g4);}
+.rv-opts{font-size:12px;line-height:1.6;margin-top:4px;padding-left:6px;}
+.rv-choices{border-top:1px dashed var(--g3);padding-top:3px;}
+.rv-ans{font-size:12px;margin-top:5px;display:flex;gap:16px;}
+.rv-my{color:var(--ng);}
+.rv-foot{font-size:11px;color:var(--g4);margin-top:4px;}
+
 @media print {
   @page{size:A4 landscape;margin:10mm 12mm;}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
@@ -378,6 +414,17 @@ tbody tr:hover td{background:var(--g1);}
   body.print-resp-detail .resp-correct{color:#000!important;font-weight:700!important;}
   body.print-resp-detail .resp-wrong{color:#000!important;font-weight:400!important;}
 
+  /* 節別の弱点・復習リスト 印刷 */
+  #page-sec .page-header-row,#page-secclass .page-header-row,#page-review .page-header-row{background:#e0e0e0!important;padding:2mm 4mm!important;margin-bottom:3mm!important;border-radius:3pt;}
+  .sec-tbl{font-size:8.5pt!important;}
+  .sec-tbl th,.sec-tbl td{padding:1.2mm 2mm!important;}
+  .sec-tbl tr{break-inside:avoid;}
+  .sec-notice{display:none!important;}
+  .rv-sec{border:0.5pt solid #999;border-radius:2pt;padding:3mm 4mm;margin-bottom:3mm;}
+  .rv-sec-hd{break-after:avoid;}
+  .rv-item{break-inside:avoid;background:#fff!important;border-left-width:2pt;}
+  .rv-text,.rv-opts,.rv-ans{font-size:9pt!important;}
+  .rv-src{font-size:8pt!important;}
   /* 全学生印刷モード */
   body.print-all-students #page-trend.active,
   body.print-all-students #page-summary.active,
@@ -441,44 +488,53 @@ tbody tr:hover td{background:var(--g1);}
 <div class="layout" id="mainLayout" style="display:none;">
   <!-- SIDEBAR -->
   <nav class="sidebar">
-    <div class="nav-section-label" style="padding-top:4px;">学年フィルター</div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 8px;">
+    <div class="nav-section-label" style="padding-top:4px;">対象</div>
+    <div class="teacher-only" style="display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 6px;">
       <button class="gakunen-filter-btn" data-val="全員" onclick="onGakunenFilterChange('全員')">全員</button>
       <button class="gakunen-filter-btn active" data-val="3年" onclick="onGakunenFilterChange('3年')">3年</button>
       <button class="gakunen-filter-btn" data-val="2年" onclick="onGakunenFilterChange('2年')">2年</button>
     </div>
-    <div class="nav-section-label">全体分析</div>
+    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:0 8px 4px;width:calc(100% - 16px);font-size:12px;"></select>
+    <div id="sidebarStudentWrap" style="display:none;">
+      <select class="top-sel" id="sidebarStudentSel" onchange="onStudentChange()" style="margin:0 8px 4px;width:calc(100% - 16px);font-size:12px;"></select>
+    </div>
+    <div class="nav-section-label">クラス全体</div>
     <button class="nav-item nav-item-trend active" onclick="showPage('trend',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,13 5,7 9,10 15,3"/></svg>成績推移
     </button>
-    <div class="nav-section-label">個別模試</div>
-    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:4px 8px 4px;width:calc(100% - 16px);font-size:12px;"></select>
-    <div id="sidebarStudentWrap" style="display:none;">
-      <div class="nav-section-label" style="padding-top:2px;">学生</div>
-      <select class="top-sel" id="sidebarStudentSel" onchange="onStudentChange()" style="margin:0 8px 8px;width:calc(100% - 16px);font-size:12px;"></select>
-    </div>
     <button class="nav-item nav-item-view" onclick="showPage('summary',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>個別模試集計【全員】
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>個別模試集計
     </button>
     <button class="nav-item nav-item-view" onclick="showPage('category',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率【全員】
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率
     </button>
     <button class="nav-item nav-item-view" onclick="showPage('lowrate',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="1" width="3" height="14" rx="1"/></svg>科目別低正答率【全員】
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="1" width="3" height="14" rx="1"/></svg>科目別低正答率
     </button>
+    <button class="nav-item nav-item-view teacher-only" onclick="showPage('secclass',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h8M2 13h5"/><circle cx="13" cy="11" r="2.2"/></svg>節別の正答率
+    </button>
+    <div class="nav-section-label">学生個人</div>
     <button class="nav-item nav-item-view" onclick="showPage('weakness',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出【個人】
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
+    </button>
+    <button class="nav-item nav-item-view" onclick="showPage('sec',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h8M2 13h5"/><circle cx="13" cy="11" r="2.2"/></svg>節別の弱点
+    </button>
+    <button class="nav-item nav-item-view" onclick="showPage('review',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="1" width="11" height="14" rx="1"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>復習リスト
     </button>
     <button class="nav-item nav-item-view" onclick="showPage('hist',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧【個人】
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧
     </button>
     <div class="nav-section-label">印刷</div>
-    <button class="print-btn nav-item" onclick="window.print()">
+    <button class="print-btn nav-item" onclick="printCurrentPage()">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/></svg>このページを印刷
     </button>
-    <button class="print-btn nav-item" onclick="printAllStudents()">
+    <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/><path d="M6 12h4M8 10v4" stroke-width="1.2"/></svg>全学生を印刷
     </button>
+    <div class="teacher-only">
     <hr style="border:none;border-top:1px solid #fca5a5;margin:10px 8px 2px;">
     <div class="nav-section-label" style="color:#b91c1c;">管理</div>
     <button class="nav-item nav-item-admin" onclick="showPage('admin_exam',this)">
@@ -496,6 +552,7 @@ tbody tr:hover td{background:var(--g1);}
     <button class="nav-item nav-item-admin" onclick="showPage('admin_teacher',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3.3 2.7-5 5-5"/><circle cx="12" cy="10" r="2.5"/><line x1="12" y1="7" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="13"/><line x1="9" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="15" y2="10"/></svg>教員リスト編集
     </button>
+    </div>
   </nav>
 
   <main class="main">
@@ -602,6 +659,43 @@ tbody tr:hover td{background:var(--g1);}
         <div id="histTableWrap"></div>
       </div>
       <div id="histPrintWrap" style="display:none;"></div>
+    </div>
+
+    <!-- 節別の正答率【全員】 -->
+    <div class="page" id="page-secclass">
+      <div class="page-header-row">
+        <div><div class="page-title">節別の正答率【全員】</div><div class="page-sub" id="secClassSubtitle"></div></div>
+      </div>
+      <div class="filter-row"><span class="filter-label">範囲：</span><div class="thresh-btns" id="secClassScopeBtns"><button data-val="exam" class="active" onclick="setSecClassScope('exam')">この模試</button><button data-val="all" onclick="setSecClassScope('all')">全模試通算</button></div></div>
+      <div id="secClassContent"></div>
+    </div>
+
+    <!-- 節別の弱点【個人】 -->
+    <div class="page" id="page-sec">
+      <div class="page-header-row">
+        <div><div class="page-title">節別の弱点</div><div class="page-sub" id="secSubtitle"></div></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">範囲：</span><div class="thresh-btns" id="secScopeBtns"><button data-val="exam" class="active" onclick="setSecScope('exam')">この模試</button><button data-val="all" onclick="setSecScope('all')">全模試通算</button></div>
+        <div class="vdiv"></div>
+        <span class="filter-label">表示：</span><div class="thresh-btns" id="secShowBtns"><button data-val="miss" class="active" onclick="setSecShow('miss')">落とした節だけ</button><button data-val="all" onclick="setSecShow('all')">すべての節</button></div>
+      </div>
+      <div id="secContent"></div>
+    </div>
+
+    <!-- 復習リスト【個人】 -->
+    <div class="page" id="page-review">
+      <div class="page-header-row">
+        <div><div class="page-title">復習リスト</div><div class="page-sub" id="rvSubtitle"></div></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">範囲：</span><div class="thresh-btns" id="rvScopeBtns"><button data-val="exam" class="active" onclick="setRvScope('exam')">この模試</button><button data-val="all" onclick="setRvScope('all')">全模試通算</button></div>
+        <div class="vdiv"></div>
+        <span class="filter-label">節：</span><div class="thresh-btns" id="rvTopBtns"><button data-val="0" onclick="setRvTop(0)">すべて</button><button data-val="10" class="active" onclick="setRvTop(10)">上位10</button><button data-val="5" onclick="setRvTop(5)">上位5</button></div>
+        <div class="vdiv"></div>
+        <span class="filter-label">国試の類題：</span><div class="thresh-btns" id="rvKqBtns"><button data-val="3" class="active" onclick="setRvKq(3)">3問</button><button data-val="1" onclick="setRvKq(1)">1問</button><button data-val="0" onclick="setRvKq(0)">なし</button></div>
+      </div>
+      <div id="rvContent"></div>
     </div>
 
     <!-- 模試一覧・計画 -->
@@ -939,7 +1033,7 @@ function onGakunenFilterChange(val) {
   });
   // サイドバー学生セレクタを更新してから全画面再描画
   initSidebarStudentSel();
-  renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak(); renderStudentHistory();
+  renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak(); renderStudentHistory(); renderSecViews();
 }
 
 // 分野の表示順（固定）
@@ -1000,7 +1094,10 @@ auth.onAuthStateChanged(async user => {
       document.getElementById('userRole').style.background = 'var(--ok-bg)';
       document.getElementById('userRole').style.color = 'var(--ok)';
       // 学生は管理画面非表示
-      document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses, #page-admin_teacher').forEach(el => el.style.display='none');
+      document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses, #page-admin_teacher, #page-secclass').forEach(el => el.style.display='none');
+      // 学生には教員用のメニュー（学年・全学生印刷・管理・クラスの節別）を出さない。学生のデータは自分の分だけなので学年で絞らない
+      document.querySelectorAll('.teacher-only').forEach(el => el.style.display='none');
+      currentGakunenFilter = '全員';
     }
 
     applyWeakMode();
@@ -1016,6 +1113,7 @@ auth.onAuthStateChanged(async user => {
 // ===== データ一括読み込み =====
 async function loadAllData() {
   showLoading('データを読み込み中...');
+  const refP = loadRef();  // 節の名前と国試の問題（読めなくても他の画面は動く）
   try {
     // 模試マスタ + 学生リストを並行取得（学生リストは教員のみ全件取得）
     const [examSnap, stuSnap] = await Promise.all([
@@ -1108,6 +1206,8 @@ async function loadAllData() {
     initGridExamSel();
     initRespExamSel();
     renderStudentHistory();
+    await refP;
+    renderSecViews();
 
   } catch(e) {
     console.error(e);
@@ -1124,6 +1224,9 @@ function showPage(id, btn) {
   btn.classList.add('active');
   if (id === 'admin_teacher') renderAdminTeacherTable();
   if (id === 'lowrate') renderLowRate();
+  if (id === 'sec') renderSec();
+  if (id === 'secclass') renderSecClass();
+  if (id === 'review') renderReview();
 }
 
 function onExamChange() {
@@ -1133,12 +1236,14 @@ function onExamChange() {
   renderCategory();
   renderLowRate();
   loadAndRenderWeak();
+  renderSecViews();
 }
 
 function onStudentChange() {
   currentStudent = document.getElementById('sidebarStudentSel')?.value || '';
   loadAndRenderWeak();
   renderStudentHistory();
+  renderSecViews();
 }
 
 function initSidebarStudentSel() {
@@ -2396,10 +2501,344 @@ function setupStudentPaste() {
   wrap.addEventListener('paste', _studentPasteHandler);
 }
 
+// ===== 節（国試の出題範囲）で見る：節別の弱点・復習リスト =====
+// 節の名前と国試の問題は ref/（管理者が投入）、模試の各問の節は exams/<模試>/sections
+let refSections = null;   // { 'sid|章|節': {s:科目, c:章, t:節, g:分野, kq:'28-12,27-3,...'} }
+let refState    = 'loading';
+const kqCache   = {};     // { '28-12': {q,a,r,n} }
+let secScope      = 'exam';  // 'exam' | 'all'
+let secShow       = 'miss';  // 'miss' | 'all'
+let secClassScope = 'exam';
+let rvScope = 'exam';
+let rvKqN   = 3;
+let rvTop   = 10;            // 0=すべて（初期は上位10節＝1人で100節を超えるので）
+let rvSeq   = 0;
+
+async function loadRef() {
+  try {
+    const s = await db.ref('ref/sections').once('value');
+    refSections = s.val() || {};
+    refState = Object.keys(refSections).length ? 'ok' : 'empty';
+  } catch (e) {
+    refSections = {};
+    refState = 'denied';
+  }
+}
+
+function refNotice() {
+  if (refState === 'ok') return '';
+  const msg = refState === 'denied'
+    ? '節の名前と国試の問題を読み込めませんでした（データベースの読み取り設定が未更新）。節は記号のまま表示しています。'
+    : '節のデータがまだ入っていません。';
+  return `<div class="sec-notice">${esc(msg)}</div>`;
+}
+
+function secKeyOf(exam, q) {
+  const s = allData[exam]?.master?.sections;
+  return s ? (s[q] || '') : '';
+}
+function secInfo(key) {
+  return refSections?.[key] || { s: '', c: '', t: key || '節未設定', g: '', kq: '' };
+}
+function secKqIds(key) {
+  const r = refSections?.[key];
+  return r && r.kq ? String(r.kq).split(',').filter(Boolean) : [];
+}
+function secPathHtml(key) {
+  const r = secInfo(key);
+  const path = [r.s, r.c].filter(Boolean).map(esc).join(' ▸ ');
+  return `${path ? `<span class="sec-path">${path} ▸ </span>` : ''}<span class="sec-t">${esc(r.t)}</span>`;
+}
+
+// 正答判定は既存の集計と同じ（複数正解は「,」区切り・解なし／空は採点しない・無回答は不正解）
+function ansScorable(correct) { return !!correct && correct !== '解なし'; }
+function ansIsCorrect(correct, user) {
+  const u = String(user ?? '');
+  if (!u) return false;
+  return correct.includes(',') ? correct.split(',').map(x => x.trim()).includes(u) : u === correct;
+}
+
+function examsWithSections() {
+  return examList.filter(e => allData[e.name]?.master?.sections).map(e => e.name);
+}
+function scopeExams(scope) {
+  if (scope === 'exam') return currentExam ? [currentExam] : [];
+  return examsWithSections();
+}
+function scopeLabel(scope) {
+  return scope === 'exam' ? getExamName() : `節の紐づけがある模試すべて（${examsWithSections().length}回）`;
+}
+function studentLabel(uid) {
+  const s = students.find(x => x.uid === uid);
+  return s ? (s.name || (s.email || '').split('@')[0]) : '';
+}
+
+// 1人分：節ごとの 解いた数・正解数・落とした問題（受けていない時限は数えない）
+function studentSecStats(uid, exams) {
+  const out = {};
+  exams.forEach(ex => {
+    const m = allData[ex]?.master;
+    const r = allData[ex]?.responses?.[uid];
+    if (!m?.answers || !m.sections || !r) return;
+    ['AM', 'PM'].forEach(part => {
+      const ans = r[part]?.answers;
+      if (!ans) return;
+      const start = part === 'AM' ? 1 : 101;
+      for (let q = start; q < start + 100; q++) {
+        const correct = String(m.answers[q] || '');
+        if (!ansScorable(correct)) continue;
+        const key = secKeyOf(ex, q);
+        if (!key) continue;
+        const o = out[key] || (out[key] = { n: 0, ok: 0, miss: [] });
+        o.n++;
+        const my = ans[q];
+        if (ansIsCorrect(correct, my)) o.ok++;
+        else o.miss.push({ exam: ex, q, my: my ?? '', correct });
+      }
+    });
+  });
+  return out;
+}
+
+// クラス（学年フィルター内）：節ごとの延べ解答数・正解数・5割未満の学生数
+function classSecStats(exams) {
+  const out = {};
+  getActiveStudents().forEach(s => {
+    Object.entries(studentSecStats(s.uid, exams)).forEach(([k, v]) => {
+      const o = out[k] || (out[k] = { n: 0, ok: 0, stu: 0, low: 0 });
+      o.n += v.n; o.ok += v.ok; o.stu++;
+      if (v.ok / v.n < 0.5) o.low++;
+    });
+  });
+  return out;
+}
+
+function pct(ok, n) { return n ? Math.round(ok / n * 100) : null; }
+function pctCls(p) { return p == null ? '' : p >= 70 ? 'c-ok' : p >= 50 ? 'c-warn' : 'c-ng'; }
+function setSegActive(groupId, val) {
+  document.querySelectorAll('#' + groupId + ' button').forEach(b => b.classList.toggle('active', b.dataset.val === String(val)));
+}
+function noSectionsMsg(scope) {
+  if (scope === 'exam' && currentExam && !allData[currentExam]?.master?.sections)
+    return '<div class="lr-empty">この模試には節の紐づけがありません（「全模試通算」で見られます）</div>';
+  return '';
+}
+
+// ---------- 節別の弱点【個人】 ----------
+function setSecScope(v) { secScope = v; setSegActive('secScopeBtns', v); renderSec(); }
+function setSecShow(v)  { secShow = v;  setSegActive('secShowBtns', v);  renderSec(); }
+
+function buildSecTableHTML(uid, scope, show) {
+  const exams = scopeExams(scope);
+  const st = studentSecStats(uid, exams);
+  const cls = isTeacher ? classSecStats(exams) : null;
+  let rows = Object.entries(st).map(([k, v]) => ({ k, n: v.n, ok: v.ok, miss: v.miss.length, kq: secKqIds(k).length, info: secInfo(k) }));
+  if (!rows.length) return '<div class="lr-empty">この範囲の回答がありません</div>';
+  const totalMiss = rows.reduce((a, r) => a + r.miss, 0);
+  const missSecs = rows.filter(r => r.miss > 0).length;
+  if (show === 'miss') rows = rows.filter(r => r.miss > 0);
+  rows.sort((a, b) => b.miss - a.miss || b.kq - a.kq || pct(a.ok, a.n) - pct(b.ok, b.n));
+  const body = rows.map(r => {
+    const p = pct(r.ok, r.n);
+    const c = cls?.[r.k];
+    const cp = c ? pct(c.ok, c.n) : null;
+    return `<tr>
+      <td class="sec-g">${esc(r.info.g)}</td>
+      <td>${secPathHtml(r.k)}</td>
+      <td class="num">${r.n}</td>
+      <td class="num${r.miss ? ' sec-miss' : ''}">${r.miss}</td>
+      <td class="num sec-p ${pctCls(p)}">${p}%</td>
+      ${isTeacher ? `<td class="num">${cp == null ? '—' : cp + '%'}</td>` : ''}
+      <td class="num">${r.kq || '—'}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="sec-summary">落とした問題 <b>${totalMiss}</b> 問 ／ 落とした節 <b>${missSecs}</b> ／ 解いた節 <b>${Object.keys(st).length}</b>　<span class="sec-hint">落とした数が多い順・同数なら国試によく出る節が上</span></div>
+    <div class="card sec-card"><div class="tbl-wrap"><table class="sec-tbl">
+      <thead><tr><th>分野</th><th>節（科目 ▸ 章 ▸ 節）</th><th class="num">解いた</th><th class="num">落とした</th><th class="num">正答率</th>${isTeacher ? '<th class="num">クラス</th>' : ''}<th class="num">国試出題数</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="7" class="lr-empty">落とした節はありません</td></tr>`}</tbody>
+    </table></div></div>`;
+}
+
+function renderSec() {
+  const box = document.getElementById('secContent');
+  if (!box) return;
+  const uid = getWeakStudentUid();
+  document.getElementById('secSubtitle').textContent = [studentLabel(uid), scopeLabel(secScope)].filter(Boolean).join('　');
+  const ns = noSectionsMsg(secScope);
+  if (ns) { box.innerHTML = ns; return; }
+  if (!uid) { box.innerHTML = '<div class="lr-empty">学生を選んでください</div>'; return; }
+  box.innerHTML = refNotice() + buildSecTableHTML(uid, secScope, secShow);
+}
+
+// ---------- 節別の弱点【全員】 ----------
+function setSecClassScope(v) { secClassScope = v; setSegActive('secClassScopeBtns', v); renderSecClass(); }
+
+function renderSecClass() {
+  const box = document.getElementById('secClassContent');
+  if (!box || !isTeacher) return;
+  document.getElementById('secClassSubtitle').textContent = `${currentGakunenFilter}　${scopeLabel(secClassScope)}`;
+  const ns = noSectionsMsg(secClassScope);
+  if (ns) { box.innerHTML = ns; return; }
+  const st = classSecStats(scopeExams(secClassScope));
+  const rows = Object.entries(st).map(([k, v]) => ({ k, ...v, p: pct(v.ok, v.n), kq: secKqIds(k).length, info: secInfo(k) }));
+  if (!rows.length) { box.innerHTML = refNotice() + '<div class="lr-empty">この範囲の回答がありません</div>'; return; }
+  rows.sort((a, b) => a.p - b.p || b.kq - a.kq);
+  box.innerHTML = refNotice() + `
+    <div class="sec-summary"><span class="sec-hint">クラス正答率が低い順・同率なら国試によく出る節が上</span></div>
+    <div class="card sec-card"><div class="tbl-wrap"><table class="sec-tbl">
+      <thead><tr><th>分野</th><th>節（科目 ▸ 章 ▸ 節）</th><th class="num">受験者</th><th class="num">延べ解答</th><th class="num">クラス正答率</th><th class="num">5割未満の学生</th><th class="num">国試出題数</th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td class="sec-g">${esc(r.info.g)}</td><td>${secPathHtml(r.k)}</td>
+        <td class="num">${r.stu}</td><td class="num">${r.n}</td>
+        <td class="num sec-p ${pctCls(r.p)}">${r.p}%</td>
+        <td class="num">${r.low}</td><td class="num">${r.kq || '—'}</td></tr>`).join('')}</tbody>
+    </table></div></div>`;
+}
+
+// ---------- 復習リスト ----------
+function setRvScope(v) { rvScope = v; setSegActive('rvScopeBtns', v); renderReview(); }
+function setRvKq(v)    { rvKqN = v;   setSegActive('rvKqBtns', v);    renderReview(); }
+function setRvTop(v)   { rvTop = v;   setSegActive('rvTopBtns', v);   renderReview(); }
+
+function mockQHtml(exam, q) {
+  const qq = allData[exam]?.master?.questions?.[q];
+  if (!qq?.question) return '<div class="rv-text rv-none">（問題文が登録されていません）</div>';
+  let h = `<div class="rv-text">${esc(qq.question)}</div>`;
+  const opts = Object.entries(qq.options || {}).filter(([, v]) => v != null)
+    .sort((a, b) => a[0].localeCompare(b[0], 'ja', { numeric: true }));
+  if (opts.length) h += `<div class="rv-opts">${opts.map(([k, v]) => `<div>${esc(k)}. ${esc(String(v))}</div>`).join('')}</div>`;
+  const ch = Array.isArray(qq.choices) ? qq.choices.filter(x => x != null) : Object.values(qq.choices || {});
+  if (ch.length) h += `<div class="rv-opts rv-choices">${ch.map(c => `<div>${esc(String(c))}</div>`).join('')}</div>`;
+  return h;
+}
+function kqLabel(id) {
+  const [y, no] = id.split('-');
+  return `国試 第${y}回 ${Number(no) <= 100 ? '午前' : '午後'} 問${Number(no) <= 100 ? no : no - 100}`;
+}
+function mockQLabel(exam, q) {
+  return `${exam}　${q <= 100 ? '午前' : '午後'} 問${q <= 100 ? q : q - 100}`;
+}
+
+async function loadKq(ids) {
+  if (refState !== 'ok') return;
+  const need = [...new Set(ids)].filter(i => !(i in kqCache));
+  await Promise.all(need.map(i => db.ref('ref/kq/' + i).once('value')
+    .then(s => { kqCache[i] = s.val(); })
+    .catch(() => { kqCache[i] = null; })));
+}
+
+function reviewGroups(uid, scope) {
+  let groups = Object.entries(studentSecStats(uid, scopeExams(scope)))
+    .filter(([, v]) => v.miss.length)
+    .map(([k, v]) => ({ k, n: v.n, ok: v.ok, miss: v.miss, kq: secKqIds(k), info: secInfo(k) }));
+  groups.sort((a, b) => b.miss.length - a.miss.length || b.kq.length - a.kq.length);
+  if (rvTop) groups = groups.slice(0, rvTop);
+  return groups;
+}
+function reviewKqIds(groups) {
+  return rvKqN ? groups.flatMap(g => g.kq.slice(0, rvKqN)) : [];
+}
+
+function reviewHtml(groups) {
+  if (!groups.length) return '<div class="lr-empty">落とした問題はありません（または回答がありません）</div>';
+  const nMiss = groups.reduce((a, g) => a + g.miss.length, 0);
+  const kqHtml = id => {
+    const k = kqCache[id];
+    if (!k) return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}</div><div class="rv-text rv-none">（読み込めませんでした）</div></div>`;
+    return `<div class="rv-item rv-kq">
+      <div class="rv-src">${esc(kqLabel(id))}${k.r != null ? `<span class="rv-rate">参考正答率 ${k.r}%</span>` : ''}</div>
+      <div class="rv-text">${esc(k.q)}</div>
+      <div class="rv-ans"><span>正答 <b>${esc(k.a)}</b></span></div>
+    </div>`;
+  };
+  return `<div class="sec-summary">落とした問題 <b>${nMiss}</b> 問 ／ <b>${groups.length}</b> 節　<span class="sec-hint">落とした数が多い節・国試によく出る節から順</span></div>` +
+    groups.map((g, gi) => {
+      const kqs = rvKqN ? g.kq.slice(0, rvKqN) : [];
+      return `<section class="rv-sec">
+        <div class="rv-sec-hd"><span class="rv-no">${gi + 1}</span>
+          <div class="rv-sec-name">${g.info.g ? `<div class="rv-sec-g">${esc(g.info.g)}</div>` : ''}<div>${secPathHtml(g.k)}</div></div>
+          <div class="rv-sec-meta">この節 ${g.ok}/${g.n} 正解<br>国試出題 ${g.kq.length} 問</div></div>
+        <div class="rv-h">落とした模試の問題</div>
+        ${g.miss.map(m => `<div class="rv-item">
+          <div class="rv-src">${esc(mockQLabel(m.exam, m.q))}</div>
+          ${mockQHtml(m.exam, m.q)}
+          <div class="rv-ans"><span>あなたの解答 <b class="rv-my">${esc(m.my === '' ? '無回答' : m.my)}</b></span><span>正答 <b>${esc(m.correct)}</b></span></div>
+        </div>`).join('')}
+        ${kqs.length ? '<div class="rv-h">国試で同じ節から出た問題（新しい順）</div>' + kqs.map(kqHtml).join('') : ''}
+      </section>`;
+    }).join('') +
+    (rvKqN && refState === 'ok' ? '<div class="rv-foot">参考正答率＝オンライン演習で初めて解いたときの正答率（30人以上が解いた問題のみ）。</div>' : '');
+}
+
+async function renderReview() {
+  const box = document.getElementById('rvContent');
+  if (!box) return;
+  const seq = ++rvSeq;
+  const uid = getWeakStudentUid();
+  document.getElementById('rvSubtitle').textContent = [studentLabel(uid), scopeLabel(rvScope)].filter(Boolean).join('　');
+  const ns = noSectionsMsg(rvScope);
+  if (ns) { box.innerHTML = ns; return; }
+  if (!uid) { box.innerHTML = '<div class="lr-empty">学生を選んでください</div>'; return; }
+  const groups = reviewGroups(uid, rvScope);
+  const ids = reviewKqIds(groups);
+  if (ids.some(i => !(i in kqCache)) && refState === 'ok') box.innerHTML = '<div class="lr-empty">国試の問題を読み込み中...</div>';
+  await loadKq(ids);
+  if (seq !== rvSeq) return;
+  box.innerHTML = refNotice() + reviewHtml(groups);
+}
+
+// 縦向き印刷（triggerLrPrint と同じやり方）
+function withPortraitPrint(fn) {
+  const st = document.createElement('style');
+  st.textContent = '@media print { @page { size: A4 portrait; margin: 12mm 14mm; } }';
+  document.head.appendChild(st);
+  try { fn(); } finally { setTimeout(() => st.remove(), 1000); }
+}
+
+function printCurrentPage() {
+  const id = document.querySelector('.page.active')?.id;
+  if (id === 'page-review' || id === 'page-sec' || id === 'page-secclass') withPortraitPrint(() => window.print());
+  else window.print();
+}
+
+// 全学生の節別弱点／復習リスト（既存の全学生印刷と同じ student-print-page の仕組み）
+async function printAllStudentsSec(kind) {
+  document.querySelectorAll('.student-print-page').forEach(el => el.remove());
+  const container = document.querySelector('.main');
+  const scope = kind === 'review' ? rvScope : secScope;
+  const per = getActiveStudents().map(s => ({ s, groups: kind === 'review' ? reviewGroups(s.uid, scope) : null }));
+  if (kind === 'review') {
+    showLoading('全学生の復習リストを作成中...');
+    await loadKq(per.flatMap(x => reviewKqIds(x.groups)));
+    hideLoading();
+  }
+  const title = kind === 'review' ? '復習リスト' : '節別の弱点';
+  per.forEach(({ s, groups }) => {
+    const page = document.createElement('div');
+    page.className = 'student-print-page';
+    page.style.display = 'none';
+    page.innerHTML = `<div class="print-student-header">${title}　${esc(s.name || s.email)}　<span style="font-weight:400;font-size:9pt;">${esc(scopeLabel(scope))}</span></div>` +
+      (kind === 'review' ? reviewHtml(groups) : buildSecTableHTML(s.uid, scope, secShow));
+    container.appendChild(page);
+  });
+  document.body.classList.add('print-all-students');
+  withPortraitPrint(() => window.print());
+  setTimeout(() => { document.body.classList.remove('print-all-students'); document.querySelectorAll('.student-print-page').forEach(el => el.remove()); }, 1000);
+}
+
+function renderSecViews() {
+  renderSec();
+  renderSecClass();
+  if (document.getElementById('page-review')?.classList.contains('active')) renderReview();
+}
+
 // ===== 全学生印刷 =====
 function printAllStudents(){
   const activePage = document.querySelector('.page.active')?.id;
   if (activePage === 'page-hist') { printAllStudentsHist(); return; }
+  if (activePage === 'page-sec') { printAllStudentsSec('sec'); return; }
+  if (activePage === 'page-review') { printAllStudentsSec('review'); return; }
+  if (activePage === 'page-secclass') { printCurrentPage(); return; }
   printAllStudentsWeak();
 }
 
