@@ -4209,10 +4209,15 @@ function renderExamView() {
 }
 
 // ---------- 学生一覧 ----------
+// クラス平均より何問多く落としたか＝(クラス正答率−本人正答率)×問題数。小さい分野の0%に引っぱられない
 function weakestCat(ex, uid) {
-  const cs = studentCatStats(ex, uid);
+  const cs = studentCatStats(ex, uid), cc = classCatStats(ex, ctx(ex));
   let best = null;
-  Object.entries(cs).forEach(([c, v]) => { if (v.t < 3) return; const p = v.c / v.t; if (!best || p < best.p) best = { c, p }; });
+  Object.entries(cs).forEach(([c, v]) => {
+    const k = cc[c]; if (!k || !k.t) return;
+    const lost = (k.c / k.t - v.c / v.t) * v.t;
+    if (lost >= 0.5 && (!best || lost > best.lost)) best = { c, lost, my: v.c, t: v.t };
+  });
   return best;
 }
 function renderRoster() {
@@ -4232,7 +4237,7 @@ function renderRoster() {
   document.getElementById('roSub').textContent = `対象 ${currentGakunenFilter}　·　受験 ${took} / ${list.length}人　·　120点以上 ${reach}人`;
   if (!list.length) { box.innerHTML = '<div class="v2-empty">この学年の学生がいません。</div>'; return; }
   box.innerHTML = `<div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
-      <th>名前</th><th class="r">合計</th><th class="r">午前</th><th class="r">午後</th><th class="r">前回比</th><th class="r">120まで</th><th>いちばん低い分野</th><th class="r">受験</th><th>推移</th>
+      <th>名前</th><th class="r">合計</th><th class="r">午前</th><th class="r">午後</th><th class="r">前回比</th><th class="r">120まで</th><th>クラスとの差が大きい分野</th><th class="r">受験</th><th>推移</th>
     </tr></thead><tbody>${rows.map(r => {
       const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
       return `<tr class="click" data-uid="${esc(r.s.uid)}">
@@ -4241,9 +4246,9 @@ function renderRoster() {
         <td class="r mn">${t?.am ?? '—'}</td><td class="r mn">${t?.pm ?? '—'}</td>
         <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
         <td class="r mn">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
-        <td>${r.weak ? `${esc(r.weak.c)} <span class="mn muted">${Math.round(r.weak.p * 100)}%</span>` : '—'}</td>
+        <td>${r.weak ? `${esc(r.weak.c)} <span class="mn muted">${r.weak.my}/${r.weak.t}・−${r.weak.lost.toFixed(1)}問</span>` : '—'}</td>
         <td class="r mn">${r.n}</td><td>${sparkSvg(r.spark)}</td></tr>`;
-    }).join('')}</tbody></table></div><div class="v2-cap">* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。いちばん低い分野は3問以上ある分野から。</div>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。「クラスとの差が大きい分野」＝クラス平均と比べて落とした問題数がいちばん多い分野（−2.0問＝平均より2問多く落とした）。</div>`;
   box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => openKarte(tr.dataset.uid)));
 }
 function openKarte(uid) {
