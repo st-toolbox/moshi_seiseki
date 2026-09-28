@@ -788,6 +788,10 @@ thead th{border-bottom:1px solid var(--g5);}
 .sm-marks b{font-weight:500;margin-left:2px;}
 .sm-marks .ok{color:var(--ok);} .sm-marks .ng{color:var(--ng);}
 .sm-x .exw-body{padding:4px 0 12px 38px;}
+.sm .sm-none>summary,.sm .sm-row.sm-none{color:var(--g3);font-weight:400;}
+.sm .sm-none>summary.lv1{background:transparent;border-bottom-color:var(--line);}
+.sm .sm-none .sm-name .muted,.sm .sm-none .sm-kq{color:var(--g3);}
+.sm .sm-none>summary .sm-bar,.sm .sm-row.sm-none .sm-bar{background:transparent;}
 @media screen and (max-width:760px){
   .sm-hd,.sm-row{grid-template-columns:minmax(0,1fr) 60px 3em;}
   .sm-u .sm-hd,.sm-u .sm-row{grid-template-columns:minmax(0,1fr) 3em 60px 3em;}
@@ -4665,22 +4669,38 @@ function secMapHtml(ex, st, uid) {
     const X = C.sec.get(key) || (C.sec.set(key, { key, name: info.t, kq: secKqIds(key).length, qs: [] }), C.sec.get(key));
     X.qs.push({ n, c: q.c, t: q.t, my });
   }
+  // 出ていない科目・章・節も骨組みに入れる（灰色で出す）
+  const gOf = {};
+  Object.entries(refSections || {}).forEach(([key, info]) => {
+    const [sid, cn] = key.split('|');
+    gOf[sid] ??= info.g || '';
+    const S = subs.get(sid) || (subs.set(sid, { name: info.s || sid, ch: new Map() }), subs.get(sid));
+    const C = S.ch.get(cn) || (S.ch.set(cn, { name: info.c || ('第' + cn + '章'), sec: new Map() }), S.ch.get(cn));
+    if (!C.sec.has(key)) C.sec.set(key, { key, name: info.t, kq: secKqIds(key).length, qs: [] });
+  });
+  const gIdx = sid => { const i = CATEGORY_ORDER.indexOf(gOf[sid]); return i < 0 ? 999 : i; };
   const agg = qs => qs.reduce((a, o) => (a.c += o.c, a.t += o.t, a.q++, o.my != null && (a.mt++, a.mc += o.my ? 1 : 0), a), { c: 0, t: 0, q: 0, mc: 0, mt: 0 });
   const allQs = x => x.sec ? [...x.sec.values()].flatMap(s => s.qs) : [...x.ch.values()].flatMap(c => [...c.sec.values()].flatMap(s => s.qs));
   const bar = a => { const p = a.t ? Math.round(a.c / a.t * 100) : null;
     return `<span class="sm-bar"><i class="${p != null && p < 50 ? 'lo' : ''}" style="width:${p ?? 0}%"></i></span><span class="sm-p mn ${pctCls(p)}">${p ?? '—'}%</span>`; };
   const mine = a => !uid ? '' : a.mt ? `<span class="sm-my mn ${a.mc / a.mt < 0.5 ? 'c-ng' : ''}">${a.mc}/${a.mt}</span>` : '<span class="sm-my mn muted">—</span>';
-  const row = (lv, name, a, extra) => `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
+  const row = (lv, name, a, extra) => !a.q
+    ? `<span class="sm-name">${name}</span><span class="sm-q mn">—</span>${uid ? '<span class="sm-my"></span>' : ''}<span class="sm-bar"></span><span class="sm-p"></span><span class="sm-kq mn">${extra}</span>`
+    : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
+  const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
   let h = `<div class="sm${uid ? ' sm-u' : ''}"><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試の出題</span></div>`;
-  [...subs.entries()].sort((a, b) => Math.min(...allQs(a[1]).map(o => o.n)) - Math.min(...allQs(b[1]).map(o => o.n))).forEach(([sid, S]) => {
-    const as = agg(allQs(S));
-    h += `<details class="sm-s" open><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${S.ch.size}章</span>`, as, '')}</summary>`;
+  const firstQ = S => Math.min(...allQs(S).map(o => o.n));
+  [...subs.entries()].sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || firstQ(a[1]) - firstQ(b[1]) || a[0].localeCompare(b[0])).forEach(([sid, S]) => {
+    const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
+    const skq = chs.reduce((a, C) => a + kqSum(C), 0);
+    h += `<details class="sm-s${as.q ? '' : ' sm-none'}"${as.q ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
     [...S.ch.entries()].sort((a, b) => byNum(a[0], b[0])).forEach(([cn, C]) => {
-      const ac = agg(allQs(C)), kq = [...C.sec.values()].reduce((a, s) => a + s.kq, 0);
+      const ac = agg(allQs(C)), kq = kqSum(C);
       const weak = ac.t && ac.c / ac.t < 0.5 || (uid && ac.mt && ac.mc / ac.mt < 0.5);
-      h += `<details class="sm-c"${weak ? ' open' : ''}><summary class="sm-row lv2">${row(2, esc(C.name), ac, kq ? kq + '問' : '')}</summary>`;
+      h += `<details class="sm-c${ac.q ? '' : ' sm-none'}"${weak ? ' open' : ''}><summary class="sm-row lv2">${row(2, esc(C.name), ac, kq ? kq + '問' : '')}</summary>`;
       [...C.sec.values()].sort((a, b) => byNum(a.key.split('|')[2], b.key.split('|')[2])).forEach(X => {
+        if (!X.qs.length) { h += `<div class="sm-row lv3 sm-none">${row(3, esc(X.name), agg(X.qs), X.kq ? X.kq + '問' : '')}</div>`; return; }
         const ax = agg(X.qs), marks = uid ? ' <span class="sm-marks">' + X.qs.map(o => o.my == null ? '' : o.my ? '<b class="ok">○</b>' : '<b class="ng">×</b>').join('') + '</span>' : '';
         const body = uid ? '' : `<div class="exw-body">${X.qs.map(o => qDistHtml(ex, o.n, st)).join('')}</div>`;
         const inner = row(3, `${esc(X.name)} <span class="muted mn">${X.qs.map(o => o.n <= 100 ? '午前' + o.n : '午後' + (o.n - 100)).join('・')}</span>${marks}`, ax, X.kq ? X.kq + '問' : '');
@@ -4690,7 +4710,7 @@ function secMapHtml(ex, st, uid) {
     });
     h += '</details>';
   });
-  return h + '</div>' + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。国試の出題＝その章・節に紐づく過去の国試の問題数。</div>` : '<div class="v2-cap">国試の出題＝その章・節に紐づく過去の国試の問題数。</div>');
+  return h + '</div>' + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝この模試で出ていない科目・章・節。国試の出題＝その科目・章・節に紐づく過去の国試の問題数。</div>` : '<div class="v2-cap">灰色＝この模試で出ていない科目・章・節。国試の出題＝その科目・章・節に紐づく過去の国試の問題数。</div>');
 }
 
 // カルテ：問題ごとの正誤（旧：弱点抽出）。クラス正答率は stats から取るので学生本人の画面でも出る
