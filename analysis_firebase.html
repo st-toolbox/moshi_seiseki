@@ -721,6 +721,20 @@ thead th{border-bottom:1px solid var(--g5);}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 /* 統合：推移・落としたところ・問題ごとの正誤 */
+.trend-all .hl-v,.trend-all .hl-n{display:none;}
+.trend-all.hl .stu-g{opacity:.25;}
+.trend-all.hl .stu-g.on{opacity:1;}
+.trend-all .stu-g.on .ln-stu{stroke:var(--ng);stroke-width:2.5;opacity:1;}
+.trend-all .stu-g.on .dt-stu{fill:var(--ng);r:4;opacity:1;}
+.trend-all .stu-g.on .hl-v{display:block;font-size:11px;fill:var(--ng);font-family:'DM Mono',monospace;}
+.trend-all .stu-g.on .hl-n{display:block;font-size:11.5px;fill:var(--ng);font-weight:600;}
+.legend i.hl{border-top:2.5px solid var(--ng);}
+.legend .linkbtn{margin-left:auto;}
+.v2-tbl tr.hl-on td{background:rgba(196,67,43,.08);}
+.v2-tbl tr.hl-on td.nm{color:var(--ng);font-weight:600;}
+.ka-go{font:inherit;font-size:11px;padding:1px 8px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--g5);cursor:pointer;white-space:nowrap;}
+.ka-go:hover{background:var(--g1);}
+@media print{ .ka-go,#hlClear{display:none!important;} }
 .sv-bar[hidden]{display:none!important;}
 .cat-tr td.lo{color:var(--ng);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
@@ -4781,7 +4795,7 @@ function setExLowTh(v) { exLowTh = Number(v); renderExamView(); }
 function setKarteStar(v) { karteStarTh = Number(v); renderKarte(); }
 
 // 全模試の推移（旧：成績推移）
-function trendAllSvg(exs, lines, avg) {
+function trendAllSvg(exs, lines, avg, who) {
   const W = 960, H = 300, L = 38, R = 24, T = 24, B = 40;
   const vals = lines.flat().concat(avg).filter(v => v != null).concat(PASS_LINE);
   const lo = Math.max(0, Math.floor((Math.min(...vals) - 10) / 20) * 20);
@@ -4791,16 +4805,35 @@ function trendAllSvg(exs, lines, avg) {
   let g = '';
   for (let v = lo; v <= hi; v += 20) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
   g += `<line class="pl" x1="${L}" x2="${W - R}" y1="${y(PASS_LINE)}" y2="${y(PASS_LINE)}"/>`;
-  lines.forEach(ln => {
-    const p = ln.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
-    if (p.length > 1) g += `<polyline class="ln-stu" points="${p.map(q => q.join(',')).join(' ')}"/>`;
-    p.forEach(q => { g += `<circle class="dt-stu" cx="${q[0]}" cy="${q[1]}" r="2.2"/>`; });
+  lines.forEach((ln, li) => {
+    const pv = ln.map((v, i) => v == null ? null : [x(i), y(v), v]).filter(Boolean);
+    const w = who?.[li];
+    g += `<g class="stu-g"${w ? ` data-uid="${esc(w.uid)}"` : ''}>`;
+    if (pv.length > 1) g += `<polyline class="ln-stu" points="${pv.map(q => q[0] + ',' + q[1]).join(' ')}"/>`;
+    pv.forEach(q => { g += `<circle class="dt-stu" cx="${q[0]}" cy="${q[1]}" r="2.2"/><text class="hl-v" x="${q[0]}" y="${q[1] + 16}" text-anchor="middle">${q[2]}</text>`; });
+    if (w && pv.length) { const q = pv[pv.length - 1]; g += `<text class="hl-n jp" x="${q[0]}" y="${q[1] - 10}" text-anchor="end">${esc(w.label)}</text>`; }
+    g += '</g>';
   });
   const pa = avg.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
   if (pa.length > 1) g += `<polyline class="ln-cls" points="${pa.map(q => q.join(',')).join(' ')}"/>`;
   avg.forEach((v, i) => { if (v != null) g += `<circle class="dt-cls" cx="${x(i)}" cy="${y(v)}" r="4"/><text class="hn" x="${x(i)}" y="${y(v) - 10}" text-anchor="middle">${v}</text>`; });
   exs.forEach((e, i) => { const lb = shortExam(e.name); g += `<text class="jp" x="${x(i)}" y="${H - 12}" text-anchor="middle">${esc(lb.length > 18 ? lb.slice(0, 17) + '…' : lb)}</text>`; });
-  return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="全模試の推移">${g}</svg>`;
+  return `<svg class="v2-svg trend-all" viewBox="0 0 ${W} ${H}" role="img" aria-label="全模試の推移">${g}</svg>`;
+}
+let trendHl = new Set();   // 全部の模試：グラフで強調している学生
+function applyTrendHl(box) {
+  const svg = box.querySelector('svg.trend-all');
+  if (svg) {
+    svg.classList.toggle('hl', trendHl.size > 0);
+    svg.querySelectorAll('g.stu-g[data-uid]').forEach(g => {
+      const on = trendHl.has(g.dataset.uid);
+      g.classList.toggle('on', on);
+      if (on) g.parentNode.insertBefore(g, svg.querySelector('.ln-cls, .dt-cls'));  // クラス平均の線のすぐ下＝他の学生より前
+    });
+  }
+  box.querySelectorAll('tr[data-uid]').forEach(tr => tr.classList.toggle('hl-on', trendHl.has(tr.dataset.uid)));
+  const c = box.querySelector('#hlClear');
+  if (c) { c.hidden = !trendHl.size; c.textContent = `強調を消す（${trendHl.size}人）`; }
 }
 function renderRosterTrend(box) {
   const list = getActiveStudents();
@@ -4822,17 +4855,24 @@ function renderRosterTrend(box) {
     const t = r.ts[Number(k.slice(1))]; return t ? t.total : null;  // 'e0'…
   });
   const cell = t => !t ? '<td class="r mn muted">—</td>' : `<td class="r mn${t.full && t.total >= PASS_LINE ? ' hi' : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
-  let h = `<section class="v2-block">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg)}` +
-    '<div class="legend"><span><i class="cls"></i>クラス平均</span><span><i class="stu"></i>学生1人ずつ</span><span><i class="pl"></i>120点</span></div></section>';
-  h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h')).join('')}${roTh('trend', 'last', '最新', 'r')}${roTh('trend', 'gain', '初回から', 'r')}</tr></thead><tbody>` +
-    `<tr class="avg-row"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td class="r mn">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td></tr>` +
+  let h = `<section class="v2-block">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg, rows.map(r => ({ uid: r.s.uid, label: r.s.name || stuNo(r.s) })))}` +
+    '<div class="legend"><span><i class="cls"></i>クラス平均</span><span><i class="stu"></i>学生1人ずつ</span><span><i class="hl"></i>強調した学生</span><span><i class="pl"></i>120点</span><button class="linkbtn" id="hlClear" hidden onclick="trendHl.clear();applyTrendHl(document.getElementById(\'roBody\'))"></button></div>' +
+    '<div class="v2-cap">下の表で学生の行をクリックすると、その学生の線がグラフで強調され、各回の点数と名前が出ます。もう一度クリックで解除。何人でも重ねて比べられます。カルテを開くときは行の右端の「カルテ」から。</div></section>';
+  h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h')).join('')}${roTh('trend', 'last', '最新', 'r')}${roTh('trend', 'gain', '初回から', 'r')}<th></th></tr></thead><tbody>` +
+    `<tr class="avg-row"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td class="r mn">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td><td></td></tr>` +
     rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}<td class="r mn">${r.last ?? '—'}</td>` +
-      `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td></tr>`).join('') +
-    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
+      `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td><td class="r"><button class="ka-go" data-go="${esc(r.s.uid)}">カルテ</button></td></tr>`).join('') +
+    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（もう一度で解除）。右端の「カルテ」でその学生のカルテへ。緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
   h += catTrendHtml(exs);
   box.innerHTML = h;
   roBindSort(box, 'trend');
-  box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => openKarte(tr.dataset.uid)));
+  box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => {
+    const u = tr.dataset.uid;
+    if (trendHl.has(u)) trendHl.delete(u); else trendHl.add(u);
+    applyTrendHl(box);
+  }));
+  box.querySelectorAll('button[data-go]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openKarte(b.dataset.go); }));
+  applyTrendHl(box);
 }
 
 // この模試：クラスで落としたところ（旧：科目別低正答率＋節別の正答率）
