@@ -6,12 +6,16 @@
       ".read": "root.child('teachers').child(auth.uid).exists()",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "root.child('teachers').child(auth.uid).exists()"
+        ".write": "root.child('teachers').child(auth.uid).exists() || (auth != null && auth.token.email_verified == true && auth.uid === $uid && newData.val() === auth.token.email && root.child('pending_teachers').child(auth.token.email.toLowerCase().replace('.', '_').replace('@', '-at-')).val() === auth.token.email.toLowerCase())"
       }
     },
     "pending_teachers": {
       ".read": "root.child('teachers').child(auth.uid).exists()",
-      ".write": "root.child('teachers').child(auth.uid).exists()"
+      ".write": "root.child('teachers').child(auth.uid).exists()",
+      "$key": {
+        ".read": "auth != null && auth.token.email_verified == true && data.val() === auth.token.email.toLowerCase()",
+        ".write": "auth != null && auth.token.email_verified == true && data.val() === auth.token.email.toLowerCase() && !newData.exists()"
+      }
     },
     "exams": {
       ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
