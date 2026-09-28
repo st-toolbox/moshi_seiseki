@@ -13,23 +13,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
-  --accent:#1A5CE8;--accent-bg:#EEF3FF;
-  --ok:#15803D;--ok-bg:#DCFCE7;
+  --accent:#1F4D45;--accent-bg:#EEF3FF;
+  --ok:#2F6B4F;--ok-bg:#DCFCE7;
   --warn:#B45309;--warn-bg:#FEF3C7;
-  --ng:#B91C1C;--ng-bg:#FEE2E2;
+  --ng:#C4432B;--ng-bg:#FEE2E2;
   --g1:#F7F6F4;--g2:#ECEAE6;--g3:#C4C1BB;--g4:#86837E;--g5:#2D2C2A;
   --r:12px;--rs:8px;--sidebar:220px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);min-height:100vh;display:flex;flex-direction:column;}
+body{font-family:'IBM Plex Sans JP',sans-serif;background:var(--g1);color:var(--g5);min-height:100vh;display:flex;flex-direction:column;}
 
 /* LOGIN */
 .login-screen{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:9999;padding:32px;}
 .login-title{font-size:22px;font-weight:700;}
 .login-sub{font-size:14px;color:var(--g4);text-align:center;line-height:1.6;}
-.btn-google{display:flex;align-items:center;gap:12px;padding:14px 24px;border:1.5px solid var(--g2);border-radius:var(--r);font-size:15px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
+.btn-google{display:flex;align-items:center;gap:12px;padding:14px 24px;border:1.5px solid var(--g2);border-radius:var(--r);font-size:15px;font-weight:700;font-family:'IBM Plex Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
 .btn-google:hover{background:var(--g1);}
 
 /* LOADING */
@@ -43,7 +43,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);
 .topbar{background:#fff;border-bottom:1px solid var(--g2);height:54px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:300;}
 .app-title{font-size:15px;font-weight:700;white-space:nowrap;}
 .spacer{flex:1;}
-.top-sel{padding:6px 10px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;}
+.top-sel{padding:6px 10px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;}
 .top-sel:focus{outline:none;border-color:var(--accent);}
 .user-chip{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--g4);background:var(--g1);border:1px solid var(--g2);border-radius:20px;padding:4px 12px 4px 7px;cursor:pointer;}
 .user-chip:hover{background:var(--g2);}
@@ -68,8 +68,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);
 .nav-item-trend.active{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:700;}
 .nav-item-admin{background:rgba(254,202,202,0.4);color:#991b1b;border:1px solid #fca5a5;font-weight:600;}
 .nav-item-admin:hover{background:rgba(254,202,202,0.7);color:#7f1d1d;border-color:#f87171;}
-.nav-item-admin.active{background:#b91c1c;color:#fff;border-color:#b91c1c;font-weight:700;}
-.gakunen-filter-btn{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--g2);background:#fff;color:var(--g4);font-family:'Noto Sans JP',sans-serif;transition:all .15s;}
+.nav-item-admin.active{background:#C4432B;color:#fff;border-color:#C4432B;font-weight:700;}
+.gakunen-filter-btn{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--g2);background:#fff;color:var(--g4);font-family:'IBM Plex Sans JP',sans-serif;transition:all .15s;}
 .gakunen-filter-btn:hover{border-color:var(--accent);color:var(--accent);}
 .gakunen-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .nav-icon{width:16px;height:16px;flex-shrink:0;}
@@ -81,7 +81,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--g1);color:var(--g5);
 .page-header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
 .page-title{font-size:18px;font-weight:700;margin-bottom:4px;}
 .page-sub{font-size:13px;color:var(--g4);}
-.exam-inline-sel{padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;min-width:220px;flex-shrink:0;}
+.exam-inline-sel{padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;min-width:220px;flex-shrink:0;}
 .exam-inline-sel:focus{outline:none;border-color:var(--accent);}
 
 /* CARDS */
@@ -110,9 +110,9 @@ tbody tr:hover td{background:var(--g1);}
 /* FILTER */
 .filter-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
 .filter-label{font-size:12px;color:var(--g4);}
-.filter-input{padding:5px 9px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;width:70px;color:var(--g5);background:#fff;}
+.filter-input{padding:5px 9px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;width:70px;color:var(--g5);background:#fff;}
 .filter-input:focus{outline:none;border-color:var(--accent);}
-.student-select{padding:5px 9px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;min-width:120px;}
+.student-select{padding:5px 9px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);background:#fff;cursor:pointer;min-width:120px;}
 .vdiv{width:1px;height:18px;background:var(--g2);}
 .chart-box{position:relative;}
 
@@ -149,9 +149,9 @@ tbody tr:hover td{background:var(--g1);}
 .hist-tbl td.hist-score-td{text-align:center;font-family:'DM Mono',monospace;font-size:10px;background:var(--g1);}
 .hist-tbl td.hist-score-label{position:sticky;left:0;z-index:5;background:var(--g1);font-weight:700;font-size:10px;color:var(--g4);padding:2px 7px;min-width:110px;}
 .hist-tbl td.hist-data-td{text-align:center;font-family:'DM Mono',monospace;font-size:10px;}
-.hist-tbl td.hist-data-td.c-ok{background:rgba(21,128,61,0.15);color:var(--ok);font-weight:700;}
+.hist-tbl td.hist-data-td.c-ok{background:rgba(47,107,79,0.15);color:var(--ok);font-weight:700;}
 .hist-tbl td.hist-data-td.c-warn{background:rgba(180,83,9,0.15);color:var(--warn);font-weight:700;}
-.hist-tbl td.hist-data-td.c-ng{background:rgba(185,28,28,0.15);color:var(--ng);font-weight:700;}
+.hist-tbl td.hist-data-td.c-ng{background:rgba(196,67,43,0.15);color:var(--ng);font-weight:700;}
 .hist-tbl .sec-div td{border-top:2px solid var(--accent);}
 
 /* LOW RATE */
@@ -168,9 +168,9 @@ tbody tr:hover td{background:var(--g1);}
 .lr-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
 .lr-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--g1);color:var(--g5);}
 .lr-empty{text-align:center;color:var(--g4);padding:40px;font-size:13px;}
-.lr-detail-btn{padding:2px 10px;border:1px solid var(--g3);border-radius:4px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:var(--g4);font-family:'Noto Sans JP',sans-serif;transition:all .15s;white-space:nowrap;}
+.lr-detail-btn{padding:2px 10px;border:1px solid var(--g3);border-radius:4px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:var(--g4);font-family:'IBM Plex Sans JP',sans-serif;transition:all .15s;white-space:nowrap;}
 .lr-detail-btn:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
-.lr-print-all-btn{padding:5px 12px;border:1.5px solid var(--g3);border-radius:var(--rs);background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:var(--g5);transition:all .15s;display:none;}
+.lr-print-all-btn{padding:5px 12px;border:1.5px solid var(--g3);border-radius:var(--rs);background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);transition:all .15s;display:none;}
 .lr-print-all-btn:hover{background:var(--g1);border-color:var(--g4);}
 
 /* 科目別低正答率 詳細モーダル */
@@ -196,7 +196,7 @@ tbody tr:hover td{background:var(--g1);}
 .lrd-choices-label{font-size:10px;color:var(--g3);font-weight:600;margin-bottom:2px;letter-spacing:.05em;}
 .lrd-nodata{font-size:12px;color:var(--g4);padding:4px 0;}
 .ws-wrong-opt .lrd-key,.ws-wrong-opt .lrd-otext{color:var(--ng);}
-.ws-wrong-opt{background:rgba(185,28,28,0.06);border-radius:3px;}
+.ws-wrong-opt{background:rgba(196,67,43,0.06);border-radius:3px;}
 
 /* 科目別低正答率 印刷プレビュー */
 #lr-print-overlay{display:none;}
@@ -209,15 +209,15 @@ tbody tr:hover td{background:var(--g1);}
 .lrp-qtext{font-size:10pt;line-height:1.65;margin:2mm 0 3mm 0;}
 .lrp-opts{font-size:9pt;line-height:1.85;margin-left:2mm;}
 .lrp-opt{display:flex;align-items:baseline;gap:3mm;}
-.lrp-opt.correct{font-weight:700;color:#b91c1c;}
+.lrp-opt.correct{font-weight:700;color:#C4432B;}
 .lrp-opt-key{min-width:7mm;font-family:'DM Mono',monospace;flex-shrink:0;}
 .lrp-opt-text{flex:1;}
 .lrp-opt-pct{min-width:28px;text-align:right;font-family:'DM Mono',monospace;font-size:8pt;color:#888;flex-shrink:0;}
-.lrp-opt.correct .lrp-opt-pct{color:#b91c1c;}
+.lrp-opt.correct .lrp-opt-pct{color:#C4432B;}
 .lrp-choices{font-size:9pt;line-height:1.85;margin:2mm 0 0 2mm;}
 .lrp-choice{display:flex;align-items:baseline;gap:3mm;}
-.lrp-choice.correct{font-weight:700;color:#b91c1c;}
-.lrp-choice.correct .lrp-opt-pct{color:#b91c1c;}
+.lrp-choice.correct{font-weight:700;color:#C4432B;}
+.lrp-choice.correct .lrp-opt-pct{color:#C4432B;}
 
 /* WEAK */
 .weak-blocks{display:flex;flex-direction:column;gap:12px;}
@@ -229,25 +229,25 @@ tbody tr:hover td{background:var(--g1);}
 .wcell:last-child{border-right:none;}
 .wcell.sep5{border-right:2px solid var(--g3);}
 .wcell.qnum{font-weight:700;font-size:11px;color:var(--g4);height:24px;background:var(--g1);}
-.wcell.pct-ok{background:rgba(21,128,61,0.08);color:var(--ok);font-weight:500;}
+.wcell.pct-ok{background:rgba(47,107,79,0.08);color:var(--ok);font-weight:500;}
 .wcell.pct-warn{background:rgba(180,83,9,0.08);color:var(--warn);font-weight:500;}
-.wcell.pct-ng{background:rgba(185,28,28,0.1);color:var(--ng);font-weight:700;}
+.wcell.pct-ng{background:rgba(196,67,43,0.1);color:var(--ng);font-weight:700;}
 .wcell.my-none{color:var(--g3);}
-.wcell.star-col{background:rgba(185,28,28,0.12);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.wcell.star-col{background:rgba(196,67,43,0.12);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .wcell.jstar{color:var(--ng);font-weight:700;font-size:14px;}
 .wcell.jx{color:var(--g5);font-weight:700;font-size:14px;}
 
 /* ADMIN */
-.btn-admin-add{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;white-space:nowrap;}
-.btn-admin-save{padding:7px 16px;background:var(--ok);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
-.btn-admin-del{padding:4px 10px;background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
-.admin-input{width:100%;padding:5px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);}
-.admin-select{padding:5px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);background:#fff;}
+.btn-admin-add{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:'IBM Plex Sans JP',sans-serif;cursor:pointer;white-space:nowrap;}
+.btn-admin-save{padding:7px 16px;background:var(--ok);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:'IBM Plex Sans JP',sans-serif;cursor:pointer;}
+.btn-admin-del{padding:4px 10px;background:var(--ng-bg);color:var(--ng);border:1px solid var(--ng);border-radius:6px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans JP',sans-serif;}
+.admin-input{width:100%;padding:5px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);}
+.admin-select{padding:5px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);background:#fff;}
 .ans-table{border-collapse:collapse;font-size:12px;width:100%;}
 .ans-table th{background:var(--g1);padding:5px 6px;border:1px solid var(--g2);font-weight:700;color:var(--g4);text-align:center;white-space:nowrap;}
 .ans-table td{padding:3px 4px;border:1px solid var(--g2);text-align:center;}
 .ans-input{width:46px;padding:3px 4px;border:1.5px solid var(--g2);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;text-align:center;color:var(--g5);}
-.cat-input{width:120px;padding:3px 4px;border:1.5px solid var(--g2);border-radius:4px;font-size:11px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);}
+.cat-input{width:120px;padding:3px 4px;border:1.5px solid var(--g2);border-radius:4px;font-size:11px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:800;display:none;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;}
@@ -261,9 +261,9 @@ tbody tr:hover td{background:var(--g1);}
 .modal-box-title{font-size:16px;font-weight:700;margin-bottom:16px;}
 .form-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;margin-bottom:20px;font-size:13px;}
 .form-grid label{color:var(--g4);font-weight:500;white-space:nowrap;}
-.form-grid input,.form-grid select{padding:7px 10px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--g5);}
+.form-grid input,.form-grid select{padding:7px 10px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;color:var(--g5);}
 .modal-box-btns{display:flex;justify-content:flex-end;gap:8px;}
-.modal-cancel-btn{padding:8px 16px;background:var(--g1);border:1px solid var(--g2);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+.modal-cancel-btn{padding:8px 16px;background:var(--g1);border:1px solid var(--g2);border-radius:8px;font-size:13px;font-family:'IBM Plex Sans JP',sans-serif;cursor:pointer;}
 
 /* データ編集グリッド */
 .grid-wrap{overflow:auto;border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
@@ -276,19 +276,19 @@ tbody tr:hover td{background:var(--g1);}
 .grid-cell{width:100%;height:28px;padding:2px 6px;border:none;outline:none;font-size:12px;font-family:'DM Mono',monospace;color:var(--g5);background:transparent;}
 .grid-cell:focus{background:var(--accent-bg);outline:2px solid var(--accent);outline-offset:-2px;}
 .grid-cell.ans-cell{width:100%;text-align:center;}
-.grid-cell.cat-cell{width:100%;white-space:normal;word-break:break-all;font-size:10px;font-family:'Noto Sans JP',sans-serif;line-height:1.35;min-height:28px;padding:2px 4px;cursor:text;display:block;}
-.grid-cell.cat-invalid{background:rgba(185,28,28,0.12)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
-.grid-cell.ans-invalid{background:rgba(185,28,28,0.10)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
-.grid-cell.name-cell{width:180px;font-family:'Noto Sans JP',sans-serif;}
+.grid-cell.cat-cell{width:100%;white-space:normal;word-break:break-all;font-size:10px;font-family:'IBM Plex Sans JP',sans-serif;line-height:1.35;min-height:28px;padding:2px 4px;cursor:text;display:block;}
+.grid-cell.cat-invalid{background:rgba(196,67,43,0.12)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
+.grid-cell.ans-invalid{background:rgba(196,67,43,0.10)!important;border:1.5px solid var(--ng)!important;color:var(--ng)!important;}
+.grid-cell.name-cell{width:180px;font-family:'IBM Plex Sans JP',sans-serif;}
 .grid-cell.date-cell{width:110px;}
 .grid-cell.active-cell{width:80px;text-align:center;}
 .grid-row-header{background:var(--g1);padding:4px 8px;font-size:11px;font-weight:700;color:var(--g4);border:1px solid var(--g2);text-align:center;position:sticky;left:0;z-index:5;}
 .tab-row{display:flex;gap:4px;margin-bottom:12px;border-bottom:2px solid var(--g2);padding-bottom:0;}
-.tab-btn{padding:8px 16px;border:none;background:none;font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'Noto Sans JP',sans-serif;}
+.tab-btn{padding:8px 16px;border:none;background:none;font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'IBM Plex Sans JP',sans-serif;}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;}
 .paste-hint{font-size:12px;color:var(--g4);background:var(--g1);border:1px solid var(--g2);border-radius:var(--rs);padding:8px 12px;margin-bottom:12px;}
 .paste-hint kbd{background:#fff;border:1px solid var(--g3);border-radius:4px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:11px;}
-.tog-btn{padding:5px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
+.tog-btn{padding:5px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-size:12px;font-weight:500;font-family:'IBM Plex Sans JP',sans-serif;cursor:pointer;background:#fff;color:var(--g5);transition:all .15s;}
 .tog-btn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 .legend-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;font-size:12px;color:var(--g4);flex-wrap:wrap;}
 .print-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--g5);cursor:pointer;background:#fff;border:1.5px solid var(--g3);width:calc(100% - 16px);margin:2px 8px;text-align:left;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
@@ -385,15 +385,15 @@ tbody tr:hover td{background:var(--g1);}
   .hptbl{border-collapse:collapse;width:100%;}
   .hptbl td{padding:0.3mm 1.5mm;border:0.3pt solid #ddd;white-space:nowrap;}
   .hptbl td.hpcat{font-size:5.5pt;}
-  .hptbl td.hpcat.left{background:rgba(26,92,232,0.09);}
-  .hptbl td.hpcat.right{background:rgba(185,28,28,0.09);}
+  .hptbl td.hpcat.left{background:rgba(31,77,69,0.09);}
+  .hptbl td.hpcat.right{background:rgba(196,67,43,0.09);}
   .hptbl td.hpval{font-family:monospace;text-align:center;font-size:5.5pt;}
-  .hptbl td.hpval.c-ok{background:rgba(21,128,61,0.15);color:#15803d;font-weight:700;}
+  .hptbl td.hpval.c-ok{background:rgba(47,107,79,0.15);color:#2F6B4F;font-weight:700;}
   .hptbl td.hpval.c-warn{background:rgba(180,83,9,0.15);color:#b45309;font-weight:700;}
-  .hptbl td.hpval.c-ng{background:rgba(185,28,28,0.15);color:#b91c1c;font-weight:700;}
+  .hptbl td.hpval.c-ng{background:rgba(196,67,43,0.15);color:#C4432B;font-weight:700;}
   .hptbl tr.bdiv td{border-top:1pt solid #3b5bdb;}
-  .hptbl td.hprow-left{background:rgba(26,92,232,0.05);}
-  .hptbl td.hprow-right{background:rgba(185,28,28,0.05);}
+  .hptbl td.hprow-left{background:rgba(31,77,69,0.05);}
+  .hptbl td.hprow-right{background:rgba(196,67,43,0.05);}
   /* 回答詳細印刷モード */
   body.print-resp-detail .layout,
   body.print-resp-detail .topbar,
@@ -444,8 +444,281 @@ tbody tr:hover td{background:var(--g1);}
   body.print-lowrate .modal-overlay{display:none!important;}
   body.print-lowrate #lr-print-overlay{display:block!important;padding:4mm 8mm;}
   .lrp-cat-header{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#e0e0e0!important;}
-  .lrp-opt.correct,.lrp-choice.correct{color:#b91c1c!important;}
-  .lrp-opt.correct .lrp-opt-pct,.lrp-choice.correct .lrp-opt-pct{color:#b91c1c!important;}
+  .lrp-opt.correct,.lrp-choice.correct{color:#C4432B!important;}
+  .lrp-opt.correct .lrp-opt-pct,.lrp-choice.correct .lrp-opt-pct{color:#C4432B!important;}
+}
+</style>
+<style>
+/* ===== デザイン（2026-09 作り直し）：墨と深緑、赤は120点ラインと落とした所だけ ===== */
+:root{
+  --accent:#1F4D45;--accent-bg:#E6EEEC;
+  --ok:#2F6B4F;--ok-bg:#E4EFE8;
+  --warn:#A8741A;--warn-bg:#F6EEDC;
+  --ng:#C4432B;--ng-bg:#F8E6E1;
+  --g1:#F4F5F3;--g2:#E3E5E1;--g3:#B9BDB7;--g4:#6B716C;--g5:#171A18;
+  --paper:#FFFFFF;--line:#E3E5E1;
+  --r:10px;--rs:6px;
+}
+body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
+.mn{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;}
+.muted{color:var(--g3)!important;}
+
+/* ログイン */
+.login-screen{background:var(--g1);}
+.login-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:44px 48px;display:flex;flex-direction:column;gap:18px;min-width:min(420px,100%);}
+.login-kicker{font-size:11px;letter-spacing:.16em;color:var(--g4);font-weight:600;}
+.login-title{font-size:26px;font-weight:600;letter-spacing:.02em;border-bottom:1px solid var(--g5);padding-bottom:14px;}
+.login-sub{text-align:left;font-size:13px;}
+.btn-google{border:1px solid var(--g3);border-radius:var(--rs);font-weight:500;font-size:14px;justify-content:center;}
+
+/* 上の帯 */
+.topbar{background:var(--paper);border-bottom:1px solid var(--line);}
+.app-title{font-size:14px;font-weight:600;letter-spacing:.06em;display:flex;align-items:center;gap:10px;}
+.app-title::before{content:"";width:10px;height:10px;background:var(--accent);display:inline-block;}
+.marksheet-btn{background:transparent;color:var(--g5);border:1px solid var(--g3);font-weight:500;padding:6px 12px;}
+.marksheet-btn:hover{border-color:var(--g5);}
+.user-chip{background:transparent;border:1px solid var(--line);border-radius:var(--rs);}
+.user-chip:hover{background:var(--g1);}
+.av{background:var(--g5);border-radius:4px;}
+.role-badge{border-radius:3px;background:var(--g1)!important;color:var(--g4)!important;letter-spacing:.06em;}
+
+/* サイドバー */
+.sidebar{background:var(--paper);border-right:1px solid var(--line);padding:10px 10px 24px;gap:2px;width:228px;min-width:228px;}
+.sidebar .nav-icon{display:none;}
+.nav-section-label{font-size:10.5px;font-weight:600;letter-spacing:.16em;color:var(--g4);padding:16px 10px 6px;margin-top:0;}
+.nav-item,.nav-item-view,.nav-item-trend,.nav-item-admin{background:none!important;border:none!important;color:var(--g4)!important;font-weight:500!important;font-size:13.5px;padding:8px 10px;border-radius:4px;}
+.nav-item:hover,.nav-item-view:hover,.nav-item-trend:hover,.nav-item-admin:hover{background:var(--g1)!important;color:var(--g5)!important;}
+.nav-item.active,.nav-item-view.active,.nav-item-trend.active,.nav-item-admin.active{background:var(--g1)!important;color:var(--g5)!important;font-weight:600!important;box-shadow:inset 2px 0 0 var(--accent);border-radius:0 4px 4px 0;}
+.print-btn{border:none;box-shadow:none;background:none;width:100%;margin:0;color:var(--g4);font-size:13.5px;}
+.print-btn:hover{background:var(--g1);box-shadow:none;color:var(--g5);}
+.gakunen-filter-btn{border-radius:4px;border:1px solid var(--g2);font-weight:500;padding:3px 10px;}
+.gakunen-filter-btn:hover{border-color:var(--g5);color:var(--g5);}
+.gakunen-filter-btn.active{background:var(--g5);border-color:var(--g5);color:#fff;}
+.top-sel{border:1px solid var(--g2);border-radius:var(--rs);background:var(--paper);}
+.top-sel:focus{border-color:var(--g5);}
+.nav-legacy{margin-top:14px;border-top:1px solid var(--line);padding-top:4px;}
+.nav-legacy summary{list-style:none;cursor:pointer;font-size:10.5px;letter-spacing:.16em;color:var(--g4);font-weight:600;padding:12px 10px 6px;display:flex;justify-content:space-between;align-items:baseline;}
+.nav-legacy summary::-webkit-details-marker{display:none;}
+.nav-legacy summary::after{content:"＋";letter-spacing:0;}
+.nav-legacy[open] summary::after{content:"－";}
+.nav-legacy summary span{letter-spacing:.04em;font-weight:400;color:var(--g3);margin-left:auto;margin-right:8px;}
+.nav-legacy .nav-item{font-size:12.5px;padding:6px 10px;}
+.nav-admin{margin-top:14px;border-top:1px solid var(--line);}
+
+/* 旧画面の部品も同じ色味に */
+.card{border:1px solid var(--line);border-radius:var(--r);}
+.stat{border:1px solid var(--line);}
+thead th{border-bottom:1px solid var(--g5);}
+
+/* ===== 新ページ共通 ===== */
+#page-exam,#page-roster,#page-karte{padding:36px 44px 64px;max-width:1120px;}
+.v2-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--g5);margin-bottom:30px;}
+.v2-kicker{font-size:11px;letter-spacing:.18em;color:var(--g4);font-weight:600;margin-bottom:8px;}
+.v2-title{font-size:26px;font-weight:600;letter-spacing:.02em;line-height:1.25;text-wrap:balance;}
+.v2-sub{font-size:12.5px;color:var(--g4);margin-top:8px;}
+.v2-ctrl{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--g4);}
+.v2-ctrl label{display:flex;align-items:center;gap:8px;}
+.seg{display:inline-flex;border:1px solid var(--g3);border-radius:var(--rs);overflow:hidden;}
+.seg button{border:none;background:var(--paper);padding:5px 12px;font:inherit;font-size:12px;color:var(--g4);cursor:pointer;}
+.seg button+button{border-left:1px solid var(--g3);}
+.seg button.active{background:var(--g5);color:#fff;}
+.v2-block{margin:0 0 44px;}
+.v2-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.v2-h h2{font-size:15px;font-weight:600;letter-spacing:.04em;}
+.v2-note{font-size:12px;color:var(--g4);}
+.v2-note b{color:var(--g5);font-weight:600;}
+.v2-cap{font-size:11px;color:var(--g4);margin-top:6px;}
+.v2-lab{font-size:11px;letter-spacing:.12em;color:var(--g4);font-weight:600;margin-bottom:12px;}
+.v2-empty{font-size:13px;color:var(--g4);padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.linkbtn{border:none;background:none;font:inherit;font-size:12px;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;}
+.v2-svg{width:100%;height:auto;display:block;overflow:visible;}
+.v2-svg text{font-family:'DM Mono',monospace;font-size:11px;fill:var(--g4);}
+.v2-svg .jp{font-family:'IBM Plex Sans JP',sans-serif;}
+.v2-svg .ax{stroke:var(--g5);stroke-width:1;}
+.v2-svg .gl{stroke:var(--line);stroke-width:1;}
+.v2-svg .pl{stroke:var(--ng);stroke-width:1.5;stroke-dasharray:4 3;}
+.v2-svg text.plt{fill:var(--ng);font-weight:500;}
+.v2-svg .hb{fill:var(--accent);}
+.v2-svg .hb.ok{fill:var(--g5);}
+.v2-svg text.hn{fill:var(--g5);font-weight:500;}
+.v2-svg .sd{fill:var(--accent);opacity:.55;}
+.v2-svg .me{stroke:var(--g5);stroke-width:1.5;}
+.v2-svg .med{fill:var(--g5);}
+.v2-svg text.met{fill:var(--g5);font-weight:600;}
+.v2-svg .avt{fill:var(--g4);}
+.v2-svg .ln-me{fill:none;stroke:var(--g5);stroke-width:2;}
+.v2-svg .ln-avg{fill:none;stroke:var(--g3);stroke-width:1.5;stroke-dasharray:5 4;}
+.v2-svg .dt-me{fill:var(--paper);stroke:var(--g5);stroke-width:2;}
+.v2-svg .dt-avg{fill:var(--g3);}
+.v2-svg .sp{fill:none;stroke:var(--g5);stroke-width:1.5;}
+.v2-svg .spd{fill:var(--g5);}
+.legend{display:flex;gap:18px;font-size:11.5px;color:var(--g4);margin-top:8px;flex-wrap:wrap;}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid var(--g5);vertical-align:middle;margin-right:6px;}
+.legend i.avg{border-top:2px dashed var(--g3);}
+.legend i.pl{border-top:2px dashed var(--ng);}
+
+/* 数字の帯 */
+.figs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line);margin-bottom:44px;}
+.fig{padding:18px 18px 16px 0;}
+.fig+.fig{padding-left:18px;border-left:1px solid var(--line);}
+.fig-l{font-size:11px;letter-spacing:.12em;color:var(--g4);font-weight:600;margin-bottom:10px;}
+.fig-v{font-family:'DM Mono',monospace;font-size:30px;font-weight:500;line-height:1;letter-spacing:-.01em;}
+.fig-v small{font-size:13px;color:var(--g4);margin-left:4px;letter-spacing:0;}
+.fig-s{font-size:11.5px;color:var(--g4);margin-top:8px;}
+
+/* 分野のバー */
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;}
+.cat-g{font-size:11px;letter-spacing:.14em;color:var(--g4);font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--g5);}
+.cat-row{display:grid;grid-template-columns:minmax(8em,11em) 1fr 3.4em;align-items:center;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+.cat-row.w4{grid-template-columns:minmax(8em,11em) 1fr 3.4em 3.4em;}
+.cat-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-n{font-size:10.5px;color:var(--g4);margin-left:4px;}
+.cat-p{text-align:right;font-family:'DM Mono',monospace;font-size:13px;}
+.cat-p.sub{font-size:11.5px;color:var(--g4);}
+.cat-p.lo{color:var(--ng);}
+.bar{position:relative;height:6px;background:var(--g2);border-radius:3px;}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--g5);}
+.bar i.c-ok{background:var(--ok);}
+.bar i.c-warn{background:var(--warn);}
+.bar i.c-ng{background:var(--ng);}
+.bar b{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--g5);}
+
+/* 表 */
+.v2-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.v2-tbl th{font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--g4);text-align:left;padding:8px 10px;border-bottom:1px solid var(--g5);white-space:nowrap;}
+.v2-tbl td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.v2-tbl th.r,.v2-tbl td.r{text-align:right;}
+.v2-tbl td.nm{font-weight:500;}
+.v2-tbl tr.click{cursor:pointer;}
+.v2-tbl tr.click:hover td{background:var(--g1);}
+.v2-tbl .dn{color:var(--ng);}
+.v2-tbl .up{color:var(--ok);}
+.v2-tbl .rk{font-family:'DM Mono',monospace;color:var(--g4);width:2.5em;}
+.tag-reach{font-size:11px;color:var(--ok);font-weight:600;letter-spacing:.06em;}
+.pbar{display:block;height:6px;background:var(--g2);border-radius:3px;min-width:80px;}
+.pbar i{display:block;height:100%;background:var(--g5);border-radius:3px;}
+
+/* クラスの弱い節 */
+.exw{border-top:1px solid var(--line);}
+.exw:last-of-type{border-bottom:1px solid var(--line);}
+.exw summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:2em 1fr auto;gap:4px 14px;align-items:baseline;padding:12px 0;}
+.exw summary::-webkit-details-marker{display:none;}
+.exw summary:hover{background:var(--g1);}
+.exw-no{font-family:'DM Mono',monospace;color:var(--g4);font-size:13px;}
+.exw-name{font-size:13.5px;}
+.exw-name .rv-sec-g{font-size:11px;color:var(--g4);}
+.exw-p{font-family:'DM Mono',monospace;font-size:18px;text-align:right;}
+.exw-p.c-ng{color:var(--ng);}
+.exw-p.c-warn{color:var(--warn);}
+.exw-p.c-ok{color:var(--ok);}
+.exw-meta{grid-column:2 / 4;font-size:11.5px;color:var(--g4);}
+.exw-body{padding:4px 0 18px 2.6em;display:flex;flex-direction:column;gap:14px;}
+.qd{border-left:2px solid var(--g5);padding:2px 0 2px 14px;}
+.qd-hd{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--g4);margin-bottom:6px;}
+.qd-hd b{color:var(--g5);font-weight:600;}
+.qd-q{font-size:13px;line-height:1.7;white-space:pre-wrap;margin-bottom:6px;}
+.qd-opts{display:flex;flex-direction:column;gap:2px;}
+.qd-ch{border-top:1px dashed var(--g3);margin-top:4px;padding-top:4px;}
+.qd-opt{display:grid;grid-template-columns:1.6em 1fr 120px 3em;gap:10px;align-items:center;font-size:12.5px;line-height:1.55;padding:1px 0;}
+.qd-opt.ok{font-weight:600;}
+.qd-opt.ok .qd-k::after{content:"正";font-size:9px;color:var(--ok);margin-left:2px;vertical-align:top;}
+.qd-k{font-family:'DM Mono',monospace;color:var(--g4);}
+.qd-bar{height:5px;background:var(--g2);border-radius:3px;overflow:hidden;}
+.qd-bar i{display:block;height:100%;background:var(--g3);}
+.qd-opt.ok .qd-bar i{background:var(--ok);}
+.qd-p{text-align:right;font-size:12px;}
+.qd-foot{font-size:11px;color:var(--g4);margin-top:4px;}
+
+/* カルテ */
+.ka-top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);border-bottom:1px solid var(--line);margin-bottom:44px;}
+.ka-score{padding:24px 28px 24px 0;}
+.ka-gap{padding:24px 0 24px 28px;border-left:1px solid var(--line);}
+.big{font-family:'DM Mono',monospace;font-size:68px;font-weight:500;line-height:.9;letter-spacing:-.03em;}
+.big small{font-size:18px;color:var(--g4);margin-left:8px;letter-spacing:0;}
+.ka-parts{display:flex;gap:22px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:var(--g4);}
+.ka-parts b{font-family:'DM Mono',monospace;color:var(--g5);font-weight:500;font-size:16px;margin-left:8px;}
+.ka-warn{font-size:12px;color:var(--warn);margin-top:10px;}
+.ka-gap-v{font-family:'IBM Plex Sans JP',sans-serif;font-variant-numeric:tabular-nums;font-size:44px;font-weight:600;line-height:1;color:var(--ng);letter-spacing:-.02em;}
+.ka-gap-v.ok{color:var(--ok);}
+.ka-gap-v small{font-size:15px;margin-left:4px;font-family:'IBM Plex Sans JP',sans-serif;}
+.ka-gap-l{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;}
+.ka-gap-l li{padding-left:14px;position:relative;}
+.ka-gap-l li::before{content:"";position:absolute;left:0;top:.7em;width:6px;height:1px;background:var(--g5);}
+.ka-gap-l b{font-family:'DM Mono',monospace;font-weight:500;font-size:15px;}
+.ka-review .rv-sec{border:none;border-top:1px solid var(--g5);border-radius:0;background:none;padding:16px 0 8px;margin:0 0 14px;}
+.ka-review .rv-sec-hd{border-bottom:none;padding-bottom:4px;align-items:baseline;}
+.ka-review .rv-no{width:auto;height:auto;border-radius:0;background:none;color:var(--g5);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;display:block;}
+.ka-review .rv-h{letter-spacing:.12em;}
+.ka-review .rv-item{background:var(--g1);border-left:2px solid var(--ng);border-radius:0;}
+.ka-review .rv-item.rv-kq{background:var(--paper);border:1px solid var(--line);border-left:2px solid var(--accent);}
+.ka-review .rv-rate{color:var(--accent);}
+.ka-review .rv-my{color:var(--ng);}
+.star{color:var(--ng);font-weight:600;}
+.sec-tbl th{border-bottom:1px solid var(--g5);}
+
+@media (max-width:900px){
+  #page-exam,#page-roster,#page-karte{padding:24px 16px 48px;}
+  .figs{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .fig+.fig{border-left:none;padding-left:0;}
+  .cats,.ka-top{grid-template-columns:1fr;}
+  .ka-gap{border-left:none;border-top:1px solid var(--line);padding-left:0;}
+}
+/* スマホ：サイドバーを上に畳む（学生はスマホで開く） */
+@media screen and (max-width:760px){
+  .topbar{padding:0 16px;}
+  .topbar .app-title{font-size:13px;}
+  #userName{display:none;}
+  .layout{flex-direction:column;}
+  .sidebar{position:static;width:auto;min-width:0;height:auto;border-right:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 12px;gap:6px;}
+  .sidebar .nav-section-label,.sidebar .print-btn,.sidebar .nav-legacy,.sidebar .nav-admin{display:none!important;}
+  .sidebar .top-sel{width:100%!important;margin:0!important;}
+  .sidebar #sidebarStudentWrap{width:100%;}
+  .sidebar .nav-item{width:auto;padding:6px 12px;}
+  .v2-head{align-items:flex-start;}
+  .v2-title{font-size:22px;}
+  .v2-ctrl{flex-direction:column;align-items:flex-start;gap:8px;}
+  .v2-ctrl label{white-space:nowrap;}
+  .seg button{white-space:nowrap;}
+  .big{font-size:52px!important;}
+  .ka-gap-v{font-size:34px;}
+  .figs{grid-template-columns:1fr 1fr;}
+  .v2-h{flex-direction:column;align-items:flex-start;gap:4px;}
+  .cat-row{grid-template-columns:minmax(0,1fr) 38% 3.2em;gap:8px;}
+  .cat-row.w4{grid-template-columns:minmax(0,1fr) 32% 3.2em 2.6em;}
+  .v2-svg text{font-size:22px;}
+  .qd-opt{grid-template-columns:1.6em 1fr 60px 3em;}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .v2-tbl th,.v2-tbl td{white-space:nowrap;padding-left:8px;padding-right:8px;}
+  .v2-tbl td:nth-child(2):has(.rv-sec-g,.sec-path),.v2-tbl td:has(.sec-path){white-space:normal;min-width:11em;}
+  .v2-tbl td:first-child{white-space:normal;min-width:7em;}
+  .v2-tbl td.rk{min-width:0;}
+}
+
+@media print{
+  .v2-ctrl,.linkbtn{display:none!important;}
+  #page-exam,#page-roster,#page-karte{padding:0!important;max-width:none!important;}
+  .v2-head{margin-bottom:5mm!important;padding-bottom:3mm!important;}
+  .v2-title{font-size:15pt!important;}
+  .v2-block{margin-bottom:7mm!important;}
+  .v2-h{margin-bottom:2mm!important;}
+  .figs,.ka-top,.cat-row,.qd{break-inside:avoid;}
+  .figs{margin-bottom:6mm!important;}
+  .fig{padding:3mm 3mm 3mm 0!important;}
+  .fig+.fig{padding-left:3mm!important;}
+  .fig-v{font-size:18pt!important;}
+  .big{font-size:40pt!important;}
+  .ka-gap-v{font-size:26pt!important;}
+  .ka-top{margin-bottom:7mm!important;}
+  .ka-score,.ka-gap{padding-top:4mm!important;padding-bottom:4mm!important;}
+  .ka-review{page-break-before:always;}
+  .v2-tbl{font-size:8.5pt!important;}
+  .v2-tbl th,.v2-tbl td{padding:1.3mm 2mm!important;}
+  .v2-tbl tr{break-inside:avoid;}
+  .cat-row{font-size:8.5pt!important;padding:1mm 0!important;}
+  .cats{gap:0 8mm!important;}
+  .exw summary{padding:2mm 0!important;}
+  .qd-q,.qd-opt{font-size:8.5pt!important;}
+  .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 </style>
 </head>
@@ -453,7 +726,8 @@ tbody tr:hover td{background:var(--g1);}
 
 <!-- LOGIN -->
 <div class="login-screen" id="loginScreen">
-  <div style="font-size:40px;">📊</div>
+  <div class="login-card">
+  <div class="login-kicker">言語聴覚士国家試験 模試</div>
   <div class="login-title">模試結果分析アプリ</div>
   <div class="login-sub">朝日医療大学のGoogleアカウントで<br>ログインしてください</div>
   <button class="btn-google" onclick="signIn()">
@@ -465,6 +739,7 @@ tbody tr:hover td{background:var(--g1);}
     </svg>
     Googleでログイン
   </button>
+  </div>
 </div>
 
 <!-- LOADING -->
@@ -477,7 +752,7 @@ tbody tr:hover td{background:var(--g1);}
 <div class="topbar" id="mainApp" style="display:none;">
   <span class="app-title">模試結果分析アプリ</span>
   <div class="spacer"></div>
-  <a id="marksheetLink" href="marksheet_firebase.html" target="_blank" rel="noopener noreferrer" class="marksheet-btn">📝 マークシートへ</a>
+  <a id="marksheetLink" href="marksheet_firebase.html" target="_blank" rel="noopener noreferrer" class="marksheet-btn">マークシート ↗</a>
   <div class="user-chip" onclick="signOut()" title="クリックでログアウト">
     <div class="av" id="userAv">—</div>
     <span id="userName">読込中...</span>
@@ -488,76 +763,48 @@ tbody tr:hover td{background:var(--g1);}
 <div class="layout" id="mainLayout" style="display:none;">
   <!-- SIDEBAR -->
   <nav class="sidebar">
-    <div class="nav-section-label" style="padding-top:4px;">対象</div>
-    <div class="teacher-only" style="display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 6px;">
+    <div class="nav-section-label">対象</div>
+    <div class="teacher-only" style="display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 8px;">
       <button class="gakunen-filter-btn" data-val="全員" onclick="onGakunenFilterChange('全員')">全員</button>
       <button class="gakunen-filter-btn active" data-val="3年" onclick="onGakunenFilterChange('3年')">3年</button>
       <button class="gakunen-filter-btn" data-val="2年" onclick="onGakunenFilterChange('2年')">2年</button>
     </div>
-    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:0 8px 4px;width:calc(100% - 16px);font-size:12px;"></select>
+    <select class="top-sel" id="examSel" onchange="onExamChange()" style="margin:0 8px 6px;width:calc(100% - 16px);font-size:12px;"></select>
     <div id="sidebarStudentWrap" style="display:none;">
       <select class="top-sel" id="sidebarStudentSel" onchange="onStudentChange()" style="margin:0 8px 4px;width:calc(100% - 16px);font-size:12px;"></select>
     </div>
-    <div class="nav-section-label">クラス全体</div>
-    <button class="nav-item nav-item-trend active" onclick="showPage('trend',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,13 5,7 9,10 15,3"/></svg>成績推移
-    </button>
-    <button class="nav-item nav-item-view" onclick="showPage('summary',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>個別模試集計
-    </button>
-    <button class="nav-item nav-item-view" onclick="showPage('category',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="3" rx="1"/><rect x="1" y="10" width="10" height="3" rx="1"/><rect x="1" y="1" width="8" height="3" rx="1"/></svg>分野別正答率
-    </button>
-    <button class="nav-item nav-item-view" onclick="showPage('lowrate',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="1" width="3" height="14" rx="1"/></svg>科目別低正答率
-    </button>
-    <button class="nav-item nav-item-view teacher-only" onclick="showPage('secclass',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h8M2 13h5"/><circle cx="13" cy="11" r="2.2"/></svg>節別の正答率
-    </button>
-    <div class="nav-section-label">学生個人</div>
-    <button class="nav-item nav-item-view" onclick="showPage('weakness',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"/></svg>弱点抽出
-    </button>
-    <button class="nav-item nav-item-view" onclick="showPage('sec',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h8M2 13h5"/><circle cx="13" cy="11" r="2.2"/></svg>節別の弱点
-    </button>
-    <button class="nav-item nav-item-view" onclick="showPage('review',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="1" width="11" height="14" rx="1"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>復習リスト
-    </button>
-    <button class="nav-item nav-item-view" onclick="showPage('hist',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="5" y1="1" x2="5" y2="15"/></svg>模試成績一覧
-    </button>
+    <div class="nav-section-label">見る</div>
+    <button class="nav-item teacher-only" data-page="exam" onclick="showPage('exam',this)">この模試</button>
+    <button class="nav-item teacher-only" data-page="roster" onclick="showPage('roster',this)">学生一覧</button>
+    <button class="nav-item" data-page="karte" id="navKarte" onclick="showPage('karte',this)">学生カルテ</button>
     <div class="nav-section-label">印刷</div>
-    <button class="print-btn nav-item" onclick="printCurrentPage()">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/></svg>このページを印刷
-    </button>
-    <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="5" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/><path d="M3 6h10a2 2 0 0 1 2 2v3H1V8a2 2 0 0 1 2-2z"/><path d="M6 12h4M8 10v4" stroke-width="1.2"/></svg>全学生を印刷
-    </button>
-    <div class="teacher-only">
-    <hr style="border:none;border-top:1px solid #fca5a5;margin:10px 8px 2px;">
-    <div class="nav-section-label" style="color:#b91c1c;">管理</div>
-    <button class="nav-item nav-item-admin" onclick="showPage('admin_exam',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="1" y1="6" x2="15" y2="6"/></svg>模試一覧・計画
-    </button>
-    <button class="nav-item nav-item-admin" onclick="showPage('data_edit',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="15"/><line x1="10" y1="1" x2="10" y2="15"/></svg>模試データ編集
-    </button>
-    <button class="nav-item nav-item-admin" onclick="showPage('admin_student',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>学生リスト編集
-    </button>
-    <button class="nav-item nav-item-admin" onclick="showPage('responses',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1"/><line x1="1" y1="5" x2="15" y2="5"/><line x1="1" y1="9" x2="15" y2="9"/><line x1="1" y1="13" x2="15" y2="13"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="5" y1="9" x2="5" y2="15"/></svg>回答データ
-    </button>
-    <button class="nav-item nav-item-admin" onclick="showPage('admin_teacher',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3.3 2.7-5 5-5"/><circle cx="12" cy="10" r="2.5"/><line x1="12" y1="7" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="13"/><line x1="9" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="15" y2="10"/></svg>教員リスト編集
-    </button>
+    <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
+    <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
+    <details class="nav-legacy">
+      <summary>旧画面<span>10月末まで</span></summary>
+      <button class="nav-item" data-page="trend" onclick="showPage('trend',this)">成績推移</button>
+      <button class="nav-item" data-page="summary" onclick="showPage('summary',this)">個別模試集計</button>
+      <button class="nav-item" data-page="category" onclick="showPage('category',this)">分野別正答率</button>
+      <button class="nav-item" data-page="lowrate" onclick="showPage('lowrate',this)">科目別低正答率</button>
+      <button class="nav-item teacher-only" data-page="secclass" onclick="showPage('secclass',this)">節別の正答率</button>
+      <button class="nav-item" data-page="weakness" onclick="showPage('weakness',this)">弱点抽出</button>
+      <button class="nav-item" data-page="sec" onclick="showPage('sec',this)">節別の弱点</button>
+      <button class="nav-item" data-page="review" onclick="showPage('review',this)">復習リスト</button>
+      <button class="nav-item" data-page="hist" onclick="showPage('hist',this)">模試成績一覧</button>
+    </details>
+    <div class="teacher-only nav-admin">
+    <div class="nav-section-label">管理</div>
+    <button class="nav-item" data-page="admin_exam" onclick="showPage('admin_exam',this)">模試一覧・計画</button>
+    <button class="nav-item" data-page="data_edit" onclick="showPage('data_edit',this)">模試データ編集</button>
+    <button class="nav-item" data-page="admin_student" onclick="showPage('admin_student',this)">学生リスト編集</button>
+    <button class="nav-item" data-page="responses" onclick="showPage('responses',this)">回答データ</button>
+    <button class="nav-item" data-page="admin_teacher" onclick="showPage('admin_teacher',this)">教員リスト編集</button>
     </div>
   </nav>
 
   <main class="main">
     <!-- 成績推移 -->
-    <div class="page active" id="page-trend">
+    <div class="page" id="page-trend">
       <div class="page-header-row">
         <div><div class="page-title">成績推移</div><div class="page-sub">全模試にわたる学生別の得点変化</div></div>
       </div>
@@ -588,11 +835,11 @@ tbody tr:hover td{background:var(--g1);}
         <div><div class="page-title">分野別正答率</div><div class="page-sub" id="catSubtitle"></div></div>
       </div>
       <div style="display:flex;gap:12px;height:calc(100vh - 160px);">
-        <div style="flex:1;background:rgba(26,92,232,0.05);border-radius:var(--r);border:1px solid rgba(26,92,232,0.18);padding:12px 14px;display:flex;flex-direction:column;min-width:0;">
+        <div style="flex:1;background:rgba(31,77,69,0.05);border-radius:var(--r);border:1px solid rgba(31,77,69,0.18);padding:12px 14px;display:flex;flex-direction:column;min-width:0;">
           <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.05em;margin-bottom:6px;">基礎医学・臨床医学系</div>
           <div style="flex:1;position:relative;"><canvas id="catChartLeft"></canvas></div>
         </div>
-        <div style="flex:1;background:rgba(185,28,28,0.05);border-radius:var(--r);border:1px solid rgba(185,28,28,0.18);padding:12px 14px;display:flex;flex-direction:column;min-width:0;">
+        <div style="flex:1;background:rgba(196,67,43,0.05);border-radius:var(--r);border:1px solid rgba(196,67,43,0.18);padding:12px 14px;display:flex;flex-direction:column;min-width:0;">
           <div style="font-size:11px;font-weight:700;color:var(--ng);letter-spacing:.05em;margin-bottom:6px;">言語聴覚障害学系</div>
           <div style="flex:1;position:relative;"><canvas id="catChartRight"></canvas></div>
         </div>
@@ -696,6 +943,35 @@ tbody tr:hover td{background:var(--g1);}
         <span class="filter-label">国試の類題：</span><div class="thresh-btns" id="rvKqBtns"><button data-val="3" class="active" onclick="setRvKq(3)">3問</button><button data-val="1" onclick="setRvKq(1)">1問</button><button data-val="0" onclick="setRvKq(0)">なし</button></div>
       </div>
       <div id="rvContent"></div>
+    </div>
+
+    <!-- この模試（クラス全体） -->
+    <div class="page" id="page-exam">
+      <header class="v2-head">
+        <div><div class="v2-kicker">この模試</div><h1 class="v2-title" id="exTitle"></h1><div class="v2-sub" id="exSub"></div></div>
+      </header>
+      <div id="exBody"></div>
+    </div>
+
+    <!-- 学生一覧 -->
+    <div class="page" id="page-roster">
+      <header class="v2-head">
+        <div><div class="v2-kicker">学生一覧</div><h1 class="v2-title" id="roTitle"></h1><div class="v2-sub" id="roSub"></div></div>
+        <div class="v2-ctrl">点の低い順。行をクリックでカルテ</div>
+      </header>
+      <div id="roBody"></div>
+    </div>
+
+    <!-- 学生カルテ -->
+    <div class="page" id="page-karte">
+      <header class="v2-head">
+        <div><div class="v2-kicker" id="kaKicker">学生カルテ</div><h1 class="v2-title" id="kaTitle"></h1><div class="v2-sub" id="kaSub"></div></div>
+        <div class="v2-ctrl">
+          <label>節の範囲 <span class="seg" id="kaScopeBtns"><button data-val="exam" class="active" onclick="setKarteScope('exam')">この模試</button><button data-val="all" onclick="setKarteScope('all')">全模試通算</button></span></label>
+          <label>国試の類題 <span class="seg" id="kaKqBtns"><button data-val="0" onclick="setKarteKq(0)">なし</button><button data-val="1" onclick="setKarteKq(1)">1問</button><button data-val="3" class="active" onclick="setKarteKq(3)">3問</button></span></label>
+        </div>
+      </header>
+      <div id="kaBody"></div>
     </div>
 
     <!-- 模試一覧・計画 -->
@@ -1034,6 +1310,7 @@ function onGakunenFilterChange(val) {
   // サイドバー学生セレクタを更新してから全画面再描画
   initSidebarStudentSel();
   renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak(); renderStudentHistory(); renderSecViews();
+  renderV2();
 }
 
 // 分野の表示順（固定）
@@ -1189,9 +1466,15 @@ async function loadAllData() {
     });
 
     // セレクト設定
-    const opts = examList.map(e => `<option value="${esc(e.name)}">${esc(e.name)}（${esc(formatDate(e.date))}）</option>`).join('');
+    const nResp = n => Object.keys(allData[n]?.responses || {}).length;
+    const opts = examList.map(e => {
+      const k = nResp(e.name);
+      return `<option value="${esc(e.name)}">${esc(e.name)}${e.date ? `（${esc(formatDate(e.date))}）` : ''}${k ? (isTeacher ? ` · ${k}人` : ' · 受験済') : ''}</option>`;
+    }).join('');
     document.getElementById('examSel').innerHTML = opts;
-    currentExam = examList[0]?.name || '';
+    currentExam = (examList.find(e => nResp(e.name)) || examList[0])?.name || '';
+    document.getElementById('examSel').value = currentExam;
+    if (!isTeacher) { const nk = document.getElementById('navKarte'); if (nk) nk.textContent = 'わたしのカルテ'; }
 
     // サイドバー学生セレクト
     initSidebarStudentSel();
@@ -1208,6 +1491,8 @@ async function loadAllData() {
     renderStudentHistory();
     await refP;
     renderSecViews();
+    if (isTeacher) publishStats().catch(e => console.warn(e));
+    if (!document.querySelector('.page.active')) showPage(isTeacher ? 'exam' : 'karte'); else renderV2();
 
   } catch(e) {
     console.error(e);
@@ -1220,8 +1505,14 @@ async function loadAllData() {
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  btn.classList.add('active');
+  const pg = document.getElementById('page-' + id);
+  if (!pg) return;
+  pg.classList.add('active');
+  const b = btn || document.querySelector('.nav-item[data-page="' + id + '"]');
+  if (b) { b.classList.add('active'); const lg = b.closest('details.nav-legacy'); if (lg) lg.open = true; }
+  if (id === 'exam') renderExamView();
+  if (id === 'roster') renderRoster();
+  if (id === 'karte') renderKarte();
   if (id === 'admin_teacher') renderAdminTeacherTable();
   if (id === 'lowrate') renderLowRate();
   if (id === 'sec') renderSec();
@@ -1237,6 +1528,7 @@ function onExamChange() {
   renderLowRate();
   loadAndRenderWeak();
   renderSecViews();
+  renderV2();
 }
 
 function onStudentChange() {
@@ -1244,6 +1536,7 @@ function onStudentChange() {
   loadAndRenderWeak();
   renderStudentHistory();
   renderSecViews();
+  renderV2();
 }
 
 function initSidebarStudentSel() {
@@ -1273,7 +1566,7 @@ function getExamName() {
 // ===== 成績推移 =====
 function renderTrend() {
   const PASS = 120;
-  const examColors = ['#1A5CE8','#E8851A','#B91C1C','#7C3AED','#0891B2','#BE185D','#065F46','#D97706','#6B21A8','#15803D'];
+  const examColors = ['#1F4D45','#E8851A','#C4432B','#7C3AED','#0891B2','#BE185D','#065F46','#D97706','#6B21A8','#2F6B4F'];
 
   // データがある模試を特定
   const activeStudents = getActiveStudents();
@@ -1353,10 +1646,10 @@ function renderTrend() {
       const {ctx,chartArea:{left,right,top,bottom},scales:{y}} = chart;
       const yPos = y.getPixelForValue(120);
       ctx.save();
-      ctx.fillStyle='rgba(185,28,28,0.06)';ctx.fillRect(left,yPos,right-left,bottom-yPos);
+      ctx.fillStyle='rgba(196,67,43,0.06)';ctx.fillRect(left,yPos,right-left,bottom-yPos);
       ctx.beginPath();ctx.moveTo(left,yPos);ctx.lineTo(right,yPos);
-      ctx.strokeStyle='#B91C1C';ctx.lineWidth=2.5;ctx.stroke();
-      ctx.fillStyle='#B91C1C';ctx.fillRect(left+6,yPos-20,90,18);
+      ctx.strokeStyle='#C4432B';ctx.lineWidth=2.5;ctx.stroke();
+      ctx.fillStyle='#C4432B';ctx.fillRect(left+6,yPos-20,90,18);
       ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
       ctx.fillText('合格ライン 120点',left+10,yPos-11);ctx.restore();
     }}]
@@ -1399,7 +1692,7 @@ function renderSummary() {
   });
   if(charts.dist)charts.dist.destroy();
   charts.dist=new Chart(document.getElementById('distChart'),{
-    type:'bar',data:{labels:bins,datasets:[{label:'人数',data:binData,backgroundColor:bins.map((_,i)=>{const lo=startBin+i*binSize;return lo>=120?'rgba(21,128,61,0.75)':lo>=100?'rgba(180,83,9,0.65)':'rgba(185,28,28,0.65)';}),borderRadius:6}]},
+    type:'bar',data:{labels:bins,datasets:[{label:'人数',data:binData,backgroundColor:bins.map((_,i)=>{const lo=startBin+i*binSize;return lo>=120?'rgba(47,107,79,0.75)':lo>=100?'rgba(180,83,9,0.65)':'rgba(196,67,43,0.65)';}),borderRadius:6}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:1,font:{size:11}},grid:{color:'#f0eeeb'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
   });
 }
@@ -1453,7 +1746,7 @@ function renderCategory() {
 
   function makeRefLines(chart, data) {
     const {ctx,chartArea:{left,right,top,bottom},scales:{x}}=chart;
-    [{v:60,label:'60%',color:'rgba(185,28,28,0.55)'},{v:70,label:'70%',color:'rgba(180,83,9,0.55)'},{v:80,label:'80%',color:'rgba(21,128,61,0.55)'}].forEach(({v,label,color})=>{
+    [{v:60,label:'60%',color:'rgba(196,67,43,0.55)'},{v:70,label:'70%',color:'rgba(180,83,9,0.55)'},{v:80,label:'80%',color:'rgba(47,107,79,0.55)'}].forEach(({v,label,color})=>{
       const xp=x.getPixelForValue(v);ctx.save();ctx.beginPath();ctx.moveTo(xp,top);ctx.lineTo(xp,bottom);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText(label,xp,top-3);ctx.restore();
     });
     const meta1=chart.getDatasetMeta(1);
@@ -1498,8 +1791,8 @@ function renderCategory() {
 
   if(charts.catLeft)  charts.catLeft.destroy();
   if(charts.catRight) charts.catRight.destroy();
-  charts.catLeft  = buildChart('catChartLeft',  makeCatData(leftCats),  'rgba(26,92,232,0.72)', 'rgba(26,92,232,0.32)');
-  charts.catRight = buildChart('catChartRight', makeCatData(rightCats), 'rgba(185,28,28,0.72)', 'rgba(185,28,28,0.32)');
+  charts.catLeft  = buildChart('catChartLeft',  makeCatData(leftCats),  'rgba(31,77,69,0.72)', 'rgba(31,77,69,0.32)');
+  charts.catRight = buildChart('catChartRight', makeCatData(rightCats), 'rgba(196,67,43,0.72)', 'rgba(196,67,43,0.32)');
 }
 
 // ===== 科目別低正答率 =====
@@ -2056,7 +2349,7 @@ function printWeakStar() {
           <span class="lrp-qno">${part} 第${dispNo}問</span>
           <span class="lrp-rate">クラス正答率 ${pct}%</span>
           <span class="lrp-ans">正解: ${esc(correct)}</span>
-          <span style="font-size:8.5pt;color:#b91c1c;font-weight:700;">あなた: ${myAns??'—'}</span>
+          <span style="font-size:8.5pt;color:#C4432B;font-weight:700;">あなた: ${myAns??'—'}</span>
         </div>`;
       if (qdata?.question) {
         html += `<div class="lrp-qtext">${esc(qdata.question)}</div>`;
@@ -2362,7 +2655,7 @@ function renderStudentGrid() {
       <td><input class="grid-cell" style="width:100%;" type="text" value="${esc(s.name||'')}" data-si="${i}" data-type="name" onchange="onStudentCellChange(this)"></td>
       <td><input class="grid-cell" style="width:100%;text-align:center;" type="text" placeholder="例:2024" value="${esc(s.nendo||'')}" data-si="${i}" data-type="nendo" onchange="onStudentCellChange(this)"></td>
       <td style="padding:0 4px;"><select class="grid-cell" style="width:100%;font-size:12px;" data-si="${i}" data-type="gakunen" onchange="onStudentCellChange(this)">${gakunenOpts}</select></td>
-      <td style="text-align:center;"><button onclick="toggleStudentGridActive(${i})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;${toggleStyle}">${active?'有効':'無効'}</button></td>
+      <td style="text-align:center;"><button onclick="toggleStudentGridActive(${i})" style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans JP',sans-serif;${toggleStyle}">${active?'有効':'無効'}</button></td>
       <td style="font-size:11px;color:var(--g4);padding:4px 8px;">${dateStr}</td>
       <td style="font-size:10px;color:var(--g3);padding:4px 8px;font-family:'DM Mono',monospace;user-select:all;">${esc(s.uid||'—')}</td>
       <td style="text-align:center;"><button class="btn-admin-del" onclick="deleteStudentRow(${i})">削除</button></td>
@@ -2797,7 +3090,12 @@ function withPortraitPrint(fn) {
 
 function printCurrentPage() {
   const id = document.querySelector('.page.active')?.id;
-  if (id === 'page-review' || id === 'page-sec' || id === 'page-secclass') withPortraitPrint(() => window.print());
+  if (id === 'page-exam') {
+    const shut = [...document.querySelectorAll('#page-exam details.exw')].filter(d => !d.open);
+    shut.forEach(d => d.open = true);
+    withPortraitPrint(() => window.print());
+    setTimeout(() => shut.forEach(d => d.open = false), 1000);
+  } else if (['page-review', 'page-sec', 'page-secclass', 'page-roster', 'page-karte'].includes(id)) withPortraitPrint(() => window.print());
   else window.print();
 }
 
@@ -2835,6 +3133,8 @@ function renderSecViews() {
 // ===== 全学生印刷 =====
 function printAllStudents(){
   const activePage = document.querySelector('.page.active')?.id;
+  if (activePage === 'page-karte' || activePage === 'page-roster') { printAllKarte(); return; }
+  if (activePage === 'page-exam') { printCurrentPage(); return; }
   if (activePage === 'page-hist') { printAllStudentsHist(); return; }
   if (activePage === 'page-sec') { printAllStudentsSec('sec'); return; }
   if (activePage === 'page-review') { printAllStudentsSec('review'); return; }
@@ -3171,7 +3471,7 @@ function printRespDetail() {
   st.textContent = `
     @page{size:A4 portrait;margin:10mm 12mm;}
     body.print-resp-detail>*:not(#resp-print-div){display:none!important;}
-    #resp-print-div{display:block!important;font-family:'Noto Sans JP',sans-serif;font-size:7.5pt;}
+    #resp-print-div{display:block!important;font-family:'IBM Plex Sans JP',sans-serif;font-size:7.5pt;}
     #resp-print-div .pcol-hd{font-size:6pt;font-weight:700;color:#888;border-bottom:0.5pt solid #ccc;margin-bottom:1px;padding-bottom:1px;}
     #resp-print-div .prow{display:flex;align-items:baseline;gap:2px;padding:1px 0;border-bottom:0.3pt solid #eee;break-inside:avoid;}
     #resp-print-div .pq{width:20px;color:#666;font-family:monospace;font-size:7pt;flex-shrink:0;text-align:right;}
@@ -3490,8 +3790,8 @@ function renderStudentHistory() {
   CATEGORY_ORDER.forEach((cat, ci) => {
     const isLeft     = ci < 25;
     const isBoundary = cat === '失語症';
-    const rowBg  = isLeft ? 'rgba(26,92,232,0.05)' : 'rgba(185,28,28,0.05)';
-    const catBg  = isLeft ? 'rgba(26,92,232,0.09)' : 'rgba(185,28,28,0.09)';
+    const rowBg  = isLeft ? 'rgba(31,77,69,0.05)' : 'rgba(196,67,43,0.05)';
+    const catBg  = isLeft ? 'rgba(31,77,69,0.09)' : 'rgba(196,67,43,0.09)';
     html += `<tr${isBoundary ? ' class="sec-div"' : ''}>`;
     html += `<td class="hist-cat-td" style="background:${catBg};">${cat}</td>`;
     examData.forEach(d => {
@@ -3630,6 +3930,483 @@ async function deletePendingTeacher(key) {
   if (!confirm('事前登録を削除しますか？')) return;
   await db.ref('pending_teachers/' + key).remove();
   await renderAdminTeacherTable();
+}
+
+// ===== 見る：この模試（クラス）／学生一覧／学生カルテ =====
+// クラスの数字は教員が開いたときに exams/<模試>/stats へ集計を置く（名前は入れない）。学生はそれを読んで自分の位置を見る
+const PASS_LINE = 120;
+let karteScope   = 'exam';   // 節の範囲 'exam' | 'all'
+let karteKqN     = 3;        // 節ごとに出す国試の類題
+let karteShowAll = false;    // 優先節 上位10 ／ すべて
+let karteSeq     = 0;
+let ctxMemo      = {};
+
+if (window.Chart) {
+  Chart.defaults.font.family = "'IBM Plex Sans JP', sans-serif";
+  Chart.defaults.color = '#6B716C';
+  Chart.defaults.borderColor = '#E3E5E1';
+}
+
+function asArr(o) { return Array.isArray(o) ? o : Object.values(o || {}); }
+function partScore(r, part) { return r?.[part]?.status === 'submitted' ? (Number(r[part].score) || 0) : null; }
+function examTotal(exam, uid) {
+  const r = allData[exam]?.responses?.[uid];
+  const am = partScore(r, 'AM'), pm = partScore(r, 'PM');
+  if (am === null && pm === null) return null;
+  return { am, pm, total: (am || 0) + (pm || 0), full: am !== null && pm !== null };
+}
+function examsTakenBy(uid) { return examList.filter(e => examTotal(e.name, uid)); }  // 新しい順
+function shortExam(name) { return String(name || '').replace(/_/g, ' '); }
+function signed(v) { return v > 0 ? '+' + v : v < 0 ? '−' + (-v) : '±0'; }
+
+// 模試1回分のクラス集計：合計点の分布（午前午後とも提出した人）・各問の正答数・選択肢の分布
+function computeStats(exam, list) {
+  const m = allData[exam]?.master || {};
+  const ans = m.answers || {};
+  const totals = [], q = {}, opt = {};
+  let partial = 0;
+  list.forEach(s => {
+    const t = examTotal(exam, s.uid);
+    if (!t) return;
+    if (t.full) totals.push(t.total); else partial++;
+    const r = allData[exam].responses[s.uid];
+    ['AM', 'PM'].forEach(part => {
+      if (r?.[part]?.status !== 'submitted') return;
+      const a = r[part].answers || {};
+      const st = part === 'AM' ? 1 : 101;
+      for (let n = st; n < st + 100; n++) {
+        const c = String(ans[n] || '');
+        if (!ansScorable(c)) continue;
+        const o = q['q' + n] || (q['q' + n] = { c: 0, t: 0 });
+        o.t++;
+        const my = String(a[n] ?? '');
+        if (ansIsCorrect(c, my)) o.c++;
+        const oc = opt[n] || (opt[n] = {});
+        oc[my] = (oc[my] || 0) + 1;
+      }
+    });
+  });
+  totals.sort((a, b) => a - b);
+  const k = totals.length;
+  const avg = k ? Math.round(totals.reduce((a, b) => a + b, 0) / k * 10) / 10 : null;
+  const med = k ? (k % 2 ? totals[(k - 1) / 2] : (totals[k / 2 - 1] + totals[k / 2]) / 2) : null;
+  return { n: k, partial, totals, avg, med, q, opt };
+}
+function statsSig(s) {
+  const q = s.q || {};
+  return [s.n || 0, s.partial || 0, asArr(s.totals).join(','),
+    Object.keys(q).sort().map(k => k + ':' + q[k].c + '/' + q[k].t).join(',')].join('|');
+}
+// 教員が開いたときだけ：変わった模試の集計を書く（学生の回答・学生リストには触らない）
+async function publishStats() {
+  if (!isTeacher) return;
+  const list = students.filter(s => s.active !== false);
+  for (const e of examList) {
+    const m = allData[e.name]?.master;
+    if (!m) continue;
+    const s = computeStats(e.name, list);
+    if (!s.n && !s.partial && !m.stats) continue;
+    const out = { n: s.n, partial: s.partial, totals: s.totals, avg: s.avg, med: s.med, q: s.q, updatedAt: Date.now() };
+    if (m.stats && statsSig(m.stats) === statsSig(out)) continue;
+    try { await db.ref('exams/' + e.name + '/stats').set(out); m.stats = out; }
+    catch (err) { console.warn('stats の保存に失敗', e.name, err); }
+  }
+}
+// クラスの数字：教員はその場で（学年フィルター内）、学生は置いてある集計を読む
+function ctx(exam) {
+  if (!exam) return null;
+  if (exam in ctxMemo) return ctxMemo[exam];
+  let v = null;
+  if (isTeacher) v = computeStats(exam, getActiveStudents());
+  else {
+    const s = allData[exam]?.master?.stats;
+    if (s) v = { n: s.n || 0, partial: s.partial || 0, totals: asArr(s.totals).map(Number).sort((a, b) => a - b),
+                 avg: s.avg ?? null, med: s.med ?? null, q: s.q || {}, opt: null };
+  }
+  return (ctxMemo[exam] = v);
+}
+function qRate(st, n) { const o = st?.q?.['q' + n]; return o && o.t ? o.c / o.t : null; }
+
+function catOf(exam, n) { const c = allData[exam]?.master?.categories; return c ? (c[n] || '') : ''; }
+function studentCatStats(exam, uid) {
+  const m = allData[exam]?.master, r = allData[exam]?.responses?.[uid], out = {};
+  if (!m?.answers || !r) return out;
+  ['AM', 'PM'].forEach(part => {
+    if (r[part]?.status !== 'submitted') return;
+    const a = r[part].answers || {};
+    const st = part === 'AM' ? 1 : 101;
+    for (let n = st; n < st + 100; n++) {
+      const c = String(m.answers[n] || '');
+      const cat = catOf(exam, n);
+      if (!ansScorable(c) || !cat) continue;
+      const o = out[cat] || (out[cat] = { c: 0, t: 0 });
+      o.t++; if (ansIsCorrect(c, a[n])) o.c++;
+    }
+  });
+  return out;
+}
+function classCatStats(exam, st) {
+  const out = {};
+  Object.entries(st?.q || {}).forEach(([k, v]) => {
+    const cat = catOf(exam, Number(k.slice(1)));
+    if (!cat) return;
+    const o = out[cat] || (out[cat] = { c: 0, t: 0, qn: 0 });
+    o.c += v.c; o.t += v.t; o.qn++;
+  });
+  return out;
+}
+function splitCats(names) {
+  const split = CATEGORY_ORDER.indexOf('失語症');
+  const idx = c => CATEGORY_ORDER.includes(c) ? CATEGORY_ORDER.indexOf(c) : 999;
+  const s = [...names].sort((a, b) => idx(a) - idx(b));
+  return [s.filter(c => idx(c) < split), s.filter(c => idx(c) >= split)];
+}
+
+// ---------- 図（SVG・印刷でもそのまま出る） ----------
+function histSvg(totals) {
+  const W = 960, H = 250, L = 34, R = 12, T = 20, B = 30;
+  const lo = Math.max(0, Math.floor(Math.min(...totals, PASS_LINE) / 10) * 10 - 10);
+  const hi = Math.min(200, Math.floor(Math.max(...totals, PASS_LINE) / 10) * 10 + 20);
+  const bins = [];
+  for (let b = lo; b < hi; b += 10) bins.push({ b, n: totals.filter(t => t >= b && (t < b + 10 || (b + 10 === 200 && t === 200))).length });
+  const maxN = Math.max(1, ...bins.map(x => x.n));
+  const x = v => L + (v - lo) / (hi - lo) * (W - L - R);
+  const y = n => T + (1 - n / maxN) * (H - T - B);
+  const step = maxN <= 5 ? 1 : Math.ceil(maxN / 4);
+  let g = '';
+  for (let n = 0; n <= maxN; n += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(n)}" y2="${y(n)}"/><text x="${L - 8}" y="${y(n) + 4}" text-anchor="end">${n}</text>`;
+  const lab = (hi - lo) / 10 > 12 ? 20 : 10;
+  bins.forEach(({ b, n }) => {
+    if (n) g += `<rect class="hb${b >= PASS_LINE ? ' ok' : ''}" x="${x(b) + 2}" y="${y(n)}" width="${x(b + 10) - x(b) - 4}" height="${y(0) - y(n)}"/>` +
+                `<text class="hn" x="${(x(b) + x(b + 10)) / 2}" y="${y(n) - 5}" text-anchor="middle">${n}</text>`;
+  });
+  for (let v = lo; v <= hi; v += lab) if (v !== PASS_LINE) g += `<text x="${x(v)}" y="${H - 10}" text-anchor="middle">${v}</text>`;
+  g += `<line class="ax" x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}"/>`;
+  g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="${T - 8}" y2="${y(0)}"/><text class="plt" x="${x(PASS_LINE)}" y="${H - 10}" text-anchor="middle">120</text>`;
+  return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の分布">${g}</svg>`;
+}
+function stripSvg(totals, mine, avg) {
+  const W = 960, H = 96, L = 14, R = 14, base = 62;
+  const x = v => L + v / 200 * (W - L - R);
+  let g = `<line class="ax" x1="${L}" x2="${W - R}" y1="${base}" y2="${base}"/>`;
+  [0, 40, 80, 160, 200].forEach(v => { g += `<line class="ax" x1="${x(v)}" x2="${x(v)}" y1="${base}" y2="${base + 4}"/><text x="${x(v)}" y="${base + 18}" text-anchor="middle">${v}</text>`; });
+  g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="14" y2="${base + 4}"/><text class="plt" x="${x(PASS_LINE)}" y="${base + 18}" text-anchor="middle">120</text>`;
+  const seen = {};
+  totals.forEach(t => { const k = seen[t] = (seen[t] || 0) + 1; g += `<circle class="sd" cx="${x(t)}" cy="${base - 7 - (k - 1) * 8}" r="3.4"/>`; });
+  if (avg != null) g += `<path class="avt" d="M${x(avg)} ${base + 3} l-4 7 h8 z"/>`;
+  if (mine != null) g += `<line class="me" x1="${x(mine)}" x2="${x(mine)}" y1="12" y2="${base}"/><text class="met jp" x="${x(mine)}" y="8" text-anchor="middle">${isTeacher ? '本人' : 'あなた'} ${mine}</text>`;
+  return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="クラスの分布">${g}</svg>`;
+}
+function trendSvg(pts) {  // pts: [{label, me, avg}] 古い順
+  const W = 960, H = 260, L = 38, R = 20, T = 22, B = 36;
+  const vals = pts.flatMap(p => [p.me, p.avg]).filter(v => v != null).concat(PASS_LINE);
+  const lo = Math.max(0, Math.floor((Math.min(...vals) - 10) / 20) * 20);
+  const hi = Math.min(200, Math.ceil((Math.max(...vals) + 10) / 20) * 20);
+  const x = i => pts.length === 1 ? (L + W - R) / 2 : L + 20 + i / (pts.length - 1) * (W - L - R - 40);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  let g = '';
+  for (let v = lo; v <= hi; v += 20) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  g += `<line class="pl" x1="${L}" x2="${W - R}" y1="${y(PASS_LINE)}" y2="${y(PASS_LINE)}"/>`;
+  const line = (key, cls) => { const p = pts.map((d, i) => d[key] == null ? null : `${x(i)},${y(d[key])}`).filter(Boolean); return p.length > 1 ? `<polyline class="${cls}" points="${p.join(' ')}"/>` : ''; };
+  g += line('avg', 'ln-avg') + line('me', 'ln-me');
+  pts.forEach((d, i) => {
+    if (d.avg != null) g += `<circle class="dt-avg" cx="${x(i)}" cy="${y(d.avg)}" r="3"/>`;
+    if (d.me != null) g += `<circle class="dt-me" cx="${x(i)}" cy="${y(d.me)}" r="4.5"/><text class="hn" x="${x(i)}" y="${y(d.me) - 10}" text-anchor="middle">${d.me}</text>`;
+    const lb = d.label.length > 18 ? d.label.slice(0, 17) + '…' : d.label;
+    g += `<text class="jp" x="${x(i)}" y="${H - 12}" text-anchor="middle">${esc(lb)}</text>`;
+  });
+  return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の推移">${g}</svg>`;
+}
+function sparkSvg(vals) {
+  if (!vals.length) return '';
+  const W = 84, H = 22, P = 3;
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = Math.max(hi - lo, 10);
+  const x = i => vals.length === 1 ? W / 2 : P + i / (vals.length - 1) * (W - 2 * P);
+  const y = v => P + (1 - (v - lo) / span) * (H - 2 * P);
+  const pts = vals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  const li = vals.length - 1;
+  return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" style="width:${W}px">${vals.length > 1 ? `<polyline class="sp" points="${pts}"/>` : ''}<circle class="spd" cx="${x(li)}" cy="${y(vals[li])}" r="2.4"/></svg>`;
+}
+function catRowsHtml(names, rowFn, head) {
+  return `<div><div class="cat-g">${head}</div>${names.map(rowFn).join('') || '<div class="cat-row"><span class="cat-name muted">—</span></div>'}</div>`;
+}
+
+// ---------- この模試（クラス） ----------
+function examQs(ex, key) {
+  const out = [], m = allData[ex]?.master;
+  for (let n = 1; n <= 200; n++) if (secKeyOf(ex, n) === key && ansScorable(String(m?.answers?.[n] || ''))) out.push(n);
+  return out;
+}
+function qDistHtml(ex, n, st) {
+  const m = allData[ex]?.master || {};
+  const qq = m.questions?.[n];
+  const correct = String(m.answers?.[n] || '');
+  const qs = st?.q?.['q' + n] || { c: 0, t: 0 };
+  const rate = qs.t ? Math.round(qs.c / qs.t * 100) : null;
+  const oc = st?.opt?.[n] || {};
+  const isC = k => correct.includes(',') ? correct.split(',').map(s => s.trim()).includes(k) : k === correct;
+  const row = (k, text, withBar) => {
+    const p = qs.t ? Math.round((oc[k] || 0) / qs.t * 100) : 0;
+    return `<div class="qd-opt${withBar && isC(k) ? ' ok' : ''}"><span class="qd-k">${esc(k)}</span><span>${esc(text)}</span>` +
+      (withBar ? `<span class="qd-bar"><i style="width:${p}%"></i></span><span class="qd-p mn">${p}%</span>` : '<span></span><span></span>') + '</div>';
+  };
+  let h = `<div class="qd"><div class="qd-hd"><span class="mn">${n <= 100 ? '午前' : '午後'} 問${n <= 100 ? n : n - 100}</span><span>正答 <b>${esc(correct)}</b></span><span>クラス正答率 <b class="mn">${rate ?? '—'}%</b></span><span>${qs.t}人</span></div>`;
+  if (!qq?.question) return h + '<div class="qd-q muted">（問題文が登録されていません）</div></div>';
+  h += `<div class="qd-q">${esc(qq.question)}</div>`;
+  const opts = Object.entries(qq.options || {}).filter(([, v]) => v != null).sort((a, b) => a[0].localeCompare(b[0], 'ja', { numeric: true }));
+  const ch = Array.isArray(qq.choices) ? qq.choices.filter(x => x != null) : Object.values(qq.choices || {});
+  if (ch.length) {
+    h += `<div class="qd-opts">${opts.map(([k, v]) => row(k, String(v), false)).join('')}</div>`;
+    h += `<div class="qd-opts qd-ch">${ch.map(c => { const k = String(c).match(/^(\d+)/)?.[1] || ''; return row(k, String(c).replace(/^\d+[.．、\s]*/, ''), !!k); }).join('')}</div>`;
+  } else {
+    h += `<div class="qd-opts">${opts.map(([k, v]) => row(k, String(v), true)).join('')}</div>`;
+  }
+  if (oc['']) h += `<div class="qd-foot">無回答 ${oc['']}人</div>`;
+  return h + '</div>';
+}
+function renderExamView() {
+  const box = document.getElementById('exBody');
+  if (!box) return;
+  ctxMemo = {};
+  const ex = currentExam, e = examList.find(x => x.name === ex);
+  document.getElementById('exTitle').textContent = ex ? shortExam(ex) : '模試がありません';
+  document.getElementById('exSub').textContent = ex ? [e?.date ? formatDate(e.date) + ' 実施' : '実施日 未設定', '対象 ' + currentGakunenFilter].join('　·　') : '';
+  const st = ctx(ex);
+  if (!st || (!st.n && !st.partial)) { box.innerHTML = '<div class="v2-empty">この模試の回答はまだありません（対象の学年を確かめてください）。</div>'; return; }
+  const enrolled = getActiveStudents().length, t = st.totals;
+  const reach = t.filter(v => v >= PASS_LINE).length;
+  const fig = (l, v, s) => `<div class="fig"><div class="fig-l">${l}</div><div class="fig-v">${v}</div>${s ? `<div class="fig-s">${s}</div>` : ''}</div>`;
+  let h = `<div class="figs">` +
+    fig('受験', `${st.n}<small>人</small>`, [st.partial ? `片方の時限のみ ${st.partial}人` : '', `未受験 ${Math.max(0, enrolled - st.n - st.partial)}人`].filter(Boolean).join('　')) +
+    fig('平均', st.avg ?? '—', '200点満点') +
+    fig('中央値', st.med ?? '—', '') +
+    fig('最高 / 最低', t.length ? `${t[t.length - 1]}<small>/ ${t[0]}</small>` : '—', '') +
+    fig('120点以上', `${reach}<small>/ ${st.n}</small>`, '合格ラインの目安') + `</div>`;
+  if (t.length) h += `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">10点刻み　赤線＝120点</span></div>${histSvg(t)}</section>`;
+
+  const cc = classCatStats(ex, st);
+  const [a, b] = splitCats(Object.keys(cc).filter(c => cc[c].t));
+  const row = c => { const p = Math.round(cc[c].c / cc[c].t * 100);
+    return `<div class="cat-row"><span class="cat-name">${esc(c)}<span class="cat-n">${cc[c].qn}問</span></span><span class="bar"><i class="${pctCls(p)}" style="width:${p}%"></i></span><span class="cat-p mn">${p}%</span></div>`; };
+  h += `<section class="v2-block"><div class="v2-h"><h2>分野別の正答率</h2><span class="v2-note">緑 70%以上　黄 50〜69%　赤 50%未満</span></div><div class="cats">${catRowsHtml(a, row, '基礎')}${catRowsHtml(b, row, '専門')}</div></section>`;
+
+  h += `<section class="v2-block"><div class="v2-h"><h2>クラスで落とした節</h2><span class="v2-note">正答率の低い順に10節。開くと問題と選択肢の分布</span></div>`;
+  if (!allData[ex]?.master?.sections) h += '<div class="v2-empty">この模試には節の紐づけがありません。</div>';
+  else {
+    const cs = classSecStats([ex]);
+    const rows = Object.entries(cs).map(([k, v]) => ({ k, v, p: v.ok / v.n, kq: secKqIds(k).length }))
+      .sort((x, y) => x.p - y.p || y.kq - x.kq).slice(0, 10);
+    h += refNotice() + rows.map((r, i) => {
+      const p = Math.round(r.p * 100), info = secInfo(r.k), qs = examQs(ex, r.k).sort((x, y) => (qRate(st, x) ?? 1) - (qRate(st, y) ?? 1));
+      return `<details class="exw"><summary><span class="exw-no">${String(i + 1).padStart(2, '0')}</span>` +
+        `<span class="exw-name">${info.g ? `<div class="rv-sec-g">${esc(info.g)}</div>` : ''}${secPathHtml(r.k)}</span>` +
+        `<span class="exw-p ${pctCls(p)}">${p}%</span>` +
+        `<span class="exw-meta">国試の出題 ${r.kq}問　·　5割未満 ${r.v.low}/${r.v.stu}人　·　この模試 ${qs.length}問</span></summary>` +
+        `<div class="exw-body">${qs.map(n => qDistHtml(ex, n, st)).join('')}</div></details>`;
+    }).join('');
+  }
+  box.innerHTML = h + '</section>';
+}
+
+// ---------- 学生一覧 ----------
+function weakestCat(ex, uid) {
+  const cs = studentCatStats(ex, uid);
+  let best = null;
+  Object.entries(cs).forEach(([c, v]) => { if (v.t < 3) return; const p = v.c / v.t; if (!best || p < best.p) best = { c, p }; });
+  return best;
+}
+function renderRoster() {
+  const box = document.getElementById('roBody');
+  if (!box) return;
+  ctxMemo = {};
+  const ex = currentExam, list = getActiveStudents(), idx = examList.findIndex(e => e.name === ex);
+  const rows = list.map(s => {
+    const t = examTotal(ex, s.uid);
+    const prev = examList.slice(idx + 1).find(e => examTotal(e.name, s.uid));
+    const taken = examsTakenBy(s.uid);
+    return { s, t, pt: prev ? examTotal(prev.name, s.uid) : null, weak: t ? weakestCat(ex, s.uid) : null,
+             n: taken.length, spark: taken.slice().reverse().map(e => examTotal(e.name, s.uid).total) };
+  }).sort((a, b) => (a.t ? a.t.total : 1e9) - (b.t ? b.t.total : 1e9) || (a.s.email || '').localeCompare(b.s.email || ''));
+  const took = rows.filter(r => r.t).length, reach = rows.filter(r => r.t?.full && r.t.total >= PASS_LINE).length;
+  document.getElementById('roTitle').textContent = ex ? shortExam(ex) : '';
+  document.getElementById('roSub').textContent = `対象 ${currentGakunenFilter}　·　受験 ${took} / ${list.length}人　·　120点以上 ${reach}人`;
+  if (!list.length) { box.innerHTML = '<div class="v2-empty">この学年の学生がいません。</div>'; return; }
+  box.innerHTML = `<div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
+      <th>名前</th><th class="r">合計</th><th class="r">午前</th><th class="r">午後</th><th class="r">前回比</th><th class="r">120まで</th><th>いちばん低い分野</th><th class="r">受験</th><th>推移</th>
+    </tr></thead><tbody>${rows.map(r => {
+      const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
+      return `<tr class="click" data-uid="${esc(r.s.uid)}">
+        <td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>
+        <td class="r mn"><b>${t ? t.total : '—'}</b>${t && !t.full ? '<span class="muted">*</span>' : ''}</td>
+        <td class="r mn">${t?.am ?? '—'}</td><td class="r mn">${t?.pm ?? '—'}</td>
+        <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
+        <td class="r mn">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
+        <td>${r.weak ? `${esc(r.weak.c)} <span class="mn muted">${Math.round(r.weak.p * 100)}%</span>` : '—'}</td>
+        <td class="r mn">${r.n}</td><td>${sparkSvg(r.spark)}</td></tr>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。いちばん低い分野は3問以上ある分野から。</div>`;
+  box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => openKarte(tr.dataset.uid)));
+}
+function openKarte(uid) {
+  const sel = document.getElementById('sidebarStudentSel');
+  if (sel) sel.value = uid;
+  currentStudent = uid;
+  onStudentChange();
+  showPage('karte');
+  window.scrollTo(0, 0);
+}
+
+// ---------- 学生カルテ ----------
+function setKarteScope(v) { karteScope = v; setSegActive('kaScopeBtns', v); renderKarte(); }
+function setKarteKq(v)    { karteKqN = v;   setSegActive('kaKqBtns', v);    renderKarte(); }
+function karteUid() { return isTeacher ? currentStudent : (currentUser?.uid || ''); }
+// 優先度＝国試でその節から出た問題数 × その節で落とした割合（国試の節データが無いときは落とした数だけ）
+function karteRows(uid, scope) {
+  const st = studentSecStats(uid, scopeExams(scope));
+  return Object.entries(st).filter(([, v]) => v.miss.length).map(([k, v]) => {
+    const kq = secKqIds(k);
+    return { k, n: v.n, ok: v.ok, miss: v.miss, kq, info: secInfo(k), pri: (refState === 'ok' ? kq.length : 1) * v.miss.length / v.n };
+  }).sort((a, b) => b.pri - a.pri || b.miss.length - a.miss.length || b.kq.length - a.kq.length);
+}
+function karteGapHtml(uid, me) {
+  if (!me) return '<div class="v2-lab">120点まで</div><div class="ka-gap-v muted">—</div>';
+  const gap = PASS_LINE - me.total;
+  if (gap <= 0) return `<div class="v2-lab">合格ラインの目安 120点</div><div class="ka-gap-v ok">到達<small>　余裕 ${-gap}点</small></div>`;
+  const rows = karteRows(uid, 'exam');
+  let h = `<div class="v2-lab">120点まで</div><div class="ka-gap-v">あと ${gap}<small>点</small></div>`;
+  if (!rows.length) return h;
+  const top3 = rows.slice(0, 3).reduce((a, r) => a + r.miss.length, 0);
+  let acc = 0, k = 0;
+  for (const r of rows) { acc += r.miss.length; k++; if (acc >= gap) break; }
+  return h + `<ul class="ka-gap-l"><li>優先度の高い3節を取り切ると <b>+${top3}</b>点</li>` +
+    (acc >= gap ? `<li>優先度の上位 <b>${k}</b>節を取り切れば届く</li>` : `<li>節の付いた問題を全部取り切っても <b>+${acc}</b>点</li>`) + '</ul>';
+}
+function karteReviewIds(rows) { return karteKqN ? rows.flatMap(r => r.kq.slice(0, karteKqN)) : []; }
+function karteHtml(uid, rows, showAll) {
+  const ex = currentExam, me = examTotal(ex, uid), st = ctx(ex);
+  let h = `<section class="ka-top"><div class="ka-score"><div class="v2-lab">${esc(shortExam(ex))} の合計</div>` +
+    (me ? `<div class="big">${me.total}<small>/ 200</small></div><div class="ka-parts"><span>午前<b>${me.am ?? '—'}</b></span><span>午後<b>${me.pm ?? '—'}</b></span>${st?.avg != null ? `<span>クラス平均<b>${st.avg}</b></span>` : ''}</div>${me.full ? '' : '<div class="ka-warn">片方の時限が未提出です</div>'}`
+        : '<div class="big muted">—</div><div class="ka-parts">この模試は未受験</div>') +
+    `</div><div class="ka-gap">${karteGapHtml(uid, me)}</div></section>`;
+
+  // クラスの中の位置（名前は出さない・5人未満は出さない）
+  if (st && st.totals.length) {
+    h += '<section class="v2-block"><div class="v2-h"><h2>クラスの中の位置</h2>';
+    if (st.n < 5) h += '</div><div class="v2-empty">受験者が5人未満のため分布は出していません。</div></section>';
+    else {
+      const mine = me?.full ? me.total : null;
+      const rank = mine != null ? st.totals.filter(t => t > mine).length + 1 : null;
+      h += `<span class="v2-note">${rank ? `${st.n}人中 <b class="mn">${rank}</b>位　·　` : ''}平均 <span class="mn">${st.avg}</span>　·　中央値 <span class="mn">${st.med}</span></span></div>` +
+        stripSvg(st.totals, mine, st.avg) + '<div class="v2-cap">点1つが1人（名前は出さない）。▲＝クラス平均　赤線＝120点</div></section>';
+    }
+  }
+
+  // 推移
+  const taken = examsTakenBy(uid).slice().reverse();
+  if (taken.length) {
+    const pts = taken.map(e => ({ label: shortExam(e.name), date: e.date, t: examTotal(e.name, uid), avg: ctx(e.name)?.avg ?? null }));
+    h += `<section class="v2-block"><div class="v2-h"><h2>これまでの模試</h2><span class="v2-note">${taken.length}回</span></div>` +
+      (pts.length >= 2 ? trendSvg(pts.map(p => ({ label: p.label, me: p.t.total, avg: p.avg }))) + '<div class="legend"><span><i></i>本人</span><span><i class="avg"></i>クラス平均</span><span><i class="pl"></i>120点</span></div>' : '') +
+      `<div class="tbl-wrap" style="margin-top:14px"><table class="v2-tbl"><thead><tr><th>模試</th><th>実施日</th><th class="r">午前</th><th class="r">午後</th><th class="r">合計</th><th class="r">クラス平均</th><th class="r">平均との差</th></tr></thead><tbody>` +
+      pts.slice().reverse().map(p => { const d = p.avg != null ? Math.round((p.t.total - p.avg) * 10) / 10 : null;
+        return `<tr><td>${esc(p.label)}</td><td>${esc(formatDate(p.date)) || '—'}</td><td class="r mn">${p.t.am ?? '—'}</td><td class="r mn">${p.t.pm ?? '—'}</td><td class="r mn"><b>${p.t.total}</b></td><td class="r mn">${p.avg ?? '—'}</td><td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td></tr>`; }).join('') +
+      '</tbody></table></div></section>';
+  }
+
+  // 分野別（本人のバー・黒い縦線がクラス）
+  const own = me ? studentCatStats(ex, uid) : {};
+  if (Object.keys(own).length) {
+    const cc = classCatStats(ex, st);
+    const [a, b] = splitCats(Object.keys(own).filter(c => own[c].t));
+    const row = c => {
+      const p = Math.round(own[c].c / own[c].t * 100), cp = cc[c]?.t ? Math.round(cc[c].c / cc[c].t * 100) : null;
+      return `<div class="cat-row w4"><span class="cat-name">${esc(c)}<span class="cat-n">${own[c].c}/${own[c].t}</span></span>` +
+        `<span class="bar"><i class="${pctCls(p)}" style="width:${p}%"></i>${cp != null ? `<b style="left:${cp}%"></b>` : ''}</span>` +
+        `<span class="cat-p mn${cp != null && p < cp - 10 ? ' lo' : ''}">${p}%</span><span class="cat-p sub mn">${cp != null ? cp + '%' : ''}</span></div>`;
+    };
+    h += `<section class="v2-block"><div class="v2-h"><h2>分野別の正答率</h2><span class="v2-note">バー＝本人　黒線と右端の数字＝クラス　赤字＝クラスより10点以上低い</span></div><div class="cats">${catRowsHtml(a, row, '基礎')}${catRowsHtml(b, row, '専門')}</div></section>`;
+  }
+
+  // 優先して取り返す節
+  const ns = noSectionsMsg(karteScope);
+  const shown = showAll ? rows : rows.slice(0, 10);
+  h += `<section class="v2-block"><div class="v2-h"><h2>優先して取り返す節</h2><span class="v2-note">優先度＝国試でその節から出た問題数 × その節で落とした割合　${esc(karteScope === 'all' ? '全模試通算' : 'この模試')}</span></div>`;
+  if (ns) h += ns;
+  else if (!rows.length) h += '<div class="v2-empty">落とした問題はありません（または回答がありません）。</div>';
+  else {
+    const maxP = rows[0].pri || 1;
+    h += refNotice() + `<div class="tbl-wrap"><table class="v2-tbl"><thead><tr><th></th><th>節</th><th class="r">落とした / 解いた</th><th class="r">国試の出題</th><th>優先度</th></tr></thead><tbody>` +
+      shown.map((r, i) => `<tr><td class="rk">${String(i + 1).padStart(2, '0')}</td><td>${r.info.g ? `<div class="rv-sec-g">${esc(r.info.g)}</div>` : ''}${secPathHtml(r.k)}</td>` +
+        `<td class="r mn">${r.miss.length} / ${r.n}</td><td class="r mn">${r.kq.length}</td><td style="width:18%"><span class="pbar"><i style="width:${Math.max(3, Math.round(r.pri / maxP * 100))}%"></i></span></td></tr>`).join('') +
+      '</tbody></table></div>' +
+      (rows.length > 10 ? `<div style="margin-top:10px"><button class="linkbtn" onclick="karteShowAll=!karteShowAll;renderKarte()">${showAll ? '上位10節だけにする' : `すべて表示（${rows.length}節）`}</button></div>` : '');
+  }
+  h += '</section>';
+
+  // 復習リスト（優先節の順・印刷は改ページ）
+  if (!ns && rows.length) {
+    const kqHtml = id => { const k = kqCache[id];
+      if (!k) return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}</div><div class="rv-text rv-none">（読み込めませんでした）</div></div>`;
+      return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}${k.r != null ? `<span class="rv-rate">参考正答率 ${k.r}%</span>` : ''}</div><div class="rv-text">${esc(k.q)}</div><div class="rv-ans"><span>正答 <b>${esc(k.a)}</b></span></div></div>`; };
+    const nMiss = shown.reduce((a, r) => a + r.miss.length, 0);
+    h += `<section class="v2-block ka-review"><div class="v2-h"><h2>復習リスト</h2><span class="v2-note">落とした ${nMiss}問 ／ ${shown.length}節　<span class="star">★</span>＝クラスの8割以上が正解した問題</span></div>` +
+      shown.map((g, gi) => `<section class="rv-sec"><div class="rv-sec-hd"><span class="rv-no">${String(gi + 1).padStart(2, '0')}</span>
+          <div class="rv-sec-name">${g.info.g ? `<div class="rv-sec-g">${esc(g.info.g)}</div>` : ''}<div>${secPathHtml(g.k)}</div></div>
+          <div class="rv-sec-meta">この節 ${g.ok}/${g.n} 正解<br>国試の出題 ${g.kq.length}問</div></div>
+        <div class="rv-h">落とした模試の問題</div>
+        ${g.miss.map(m => { const cr = qRate(ctx(m.exam), m.q);
+          return `<div class="rv-item"><div class="rv-src">${cr != null && cr >= 0.8 ? '<span class="star">★</span>' : ''}${esc(mockQLabel(m.exam, m.q))}${cr != null ? `<span class="rv-rate">クラス正答率 ${Math.round(cr * 100)}%</span>` : ''}</div>
+          ${mockQHtml(m.exam, m.q)}
+          <div class="rv-ans"><span>${isTeacher ? '本人' : 'あなた'}の解答 <b class="rv-my">${esc(m.my === '' ? '無回答' : m.my)}</b></span><span>正答 <b>${esc(m.correct)}</b></span></div></div>`; }).join('')}
+        ${karteKqN && g.kq.length ? '<div class="rv-h">国試で同じ節から出た問題（新しい順）</div>' + g.kq.slice(0, karteKqN).map(kqHtml).join('') : ''}
+      </section>`).join('') +
+      (karteKqN && refState === 'ok' ? '<div class="rv-foot">参考正答率＝オンライン演習で初めて解いたときの正答率（30人以上が解いた問題のみ）。</div>' : '') + '</section>';
+  }
+  return h;
+}
+async function renderKarte() {
+  const box = document.getElementById('kaBody');
+  if (!box) return;
+  const seq = ++karteSeq;
+  ctxMemo = {};
+  const uid = karteUid();
+  document.getElementById('kaKicker').textContent = isTeacher ? '学生カルテ' : 'わたしのカルテ';
+  document.getElementById('kaTitle').textContent = isTeacher ? (studentLabel(uid) || '学生を選んでください') : 'あなたの成績';
+  document.getElementById('kaSub').textContent = currentExam ? [shortExam(currentExam), examList.find(e => e.name === currentExam)?.date ? formatDate(examList.find(e => e.name === currentExam).date) + ' 実施' : ''].filter(Boolean).join('　·　') : '';
+  if (!uid) { box.innerHTML = '<div class="v2-empty">左の欄で学生を選んでください。</div>'; return; }
+  const rows = karteRows(uid, karteScope);
+  const ids = karteReviewIds(karteShowAll ? rows : rows.slice(0, 10));
+  if (refState === 'ok' && ids.some(i => !(i in kqCache))) box.innerHTML = '<div class="v2-empty">国試の問題を読み込み中...</div>';
+  await loadKq(ids);
+  if (seq !== karteSeq) return;
+  box.innerHTML = karteHtml(uid, rows, karteShowAll);
+}
+async function printAllKarte() {
+  document.querySelectorAll('.student-print-page').forEach(el => el.remove());
+  const container = document.querySelector('.main');
+  const exams = scopeExams(karteScope);
+  const list = getActiveStudents().filter(s => exams.some(ex => examTotal(ex, s.uid)) || examTotal(currentExam, s.uid));
+  if (!list.length) { alert('印刷できる学生がいません'); return; }
+  showLoading('全学生のカルテを作成中...');
+  ctxMemo = {};
+  const per = list.map(s => ({ s, rows: karteRows(s.uid, karteScope) }));
+  await loadKq(per.flatMap(x => karteReviewIds(x.rows.slice(0, 10))));
+  hideLoading();
+  per.forEach(({ s, rows }) => {
+    const page = document.createElement('div');
+    page.className = 'student-print-page';
+    page.style.display = 'none';
+    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">学生カルテ</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(shortExam(currentExam))}</div></div></header>` + karteHtml(s.uid, rows, false);
+    container.appendChild(page);
+  });
+  document.body.classList.add('print-all-students');
+  withPortraitPrint(() => window.print());
+  setTimeout(() => { document.body.classList.remove('print-all-students'); document.querySelectorAll('.student-print-page').forEach(el => el.remove()); }, 1000);
+}
+function renderV2() {
+  const a = document.querySelector('.page.active')?.id;
+  if (a === 'page-exam') renderExamView();
+  else if (a === 'page-roster') renderRoster();
+  else if (a === 'page-karte') renderKarte();
 }
 </script>
 </body>
