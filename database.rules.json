@@ -14,7 +14,7 @@
       ".write": "root.child('teachers').child(auth.uid).exists()"
     },
     "exams": {
-      ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/.*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
+      ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
       ".write": "auth != null && root.child('teachers').child(auth.uid).exists()"
     },
     "students": {
@@ -22,7 +22,7 @@
       ".write": "root.child('teachers').child(auth.uid).exists()",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())",
-        ".write": "root.child('teachers').child(auth.uid).exists() || (auth.uid === $uid && !data.exists())"
+        ".write": "root.child('teachers').child(auth.uid).exists() || (auth != null && auth.uid === $uid && !data.exists() && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/))"
       }
     },
     "responses": {
@@ -30,12 +30,15 @@
       "$examId": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())"
+          ".write": "auth != null && root.child('teachers').child(auth.uid).exists()",
+          "$part": {
+            ".write": "auth != null && auth.uid === $uid && newData.exists() && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)"
+          }
         }
       }
     },
     "ref": {
-      ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/.*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
+      ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
       ".write": "auth != null && root.child('teachers').child(auth.uid).exists()"
     }
   }

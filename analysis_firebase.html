@@ -1522,6 +1522,15 @@ auth.onAuthStateChanged(async user => {
         // pending_teachers 読み取り失敗（ルール未更新等）は無視
       }
     }
+    // 学生はOE（oe）で始まるメールだけ（教員以外は弾く。DBのルールでも同じ条件）
+    if (!isTeacher && !/^(OE|oe)/.test(email)) {
+      await auth.signOut();
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('mainLayout').style.display = 'none';
+      document.getElementById('loginScreen').style.display = '';
+      alert('学生は OE で始まる大学のメールアドレスでログインしてください');
+      return;
+    }
     document.getElementById('userRole').textContent = isTeacher ? '教員' : '学生';
     document.getElementById('svWrap').style.display = isTeacher ? '' : 'none';
     if (!isTeacher) {

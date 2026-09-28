@@ -244,6 +244,15 @@ auth.onAuthStateChanged(async user => {
       showAlert('朝日医療大学のアカウントでログインしてください');
       return;
     }
+    // 学生はOE（oe）で始まるメールだけ。教員は教員リストに入っていれば通す
+    if (!/^(OE|oe)/.test(email)) {
+      const t = await db.ref('teachers/' + user.uid).once('value').catch(() => null);
+      if (!t || !t.exists()) {
+        await auth.signOut();
+        showAlert('学生は OE で始まる大学のメールアドレスでログインしてください');
+        return;
+      }
+    }
     currentUser = user;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display     = '';
