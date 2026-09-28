@@ -1201,7 +1201,6 @@ thead th{border-bottom:1px solid var(--g5);}
     <div class="page" id="page-responses">
       <div class="page-header-row">
         <div><div class="page-title">回答データ</div><div class="page-sub">学生の回答記録の確認・削除</div></div>
-        <button class="btn-admin-del" style="padding:7px 16px;font-size:13px;" onclick="deleteAllResponses()">🗑 全消し</button>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
         <span style="font-size:13px;color:var(--g4);">模試：</span>
@@ -1511,10 +1510,10 @@ auth.onAuthStateChanged(async user => {
     } else {
       // 事前登録リストを確認して自動昇格
       try {
-        const pendingKey = emailToKey(email);
+        const pendingKey = emailToKey(email.toLowerCase());
         const pendingSnap = await db.ref('pending_teachers/' + pendingKey).once('value');
         if (pendingSnap.exists()) {
-          await db.ref('teachers/' + user.uid).set(email);  // 先に DB 登録を完了させてから続行
+          await db.ref('teachers/' + user.uid).set(user.email);  // 先に DB 登録を完了させてから続行
           db.ref('pending_teachers/' + pendingKey).remove().catch(()=>{});
           isTeacher = true;
         }
@@ -3739,23 +3738,7 @@ async function deleteResponse(examName, uid, part) {
   renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak();
 }
 
-async function deleteAllResponses() {
-  if (!isTeacher) return;
-  const examFilter = document.getElementById('respExamSel')?.value || '';
-  const msg = examFilter
-    ? `「${examFilter}」の全回答データを削除しますか？`
-    : `全模試の全回答データを削除しますか？\nこの操作は取り消せません。`;
-  if (!confirm(msg)) return;
-  if (examFilter) {
-    await db.ref('responses/' + examFilter).remove();
-    if (allData[examFilter]) allData[examFilter].responses = {};
-  } else {
-    await db.ref('responses').remove();
-    Object.keys(allData).forEach(k => { if(allData[k]) allData[k].responses = {}; });
-  }
-  renderResponsesPage();
-  renderTrend(); renderSummary(); renderCategory(); renderLowRate(); loadAndRenderWeak();
-}
+// 全消し（全模試の全回答を一括削除）は撤去：学生のマークシートは消さない。消すときは1件ずつ
 
 function isValidAns(v) {
   const s = v.trim();
