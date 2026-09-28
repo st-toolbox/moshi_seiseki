@@ -721,6 +721,13 @@ thead th{border-bottom:1px solid var(--g5);}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 /* 統合：推移・落としたところ・問題ごとの正誤 */
+.v2-tbl th.sort{cursor:pointer;user-select:none;}
+.v2-tbl th.sort:hover{color:var(--g5);}
+.v2-tbl th.sort.on{color:var(--accent);}
+.v2-tbl th.sort i{font-style:normal;font-size:9px;margin-left:3px;display:inline-block;width:1em;}
+.v2-tbl th.ex-h.sort i{display:inline;}
+.v2-tbl td.sno{color:var(--g4);font-size:12.5px;}
+@media print{ .v2-tbl th.sort i{display:none;} }
 .v2-svg .ln-stu{fill:none;stroke:var(--accent);stroke-width:1.2;opacity:.22;}
 .v2-svg .dt-stu{fill:var(--accent);opacity:.3;}
 .v2-svg .ln-cls{fill:none;stroke:var(--g5);stroke-width:2.5;}
@@ -1045,7 +1052,6 @@ thead th{border-bottom:1px solid var(--g5);}
         <div><div class="v2-kicker">学生一覧</div><h1 class="v2-title" id="roTitle"></h1><div class="v2-sub" id="roSub"></div></div>
         <div class="v2-ctrl">
           <label>表示 <span class="seg" id="roViewBtns"><button data-val="exam" class="active" onclick="setRosterView('exam')">この模試</button><button data-val="trend" onclick="setRosterView('trend')">全模試の推移</button></span></label>
-          <label>並び <span class="seg" id="roSortBtns"><button data-val="score" class="active" onclick="setRosterSort('score')">点の低い順</button><button data-val="num" onclick="setRosterSort('num')">学生番号順</button></span></label>
         </div>
       </header>
       <div id="roBody"></div>
@@ -4029,7 +4035,7 @@ let karteKqN     = 3;        // 節ごとに出す国試の類題
 let karteShowAll = false;    // 優先節 上位10 ／ すべて
 let karteSeq     = 0;
 let rosterView   = 'exam';   // 学生一覧 'exam' | 'trend'
-let rosterSort   = 'score';  // 'score'（点の低い順）| 'num'（学生番号順）
+let roSortBy     = { exam: { k: 'total', d: 1 }, trend: { k: 'last', d: 1 } };  // 学生一覧の並び（見出しクリック）。d: 1=昇順 -1=降順
 let exLowMode    = 'map';    // この模試：'map'（出題マップ 科目→章→節）| 'cat'（科目別の問題）| 'sec'（節ワースト10）
 let exLowTh      = 50;       // 科目別の問題：正答率がこれ以下
 let karteStarTh  = 80;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
@@ -4313,24 +4319,38 @@ function renderRoster() {
     return { s, t, pt: prev ? examTotal(prev.name, s.uid) : null, weak: t ? weakestCat(ex, s.uid) : null,
              n: taken.length, spark: taken.slice().reverse().map(e => examTotal(e.name, s.uid).total) };
   });
-  if (rosterSort === 'score') rows.sort((a, b) => (a.t ? a.t.total : 1e9) - (b.t ? b.t.total : 1e9) || (a.s.email || '').localeCompare(b.s.email || ''));
+  roSort(rows, 'exam', (r, k) => {
+    const t = r.t;
+    switch (k) {
+      case 'num': return stuNo(r.s);
+      case 'name': return r.s.name || stuNo(r.s);
+      case 'total': return t ? t.total : null;
+      case 'am': return t?.am ?? null;
+      case 'pm': return t?.pm ?? null;
+      case 'diff': return t && r.pt ? t.total - r.pt.total : null;
+      case 'gap': return t ? PASS_LINE - t.total : null;
+      case 'weak': return r.weak ? r.weak.lost : null;
+      case 'n': return r.n;
+    }
+  });
   const took = rows.filter(r => r.t).length, reach = rows.filter(r => r.t?.full && r.t.total >= PASS_LINE).length;
   document.getElementById('roTitle').textContent = ex ? shortExam(ex) : '';
   document.getElementById('roSub').textContent = `対象 ${currentGakunenFilter}　·　受験 ${took} / ${list.length}人　·　120点以上 ${reach}人`;
   if (!list.length) { box.innerHTML = '<div class="v2-empty">この学年の学生がいません。</div>'; return; }
   box.innerHTML = `<div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
-      <th>名前</th><th class="r">合計</th><th class="r">午前</th><th class="r">午後</th><th class="r">前回比</th><th class="r">120まで</th><th>クラスとの差が大きい分野</th><th class="r">受験</th><th>推移</th>
+      ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', 'クラスとの差が大きい分野')}${roTh('exam', 'n', '受験', 'r')}<th>推移</th>
     </tr></thead><tbody>${rows.map(r => {
       const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
       return `<tr class="click" data-uid="${esc(r.s.uid)}">
-        <td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>
+        <td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>
         <td class="r mn"><b>${t ? t.total : '—'}</b>${t && !t.full ? '<span class="muted">*</span>' : ''}</td>
         <td class="r mn">${t?.am ?? '—'}</td><td class="r mn">${t?.pm ?? '—'}</td>
         <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
         <td class="r mn">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
         <td>${r.weak ? `${esc(r.weak.c)} <span class="mn muted">${r.weak.my}/${r.weak.t}・−${r.weak.lost.toFixed(1)}問</span>` : '—'}</td>
         <td class="r mn">${r.n}</td><td>${sparkSvg(r.spark)}</td></tr>`;
-    }).join('')}</tbody></table></div><div class="v2-cap">行をクリックでカルテ。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。「クラスとの差が大きい分野」＝クラス平均と比べて落とした問題数がいちばん多い分野（−2.0問＝平均より2問多く落とした）。</div>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。「クラスとの差が大きい分野」＝クラス平均と比べて落とした問題数がいちばん多い分野（−2.0問＝平均より2問多く落とした）。</div>`;
+  roBindSort(box, 'exam');
   box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => openKarte(tr.dataset.uid)));
 }
 function openKarte(uid) {
@@ -4498,7 +4518,29 @@ function segHtml(opts, cur, fn) {
   return '<span class="seg">' + opts.map(([v, l]) => `<button class="${String(v) === String(cur) ? 'active' : ''}" onclick="${fn}('${v}')">${l}</button>`).join('') + '</span>';
 }
 function setRosterView(v) { rosterView = v; setSegActive('roViewBtns', v); renderRoster(); }
-function setRosterSort(v) { rosterSort = v; setSegActive('roSortBtns', v); renderRoster(); }
+function stuNo(s) { return (s.email || '').split('@')[0]; }
+// 空欄はどちら向きでも末尾。同点は学生番号順
+function roSort(rows, view, get) {
+  const { k, d } = roSortBy[view];
+  rows.sort((a, b) => {
+    const x = get(a, k), y = get(b, k);
+    let c = 0;
+    if (x == null || y == null) c = x == null && y == null ? 0 : x == null ? 1 : -1;
+    else c = (typeof x === 'string' ? x.localeCompare(y, 'ja', { numeric: true }) : x - y) * d;
+    return c || stuNo(a.s).localeCompare(stuNo(b.s), 'ja', { numeric: true });
+  });
+}
+function roTh(view, k, label, cls) {
+  const o = roSortBy[view], on = o.k === k;
+  return `<th class="sort${cls ? ' ' + cls : ''}${on ? ' on' : ''}" data-sk="${k}" title="クリックで並べ替え">${label}<i>${on ? (o.d > 0 ? '▲' : '▼') : ''}</i></th>`;
+}
+function roBindSort(box, view) {
+  box.querySelectorAll('th[data-sk]').forEach(th => th.addEventListener('click', () => {
+    const o = roSortBy[view], k = th.dataset.sk;
+    roSortBy[view] = { k, d: o.k === k ? -o.d : 1 };
+    renderRoster();
+  }));
+}
 function setExLow(v)   { exLowMode = v; renderExamView(); }
 function setExLowTh(v) { exLowTh = Number(v); renderExamView(); }
 function setKarteStar(v) { karteStarTh = Number(v); renderKarte(); }
@@ -4537,16 +4579,23 @@ function renderRosterTrend(box) {
     const got = ts.filter(t => t && t.full);
     return { s, ts, last: got.length ? got[got.length - 1].total : null, gain: got.length > 1 ? got[got.length - 1].total - got[0].total : null };
   });
-  if (rosterSort === 'score') rows.sort((a, b) => (a.last ?? 1e9) - (b.last ?? 1e9));
+  roSort(rows, 'trend', (r, k) => {
+    if (k === 'num') return stuNo(r.s);
+    if (k === 'name') return r.s.name || stuNo(r.s);
+    if (k === 'last') return r.last;
+    if (k === 'gain') return r.gain;
+    const t = r.ts[Number(k.slice(1))]; return t ? t.total : null;  // 'e0'…
+  });
   const cell = t => !t ? '<td class="r mn muted">—</td>' : `<td class="r mn${t.full && t.total >= PASS_LINE ? ' hi' : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
   let h = `<section class="v2-block">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg)}` +
     '<div class="legend"><span><i class="cls"></i>クラス平均</span><span><i class="stu"></i>学生1人ずつ</span><span><i class="pl"></i>120点</span></div></section>';
-  h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr><th>名前</th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">初回から</th></tr></thead><tbody>` +
-    `<tr class="avg-row"><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td></td></tr>` +
-    rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}` +
+  h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h')).join('')}${roTh('trend', 'last', '最新', 'r')}${roTh('trend', 'gain', '初回から', 'r')}</tr></thead><tbody>` +
+    `<tr class="avg-row"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td class="r mn">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td></tr>` +
+    rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}<td class="r mn">${r.last ?? '—'}</td>` +
       `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td></tr>`).join('') +
-    '</tbody></table></div><div class="v2-cap">行をクリックでカルテ。緑＝120点以上。* は片方の時限だけ提出（グラフと「初回から」には入れない）。「初回から」＝最初に受けた模試から最新までの差。</div>';
+    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
   box.innerHTML = h;
+  roBindSort(box, 'trend');
   box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => openKarte(tr.dataset.uid)));
 }
 
