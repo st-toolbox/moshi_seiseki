@@ -4833,7 +4833,7 @@ function applyTrendHl(box) {
   }
   box.querySelectorAll('tr[data-uid]').forEach(tr => tr.classList.toggle('hl-on', trendHl.has(tr.dataset.uid)));
   const c = box.querySelector('#hlClear');
-  if (c) { c.hidden = !trendHl.size; c.textContent = `強調を消す（${trendHl.size}人）`; }
+  if (c) { c.hidden = !trendHl.size; c.textContent = '強調を消す'; }
 }
 function renderRosterTrend(box) {
   const list = getActiveStudents();
@@ -4857,18 +4857,18 @@ function renderRosterTrend(box) {
   const cell = t => !t ? '<td class="r mn muted">—</td>' : `<td class="r mn${t.full && t.total >= PASS_LINE ? ' hi' : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
   let h = `<section class="v2-block">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg, rows.map(r => ({ uid: r.s.uid, label: r.s.name || stuNo(r.s) })))}` +
     '<div class="legend"><span><i class="cls"></i>クラス平均</span><span><i class="stu"></i>学生1人ずつ</span><span><i class="hl"></i>強調した学生</span><span><i class="pl"></i>120点</span><button class="linkbtn" id="hlClear" hidden onclick="trendHl.clear();applyTrendHl(document.getElementById(\'roBody\'))"></button></div>' +
-    '<div class="v2-cap">下の表で学生の行をクリックすると、その学生の線がグラフで強調され、各回の点数と名前が出ます。もう一度クリックで解除。何人でも重ねて比べられます。カルテを開くときは行の右端の「カルテ」から。</div></section>';
+    '<div class="v2-cap">下の表で学生の行をクリックすると、その学生の線がグラフで強調され、各回の点数と名前が出ます。別の学生を押すとその学生に切り替わり、同じ学生をもう一度押すと解除。カルテを開くときは行の右端の「カルテ」から。</div></section>';
   h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h')).join('')}${roTh('trend', 'last', '最新', 'r')}${roTh('trend', 'gain', '初回から', 'r')}<th></th></tr></thead><tbody>` +
     `<tr class="avg-row"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td class="r mn">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td><td></td></tr>` +
     rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}<td class="r mn">${r.last ?? '—'}</td>` +
       `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td><td class="r"><button class="ka-go" data-go="${esc(r.s.uid)}">カルテ</button></td></tr>`).join('') +
-    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（もう一度で解除）。右端の「カルテ」でその学生のカルテへ。緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
+    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（押すたびに切り替え・同じ行でもう一度押すと解除）。右端の「カルテ」でその学生のカルテへ。緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
   h += catTrendHtml(exs);
   box.innerHTML = h;
   roBindSort(box, 'trend');
   box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => {
     const u = tr.dataset.uid;
-    if (trendHl.has(u)) trendHl.delete(u); else trendHl.add(u);
+    const on = trendHl.has(u); trendHl.clear(); if (!on) trendHl.add(u);  // 1人だけ：押すたびに切り替え
     applyTrendHl(box);
   }));
   box.querySelectorAll('button[data-go]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openKarte(b.dataset.go); }));
