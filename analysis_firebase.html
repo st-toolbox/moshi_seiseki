@@ -490,6 +490,10 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 .nav-item:hover,.nav-item-view:hover,.nav-item-trend:hover,.nav-item-admin:hover{background:var(--g1)!important;color:var(--g5)!important;}
 .nav-item.active,.nav-item-view.active,.nav-item-trend.active,.nav-item-admin.active{background:var(--g1)!important;color:var(--g5)!important;font-weight:600!important;box-shadow:inset 2px 0 0 var(--accent);border-radius:0 4px 4px 0;}
 .print-btn{border:none;box-shadow:none;background:none;width:100%;margin:0;color:var(--g4);font-size:13.5px;}
+.print-note{font-size:11px;line-height:1.5;color:var(--g4);padding:4px 12px 8px;}
+.print-note b{color:var(--g5);font-weight:600;}
+@media print{ .print-note{display:none!important;} }
+@media screen and (max-width:760px){ .sidebar .print-note{display:none!important;} }
 .print-btn:hover{background:var(--g1);box-shadow:none;color:var(--g5);}
 .gakunen-filter-btn{border-radius:4px;border:1px solid var(--g2);font-weight:500;padding:3px 10px;}
 .gakunen-filter-btn:hover{border-color:var(--g5);color:var(--g5);}
@@ -831,10 +835,10 @@ thead th{border-bottom:1px solid var(--g5);}
 .exq .exw-p{font-size:16px;}
 .qg{display:grid;grid-template-columns:3.2em 1fr;gap:12px;align-items:start;margin-bottom:12px;}
 .qg-lab{font-size:11px;letter-spacing:.12em;color:var(--g4);font-weight:600;padding-top:6px;line-height:1.5;}
-.qg-grid{display:grid;grid-template-columns:repeat(25,minmax(0,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line);}
-.qg-c{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--paper);}
-.qg-grid .qg-c:nth-child(5n):not(:nth-child(25n)){border-right-color:var(--g3);}
-.qg-c i{font-style:normal;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--g3);line-height:1;}
+.qg-grid{display:grid;grid-template-columns:repeat(25,minmax(0,1fr));border-top:1px solid var(--g3);border-left:1px solid var(--g3);}
+.qg-c{border-right:1px solid var(--g3);border-bottom:1px solid var(--g3);height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--paper);}
+.qg-grid .qg-c:nth-child(5n):not(:nth-child(25n)){border-right-color:var(--g5);}
+.qg-c i{font-style:normal;font-family:'DM Mono',monospace;font-size:10px;color:var(--g4);line-height:1;font-weight:500;}
 .qg-c b{font-size:12px;line-height:1;height:12px;font-weight:500;}
 .qg-c.x b{color:var(--g5);}
 .qg-c.st{background:var(--ng-bg);}
@@ -851,10 +855,45 @@ thead th{border-bottom:1px solid var(--g5);}
 .cat-g.kg-kiso,.cat-g.kg-senmon{padding-left:8px;padding-right:8px;}
 .sm-cont{margin-top:28px;}
 /* 印刷1枚：測るとき（画面・一瞬）と印刷で同じ形にする */
-body.sm-measuring .student-print-page:has(.sm-fit){display:block!important;position:absolute;left:-99999px;top:0;}
+body.sm-measuring .student-print-page:has(.sm-fit,.kp1){display:block!important;position:absolute;left:-99999px;top:0;}
+/* 1ページ目：印刷用の指定（別の@media printにある）を測るときにも同じく当てる */
+body.sm-measuring .kp1 .v2-ctrl,.kp1 .linkbtn{display:none!important;}
+body.sm-measuring .kp1 .v2-block{margin-bottom:7mm!important;}
+body.sm-measuring .kp1 .v2-h{margin-bottom:2mm!important;}
+body.sm-measuring .kp1 .big{font-size:40pt!important;}
+body.sm-measuring .kp1 .ka-gap-v{font-size:26pt!important;}
+body.sm-measuring .kp1 .ka-top{margin-bottom:7mm!important;}
+body.sm-measuring .kp1 .ka-score,.kp1 .ka-gap{padding-top:4mm!important;padding-bottom:4mm!important;}
+body.sm-measuring .kp1 .v2-tbl{font-size:8.5pt!important;}
+body.sm-measuring .kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:1.3mm 2mm!important;}
+body.sm-measuring .kp1 .qg-c{height:7mm;}
+body.sm-measuring .kp1 .qg-c i{font-size:6.5pt;}
+body.sm-measuring .kp1 .qg-c b{font-size:8pt;height:auto;}
+body.sm-measuring .kp1 .ka-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)!important;}
+body.sm-measuring .kp1 .ka-gap{border-left:1px solid var(--line)!important;border-top:none!important;padding-left:6mm!important;}
+body.sm-measuring .kp1 .ka-score{padding-right:6mm!important;}
+body.sm-measuring .kp1 .v2-cap{margin-top:2mm;}
+.kp1 .v2-block{margin-bottom:5mm!important;}
+.kp1 .ka-top{margin-bottom:5mm!important;}
+.kp1 .ka-score,.kp1 .ka-gap{padding-top:2.5mm!important;padding-bottom:2.5mm!important;}
+.kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:.7mm 1.6mm!important;line-height:1.25;}
+.kp1 .ka-star .tbl-wrap{margin-top:3mm!important;}
+.kp1 .ka-star .sec-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:55%;}
+body.sm-measuring .kp1{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}
 body.sm-measuring .sm-fit{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
 body.sm-measuring .sm-fit .sm-none{display:none!important;}
 @media print{
+  .kp1{zoom:var(--smz,1);}
+  .kp1 .ka-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)!important;}
+  .kp1 .ka-gap{border-left:1px solid var(--line)!important;border-top:none!important;padding-left:6mm!important;}
+  .kp1 .ka-score{padding-right:6mm!important;}
+  .kp1 .v2-cap{margin-top:2mm;}
+.kp1 .v2-block{margin-bottom:5mm!important;}
+.kp1 .ka-top{margin-bottom:5mm!important;}
+.kp1 .ka-score,.kp1 .ka-gap{padding-top:2.5mm!important;padding-bottom:2.5mm!important;}
+.kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:.7mm 1.6mm!important;line-height:1.25;}
+.kp1 .ka-star .tbl-wrap{margin-top:3mm!important;}
+.kp1 .ka-star .sec-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:55%;}
   .sm-fit{zoom:var(--smz,1);break-before:page;margin:0!important;}
   .sm-fit .sm-none{display:none!important;}
   .sm-fit .sm-cols{gap:0 24px!important;}
@@ -941,8 +980,8 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 @media screen and (max-width:760px){
   .qg{grid-template-columns:1fr;gap:4px;}
   .qg-grid{grid-template-columns:repeat(10,minmax(0,1fr));}
-  .qg-grid .qg-c:nth-child(5n):not(:nth-child(25n)){border-right-color:var(--line);}
-  .qg-grid .qg-c:nth-child(5n):not(:nth-child(10n)){border-right-color:var(--g3);}
+  .qg-grid .qg-c:nth-child(5n):not(:nth-child(25n)){border-right-color:var(--g3);}
+  .qg-grid .qg-c:nth-child(5n):not(:nth-child(10n)){border-right-color:var(--g5);}
   .exq summary{grid-template-columns:4.2em 1fr auto;}
   .v2-h .v2-ctrl{flex-direction:column;align-items:flex-start;}
   .v2-h .v2-ctrl label{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
@@ -951,7 +990,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
   .v2-h .v2-ctrl .seg button:not(.active){display:none;}
   .qg,.exq summary{break-inside:avoid;}
   .qg-c{height:7mm;}
-  .qg-c i{font-size:6pt;}
+  .qg-c i{font-size:6.5pt;}
   .qg-c b{font-size:8pt;height:auto;}
   .qg-c.st{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
@@ -1025,6 +1064,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <div class="nav-section-label">印刷</div>
     <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
     <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
+    <div class="print-note">印刷画面の「詳細設定 → 倍率」は<b>デフォルト</b>に。80%などが残っていると小さく印刷されます（Chromeは前回の倍率を覚えています）</div>
     <details class="nav-legacy teacher-only">
       <summary>旧画面<span>10月末まで</span></summary>
       <button class="nav-item" data-page="trend" onclick="showPage('trend',this)">成績推移</button>
@@ -4640,7 +4680,7 @@ function karteReviewIds(rows) { return karteKqN ? rows.flatMap(r => r.kq.slice(0
 function karteHtml(uid, rows, showAll) {
   if (karteScope === 'all') return karteAllHtml(uid, rows, showAll);
   const ex = currentExam, me = examTotal(ex, uid), st = ctx(ex);
-  let h = `<section class="ka-top"><div class="ka-score"><div class="v2-lab">${esc(shortExam(ex))} の合計</div>` +
+  let h = `<div class="kp1"><section class="ka-top"><div class="ka-score"><div class="v2-lab">${esc(shortExam(ex))} の合計</div>` +
     (me ? `<div class="big">${me.total}<small>/ 200</small></div><div class="ka-parts"><span>午前<b>${me.am ?? '—'}</b></span><span>午後<b>${me.pm ?? '—'}</b></span>${st?.avg != null ? `<span>クラス平均<b>${st.avg}</b></span>` : ''}</div>${me.full ? '' : '<div class="ka-warn">片方の時限が未提出です</div>'}`
         : '<div class="big muted">—</div><div class="ka-parts">この模試は未受験</div>') +
     `</div><div class="ka-gap">${karteGapHtml(uid, me)}</div></section>`;
@@ -4662,6 +4702,7 @@ function karteHtml(uid, rows, showAll) {
 
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
+  h += '</div>';   // 印刷1ページ目ここまで（kp1）
   if (hasMap) h += `<section class="v2-block sm-fit"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。最初は章まで開いている（章を開くと節）</div>${secMapHtml(ex, st, uid)}</section>`;
   return h;
 }
@@ -5098,14 +5139,20 @@ function smBalance(box) {
 }
 // 印刷：カルテの「この模試の出題マップ」を1ページに収める。出ていない科目・章は省き、印刷幅で2列を釣り合わせてから縮小率を決める
 const PRINT_W = 194 * 96 / 25.4, PRINT_H = 285 * 96 / 25.4;   // A4縦・カルテ印刷の余白 6mm/8mm の中身
+// 学生1人＝2ページ：1ページ目（合計〜問題ごとの正誤・弱点）＝.kp1、2ページ目（この模試の出題マップ）＝.sm-fit
 function smFitPrint() {
-  const secs = [...document.querySelectorAll('.sm-fit')];
+  const secs = [...document.querySelectorAll('.sm-fit, .kp1')];
   if (!secs.length) return;
   document.body.classList.add('sm-measuring');
   try {
-    // 縮めると列が広がって段組みが変わるので、比例計算でなく二分探索で「収まる最大」を探す
+    // 縮めると幅が広がって段組み・折り返しが変わるので、比例計算でなく二分探索で「収まる最大」を探す
     secs.forEach(sec => {
-      const fits = z => { sec.style.setProperty('--smz', z); sec.querySelectorAll('.sm-cols').forEach(smBalance); return sec.getBoundingClientRect().height <= PRINT_H * 0.97; };
+      let lim = PRINT_H * 0.97;
+      if (sec.classList.contains('kp1')) {   // 同じページの先頭に学生名の見出しが載る
+        const head = (sec.closest('.student-print-page') || document.getElementById('page-karte'))?.querySelector('.v2-head');
+        if (head) lim -= head.getBoundingClientRect().height + 5 * 96 / 25.4;
+      }
+      const fits = z => { sec.style.setProperty('--smz', z); sec.querySelectorAll('.sm-cols').forEach(smBalance); return sec.getBoundingClientRect().height <= lim; };
       let lo = 0.2, hi = 1;
       if (fits(1)) lo = 1;
       else for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
@@ -5218,7 +5265,7 @@ function karteStarHtml(ex, uid, st) {
     }
     grids.push(`<div class="qg"><div class="qg-lab">${part === 'AM' ? '午前' : '午後'}${sub ? '' : '<br><span class="muted">未提出</span>'}</div><div class="qg-grid">${cells}</div></div>`);
   });
-  let h = `<section class="v2-block ka-star"><div class="v2-h"><h2>問題ごとの正誤</h2><div class="v2-ctrl"><label>★の基準 クラス正答率 ${segHtml([[60, '60%'], [70, '70%'], [80, '80%'], [90, '90%']], karteStarTh, 'setKarteStar')} 以上</label></div></div>` +
+  let h = `<section class="v2-block ka-star"><div class="v2-h"><h2>問題ごとの正誤・弱点</h2><div class="v2-ctrl"><label>★の基準 クラス正答率 ${segHtml([[60, '60%'], [70, '70%'], [80, '80%'], [90, '90%']], karteStarTh, 'setKarteStar')} 以上</label></div></div>` +
     `<div class="v2-note" style="margin-bottom:12px"><span class="star">★</span> クラスの${karteStarTh}%以上が正解したのに落とした <b class="mn">${stars.length}</b>問　·　× それ以外で落とした <b class="mn">${nx}</b>問</div>` + grids.join('');
   if (stars.length) {
     stars.sort((a, b) => b.cr - a.cr || a.n - b.n);
