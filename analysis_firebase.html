@@ -509,6 +509,13 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 .nav-legacy .nav-item{font-size:12.5px;padding:6px 10px;}
 .nav-admin{margin-top:14px;border-top:1px solid var(--line);}
 .nav-print{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+/* サイドバーのカテゴリー見出し：項目と見分けがつくように（濃い字・左の色の印・上に区切り線） */
+.sidebar .nav-section-label,.nav-legacy summary{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--g5);padding:9px 10px 6px;margin:12px 0 2px;border-top:1px solid var(--line);display:flex;align-items:center;gap:7px;}
+.sidebar .nav-section-label::before,.nav-legacy summary::before{content:"";width:3px;height:12px;border-radius:1px;background:var(--accent);flex:none;}
+.sidebar .nav-section-label:first-child,.sidebar .nav-target{margin-top:0;border-top:none;padding-top:6px;}
+.nav-legacy{margin-top:0;border-top:none;padding-top:0;}
+.nav-legacy summary{justify-content:flex-start;}
+.nav-print{padding-top:9px;}
 
 /* 旧画面の部品も同じ色味に */
 .card{border:1px solid var(--line);border-radius:var(--r);}
@@ -1201,8 +1208,9 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <button class="nav-item teacher-only" data-page="roster" onclick="showPage('roster',this)">全部の模試</button>
     <button class="nav-item" data-page="karte" id="navKarte" onclick="showPage('karte',this)">学生カルテ</button>
     <button class="nav-item" data-page="drill" onclick="showPage('drill',this)">復習</button>
-    <button class="nav-item" data-page="scope" onclick="showPage('scope',this)">出題範囲</button>
     <button class="nat-tg teacher-only" id="natBtn" onclick="setNat(!natOn)" title="外部模試の全国版成績（全国平均・問題ごとの全国正答率）を重ねて表示する"><span>全国データ</span><span class="nat-sw" id="natSw">表示しない</span></button>
+    <div class="nav-section-label">読み物</div>
+    <button class="nav-item" data-page="scope" onclick="showPage('scope',this)">出題範囲</button>
     <div class="nav-section-label nav-print">印刷</div>
     <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
     <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
