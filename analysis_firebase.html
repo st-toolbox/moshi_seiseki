@@ -833,6 +833,13 @@ thead th{border-bottom:1px solid var(--g5);}
 .qg-c.na{background:var(--g1);}
 .sm-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start;}
 .sm .cat-g{border-bottom:none;padding-bottom:4px;}
+:root{--kiso:#1a7cc1;--senmon:#d4246f;}
+.cat-g.kg-kiso,.cat-tr tr.grp-row.kg-kiso td{color:var(--kiso);border-bottom-color:var(--kiso);}
+.cat-g.kg-senmon,.cat-tr tr.grp-row.kg-senmon td{color:var(--senmon);border-bottom-color:var(--senmon);}
+.sm .cat-g.kg-kiso,.sm .cat-g.kg-senmon{font-weight:700;}
+.cat-g.kg-kiso+.sm-hd{border-top-color:var(--kiso);}
+.cat-g.kg-senmon+.sm-hd{border-top-color:var(--senmon);}
+@media print{ .cat-g.kg-kiso,.cat-g.kg-senmon,.cat-tr tr.grp-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
 .sm-hd,.sm-row{display:grid;grid-template-columns:minmax(0,1fr) 3.4em minmax(40px,110px) 3em 3.6em;gap:0 10px;align-items:center;}
 .sm-u .sm-hd,.sm-u .sm-row{grid-template-columns:minmax(0,1fr) 3.4em 3.2em minmax(40px,90px) 3em 3.6em;}
 .sm-hd{white-space:nowrap;font-size:11px;letter-spacing:.04em;color:var(--g4);padding:8px 0;border-top:1px solid var(--g5);border-bottom:1px solid var(--line);}
@@ -4403,8 +4410,10 @@ function sparkSvg(vals) {
   const li = vals.length - 1;
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" style="width:${W}px">${vals.length > 1 ? `<polyline class="sp" points="${pts}"/>` : ''}<circle class="spd" cx="${x(li)}" cy="${y(vals[li])}" r="2.4"/></svg>`;
 }
+// 基礎＝青・専門＝赤（学生が使っている国試対策本の2冊の色に合わせる）
+function kgCls(head) { return head === '基礎' ? ' kg-kiso' : head === '専門' ? ' kg-senmon' : ''; }
 function catRowsHtml(names, rowFn, head) {
-  return `<div><div class="cat-g">${head}</div>${names.map(rowFn).join('') || '<div class="cat-row"><span class="cat-name muted">—</span></div>'}</div>`;
+  return `<div><div class="cat-g${kgCls(head)}">${head}</div>${names.map(rowFn).join('') || '<div class="cat-row"><span class="cat-name muted">—</span></div>'}</div>`;
 }
 
 // ---------- この模試（クラス） ----------
@@ -4647,7 +4656,7 @@ function karteHistHtml(uid, exs) {
   const tot = exs.map(e => examTotal(e.name, uid)), avg = exs.map(e => ctx(e.name)?.avg ?? null);
   const srow = (lab, f, cls2) => `<tr${cls2 ? ` class="${cls2}"` : ''}><td>${lab}</td>${exs.map((e, i) => `<td class="r mn">${f(i) ?? '—'}</td>`).join('')}<td></td><td></td></tr>`;
   const [a, bb] = splitCats(cats);
-  const grp = (names, head) => names.length ? `<tr class="grp-row"><td colspan="${exs.length + 3}">${head}</td></tr>` +
+  const grp = (names, head) => names.length ? `<tr class="grp-row${kgCls(head)}"><td colspan="${exs.length + 3}">${head}</td></tr>` +
     names.map(c => `<tr><td>${esc(c)}</td>${exs.map((e, i) => td(pc(own[i][c]), pc(cls[i][c]), own[i][c]?.t)).join('')}${td(pc(sum[c]), pc(csum[c]))}<td class="r mn muted">${sum[c].t}</td></tr>`).join('') : '';
   return `<section class="v2-block" style="margin-top:34px"><div class="v2-h"><h2>模試成績一覧</h2><span class="v2-note">${who}の正答率　小さい数字＝クラスとの差　赤 50%未満　緑 70%以上</span></div>` +
     `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr hs-tbl"><thead><tr><th></th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">通算</th><th class="r">問題数</th></tr></thead><tbody>` +
@@ -4665,7 +4674,7 @@ function catTrendHtml(exs) {
   const pc = v => v && v.t ? Math.round(v.c / v.t * 100) : null;
   const td = p => `<td class="r mn${p == null ? ' muted' : p < 50 ? ' lo' : p >= 70 ? ' hi' : ''}">${p == null ? '—' : p + '%'}</td>`;
   const [a, b] = splitCats(cats);
-  const grp = (names, head) => names.length ? `<tr class="grp-row"><td colspan="${exs.length + 3}">${head}</td></tr>` +
+  const grp = (names, head) => names.length ? `<tr class="grp-row${kgCls(head)}"><td colspan="${exs.length + 3}">${head}</td></tr>` +
     names.map(c => `<tr><td>${esc(c)}</td>${per.map(cc => td(pc(cc[c]))).join('')}${td(pc(sum[c]))}<td class="r mn muted">${sum[c].qn}</td></tr>`).join('') : '';
   return `<section class="v2-block" style="margin-top:34px"><div class="v2-h"><h2>分野別の正答率（クラス）</h2><span class="v2-note">模試ごと・右端は全部の模試を合わせた通算　赤 50%未満　緑 70%以上</span></div>` +
     `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr"><thead><tr><th>分野</th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">通算</th><th class="r">問題数</th></tr></thead><tbody>` +
@@ -5038,7 +5047,7 @@ function secMapHtml(exArg, st0, uid) {
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
   const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${uid ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる"${uid ? '' : ' class="on"'}>章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
-  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
+  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g${kgCls(g)}">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
   const cols = ['', ''];
