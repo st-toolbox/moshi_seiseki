@@ -4546,12 +4546,13 @@ function karteHtml(uid, rows, showAll) {
     }
   }
 
-  // 分野別（本人のバー・黒い縦線がクラス）
-  h += karteCatHtml([ex], uid, me ? studentCatStats(ex, uid) : {}, '');
+  // 分野別：出題マップ（科目の段）と同じ内容なので、マップが出せるときは出さない（この模試と同じ）
+  const hasMap = me && allData[ex]?.master?.sections;
+  if (!hasMap) h += karteCatHtml([ex], uid, me ? studentCatStats(ex, uid) : {}, '');
 
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
-  if (me && allData[ex]?.master?.sections) h += `<section class="v2-block"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。半分以上落とした章は開いてある</div>${secMapHtml(ex, st, uid)}</section>`;
+  if (hasMap) h += `<section class="v2-block"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。半分以上落とした章は開いてある</div>${secMapHtml(ex, st, uid)}</section>`;
   return h + karteSecHtml(rows, showAll);
 }
 // 分野別：本人のバー・黒い縦線がクラス（exs の模試を足し合わせる）
