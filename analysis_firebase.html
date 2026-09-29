@@ -840,6 +840,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .cat-g.kg-kiso,.cat-tr tr.grp-row.kg-kiso td{background:rgba(26,124,193,.07);}
 .cat-g.kg-senmon,.cat-tr tr.grp-row.kg-senmon td{background:rgba(212,36,111,.06);}
 .cat-g.kg-kiso,.cat-g.kg-senmon{padding-left:8px;padding-right:8px;}
+.sm-cont{margin-top:28px;}
 .cat-g.kg-kiso+.sm-hd{border-top-color:var(--kiso);}
 .cat-g.kg-senmon+.sm-hd{border-top-color:var(--senmon);}
 @media print{ .cat-g.kg-kiso,.cat-g.kg-senmon,.cat-tr tr.grp-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
@@ -5002,6 +5003,40 @@ function exLowHtml(ex, st) {
 }
 
 // 出題マップの一括展開：lv 1=科目を開く 2=章も 3=節も 0=全部たたむ
+// 出題マップの2列を釣り合わせる：多い方の群（ふつうは基礎）の後ろの科目を、少ない方の列の下へ回す。
+// 科目・章・節を開閉して高さが変わるたびに測り直す（ResizeObserver）。1列表示のときは元の順に戻す
+function smBalance(box) {
+  const cols = [...box.children].filter(c => c.classList.contains('sm'));
+  if (cols.length !== 2) return;
+  const blk = [0, 1].map(g => [...box.querySelectorAll(`details.sm-s[data-g="${g}"]`)]);
+  const conts = cols.map(c => c.querySelector(':scope > .sm-cont'));   // conts[0]＝左列の下に置く「専門（続き）」
+  const one = getComputedStyle(box).gridTemplateColumns.trim().split(/\s+/).length < 2;
+  const hts = blk.map(b => b.map(d => d.getBoundingClientRect().height + 10));
+  const hdH = cols[0].querySelector('.sm-hd').getBoundingClientRect().height + 40;
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  let big = sum(hts[0]) >= sum(hts[1]) ? 0 : 1, k = blk[big].length;
+  if (!one && sum(hts[0]) + sum(hts[1]) > 0) {
+    let best = Infinity;
+    for (let i = 1; i <= blk[big].length; i++) {
+      const own = hdH + sum(hts[big].slice(0, i)), oth = hdH + sum(hts[1 - big]) + (i < blk[big].length ? hdH + sum(hts[big].slice(i)) : 0);
+      const m = Math.max(own, oth);
+      if (m < best - 1) { best = m; k = i; }
+    }
+  }
+  // 並びが変わるときだけ動かす（動かすと高さが変わり、また呼ばれる）
+  const want = [[...blk[0], ...blk[1]]].flat().map(d => (d.dataset.g == big && blk[big].indexOf(d) >= k) ? 1 - big : Number(d.dataset.g));
+  const now = [...blk[0], ...blk[1]].map(d => cols.indexOf(d.parentElement));
+  if (want.every((w, i) => w === now[i])) return;
+  cols[big].querySelectorAll(':scope > details.sm-s').forEach(d => d.remove());
+  blk[big].slice(0, k).forEach(d => cols[big].insertBefore(d, conts[big]));
+  const oc = cols[1 - big];
+  blk[1 - big].forEach(d => oc.insertBefore(d, conts[1 - big]));
+  blk[big].slice(k).forEach(d => oc.appendChild(d));
+  conts[1 - big].hidden = k >= blk[big].length;
+  conts[big].hidden = true;
+}
+const smRO = typeof ResizeObserver === 'function' ? new ResizeObserver(es => requestAnimationFrame(() => es.forEach(e => e.target.isConnected && smBalance(e.target)))) : null;
+if (smRO) new MutationObserver(() => document.querySelectorAll('.sm-cols:not([data-bal])').forEach(b => { b.dataset.bal = '1'; smRO.observe(b); })).observe(document.documentElement, { childList: true, subtree: true });
 function smOpen(btn, lv) {
   const sm = btn.parentElement.nextElementSibling;
   if (!sm) return;
@@ -5050,7 +5085,9 @@ function secMapHtml(exArg, st0, uid) {
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
   const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${uid ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる"${uid ? '' : ' class="on"'}>章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
-  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g${kgCls(g)}">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
+  const hdIn = (g, lb) => `<div class="cat-g${kgCls(g)}">${lb || g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
+  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}">${hdIn(g)}`;
+  const cont = g => `<div class="sm-cont" hidden>${hdIn(g, g + '（続き）')}</div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
   const cols = ['', ''];
@@ -5060,7 +5097,7 @@ function secMapHtml(exArg, st0, uid) {
     h = '';
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
     const skq = chs.reduce((a, C) => a + kqSum(C), 0);
-    h += `<details class="sm-s${as.q ? '' : ' sm-none'}"${as.q && !uid ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
+    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}"${as.q && !uid ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
     [...S.ch.entries()].sort((a, b) => byNum(a[0], b[0])).forEach(([cn, C]) => {
       const ac = agg(allQs(C)), kq = kqSum(C);
       const weak = ac.t && ac.c / ac.t < 0.5 || (uid && ac.mt && ac.mc / ac.mt < 0.5);
@@ -5078,7 +5115,7 @@ function secMapHtml(exArg, st0, uid) {
     cols[col] += h;
   });
   const where = multi ? '受けた模試のどれにも' : 'この模試で';
-  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}</div>${hd('専門')}${cols[1]}</div></div>` + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
+  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}${cont('専門')}</div>${hd('専門')}${cols[1]}${cont('基礎')}</div></div>` + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
 }
 
 // カルテ：問題ごとの正誤（旧：弱点抽出）。クラス正答率は stats から取るので学生本人の画面でも出る
