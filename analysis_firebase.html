@@ -877,6 +877,14 @@ thead th{border-bottom:1px solid var(--g5);}
 @media screen and (max-width:360px){ .topbar .app-title>span{display:none;} .topbar{gap:6px;} }
 .sv-btn{padding:6px 12px;font-size:12px;border:1px solid var(--g3);border-radius:var(--rs);background:transparent;color:var(--g5);cursor:pointer;white-space:nowrap;font-family:inherit;}
 .sv-btn:hover{background:var(--g1);}
+/* 印刷は右上（全学生は教員だけ・学生ごとに刷れる画面だけ） */
+.pr-top{display:flex;gap:6px;padding-left:10px;margin-left:2px;border-left:1px solid var(--line);}
+.pr-btn{padding:6px 12px;font-size:12px;border:1px solid var(--g5);border-radius:var(--rs);background:var(--g5);color:var(--paper);cursor:pointer;white-space:nowrap;font-family:inherit;}
+.pr-btn:hover{opacity:.85;}
+.pr-btn.pr-all{background:transparent;color:var(--g5);}
+.pr-btn.pr-all:hover{background:var(--g1);opacity:1;}
+body:not(.pg-allpr) .pr-all{display:none!important;}
+@media screen and (max-width:760px){ .pr-top{padding-left:6px;gap:4px;} .pr-btn{padding:6px 9px;} }
 .sv-on .sv-btn{background:var(--g5);color:var(--paper);border-color:var(--g5);}
 .sv-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;background:var(--paper);border:1px solid var(--g3);border-radius:var(--rs);padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);width:260px;}
 .sv-pop-h{font-size:11px;color:var(--g4);letter-spacing:.06em;margin-bottom:6px;}
@@ -1162,6 +1170,10 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
       <div class="sv-pop-n">見るだけ。この間はデータベースに何も書きません。</div>
     </div>
   </div>
+  <div class="pr-top">
+    <button class="pr-btn" onclick="printCurrentPage()" title="このページを印刷（Chromeの「詳細設定 → 倍率」はデフォルトに）"><span class="t-lg">印刷</span><span class="t-sm">印刷</span></button>
+    <button class="pr-btn pr-all teacher-only" onclick="printAllStudents()" title="全学生の分をまとめて印刷（Chromeの「詳細設定 → 倍率」はデフォルトに）"><span class="t-lg">全学生を印刷</span><span class="t-sm">全員</span></button>
+  </div>
 </div>
 <div class="sv-bar" id="svBar" hidden><span id="svBarTxt"></span><button onclick="svExit()">教員の画面に戻る</button></div>
 
@@ -1186,10 +1198,6 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <button class="nat-tg teacher-only" id="natBtn" onclick="setNat(!natOn)" title="外部模試の全国版成績（全国平均・問題ごとの全国正答率）を重ねて表示する"><span>全国データ</span><span class="nat-sw" id="natSw">表示しない</span></button>
     <div class="nav-section-label">読み物</div>
     <button class="nav-item" data-page="scope" onclick="showPage('scope',this)">出題範囲</button>
-    <div class="nav-section-label nav-print">印刷</div>
-    <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
-    <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
-    <div class="print-note">印刷時は「詳細設定 → 倍率」を<b>デフォルト</b>に（Chromeは前回の倍率を覚えています）。</div>
     <details class="nav-legacy teacher-only">
       <summary>旧画面<span>10月末まで</span></summary>
       <button class="nav-item" data-page="trend" onclick="showPage('trend',this)">成績推移</button>
@@ -1209,8 +1217,8 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <button class="nav-item" data-page="admin_student" onclick="showPage('admin_student',this)">学生リスト編集</button>
     <button class="nav-item" data-page="responses" onclick="showPage('responses',this)">回答データ</button>
     <button class="nav-item" data-page="admin_teacher" onclick="showPage('admin_teacher',this)">教員リスト編集</button>
-    <button class="nav-item" onclick="window.open('marksheet_paper.html','_blank')" title="紙のマークシート用紙を印刷する（別タブ）">マークシート印刷</button>
-    <button class="nav-item" onclick="window.open('marksheet_scan.html','_blank')" title="紙のマークシートの取り込み・学生から届いた確認待ちの許可（別タブ）">紙の取り込み・許可</button>
+    <button class="nav-item" data-page="paper_print" onclick="showPage('paper_print',this)">マークシート印刷</button>
+    <button class="nav-item" data-page="paper_scan" onclick="showPage('paper_scan',this)">マークシート取り込み・許可</button>
     </div>
   </nav>
 
@@ -1992,6 +2000,7 @@ function showPage(id, btn) {
   document.body.classList.toggle('pg-v2', ['exam', 'roster', 'karte', 'drill', 'scope'].includes(id));
   // サイドバーの模試・学生の選択は旧画面だけで使う（新画面・管理では出さない＝どのボタンでもサイドバーの形を変えない）
   document.body.classList.toggle('pg-nosel', !['trend', 'summary', 'category', 'lowrate', 'secclass', 'weakness', 'sec', 'review', 'hist'].includes(id));
+  document.body.classList.toggle('pg-allpr', ['karte', 'roster', 'drill', 'hist', 'sec', 'review', 'weakness'].includes(id));
   const b = btn || document.querySelector('.nav-item[data-page="' + id + '"]');
   if (b) { b.classList.add('active'); const lg = b.closest('details.nav-legacy'); if (lg) lg.open = true; }
   if (id === 'exam') renderExamView();
@@ -5613,5 +5622,9 @@ async function renderScope() {
   box.innerHTML = `<div class="sc-list">${h}</div>`;
 }
 </script>
+<script src="omr_layout.js"></script>
+<script src="omr_reader.js"></script>
+<script src="omr_ui.js"></script>
+<script src="paper_admin.js"></script>
 </body>
 </html>

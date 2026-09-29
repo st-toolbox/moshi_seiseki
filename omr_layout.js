@@ -1,5 +1,5 @@
 // 紙のマークシート：用紙の座標（単位mm・A4縦）。
-// 印刷（marksheet_paper.html）と読み取り（marksheet_scan.html / omr_reader.js）が同じ数字を使う。
+// 印刷と読み取り（どちらも paper_admin.js → 分析アプリの管理／ omr_reader.js）が同じ数字を使う。
 // ここを変えたら、変える前に印刷した用紙は読めなくなる（version を上げて用紙にも刷る）。
 (function (g) {
   const L = {
