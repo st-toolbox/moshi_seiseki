@@ -4435,15 +4435,16 @@ function renderExamView() {
 
 // ---------- 学生一覧 ----------
 // クラス平均より何問多く落としたか＝(クラス正答率−本人正答率)×問題数。小さい分野の0%に引っぱられない
-function weakestCat(ex, uid) {
+// 苦手分野：クラスより多く落とした分野を大きい順に最大 n 個
+function weakCats(ex, uid, n = 3) {
   const cs = studentCatStats(ex, uid), cc = classCatStats(ex, ctx(ex));
-  let best = null;
+  const out = [];
   Object.entries(cs).forEach(([c, v]) => {
     const k = cc[c]; if (!k || !k.t) return;
     const lost = (k.c / k.t - v.c / v.t) * v.t;
-    if (lost >= 0.5 && (!best || lost > best.lost)) best = { c, lost, my: v.c, t: v.t };
+    if (lost >= 0.5) out.push({ c, lost });
   });
-  return best;
+  return out.sort((a, b) => b.lost - a.lost).slice(0, n);
 }
 function renderRoster() {
   const box = document.getElementById('roBody');
@@ -4457,7 +4458,7 @@ function examStudentsHtml(ex) {
   const rows = list.map(s => {
     const t = examTotal(ex, s.uid);
     const prev = examList.slice(idx + 1).find(e => examTotal(e.name, s.uid));
-    return { s, t, pt: prev ? examTotal(prev.name, s.uid) : null, weak: t ? weakestCat(ex, s.uid) : null,
+    return { s, t, pt: prev ? examTotal(prev.name, s.uid) : null, weak: t ? weakCats(ex, s.uid) : [],
              hist: examList.slice(idx).filter(e => examTotal(e.name, s.uid)).slice(0, 5).reverse()
                .map(e => ({ ex: e, t: examTotal(e.name, s.uid) })) };  // この模試まで・直近5回（古い順）
   });
@@ -4471,13 +4472,13 @@ function examStudentsHtml(ex) {
       case 'pm': return t?.pm ?? null;
       case 'diff': return t && r.pt ? t.total - r.pt.total : null;
       case 'gap': return t ? PASS_LINE - t.total : null;
-      case 'weak': return r.weak ? r.weak.lost : null;
+      case 'weak': return r.weak.length ? r.weak.reduce((a, w) => a + w.lost, 0) : null;
     }
   });
   const took = rows.filter(r => r.t).length;
   if (!list.length) return '';
   return `<section class="v2-block"><div class="v2-h"><h2>学生ごとの点</h2><span class="v2-note">受験 ${took} / ${list.length}人</span></div><div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
-      ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', 'クラスとの差が大きい分野')}<th>推移（直近5回）</th>
+      ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', '苦手分野')}<th>推移（直近5回）</th>
     </tr></thead><tbody>${rows.map(r => {
       const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
       return `<tr class="click" data-uid="${esc(r.s.uid)}">
@@ -4486,9 +4487,9 @@ function examStudentsHtml(ex) {
         <td class="r mn">${t?.am ?? '—'}</td><td class="r mn">${t?.pm ?? '—'}</td>
         <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
         <td class="r mn">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
-        <td>${r.weak ? `${esc(r.weak.c)} <span class="mn muted">${r.weak.my}/${r.weak.t}・−${r.weak.lost.toFixed(1)}問</span>` : '—'}</td>
+        <td>${r.weak.length ? r.weak.map(w => esc(w.c)).join('、') : '—'}</td>
         <td class="nw">${histChips(r.hist)}</td></tr>`;
-    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。「クラスとの差が大きい分野」＝クラス平均と比べて落とした問題数がいちばん多い分野（−2.0問＝平均より2問多く落とした）。</div></section>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。</div></section>`;
 }
 function openKarte(uid) {
   const sel = document.getElementById('sidebarStudentSel');
