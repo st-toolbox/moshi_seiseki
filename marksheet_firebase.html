@@ -9,6 +9,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- 紙のマークシートの読み取り -->
+<script src="omr_layout.js"></script>
+<script src="omr_reader.js"></script>
+<script src="omr_ui.js"></script>
 
 <style>
 /* ===== デザイン（2026-09 分析アプリに合わせて作り直し）：墨と深緑。午前＝深緑・午後＝藍で取り違えを防ぐ ===== */
@@ -99,6 +103,22 @@ select:focus{outline:none;border-color:var(--g5);}
 .bubble.modified{border:2px dashed var(--g5)!important;color:var(--g5)!important;background:var(--paper)!important;}
 .bubble.hint{border-color:var(--theme);color:var(--theme);opacity:.3;}
 
+/* 紙のマークシートから読み込む */
+.paper-box{border-top:1px solid var(--line);padding:14px 18px 16px;}
+.paper-btns{display:grid;grid-template-columns:2fr 1fr;gap:8px;}
+.btn-paper{padding:12px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;background:var(--paper);color:var(--theme);border:1.5px solid var(--theme);display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-paper.sub{color:var(--g5);border:1px solid var(--g3);font-weight:500;font-size:13px;}
+.btn-paper svg{width:18px;height:18px;flex-shrink:0;}
+.paper-note{font-size:11.5px;color:var(--g4);line-height:1.6;margin-top:8px;}
+.paper-result{margin-top:12px;border:1px solid var(--line);border-radius:var(--rs);padding:12px;font-size:13px;line-height:1.7;}
+.paper-result.warn{background:var(--warn-bg);border-color:#E9DCBC;}
+.paper-result b{font-weight:600;}
+.paper-result .pr-flags{margin-top:4px;color:var(--warn);font-size:12.5px;}
+.paper-result details{margin-top:8px;}
+.paper-result summary{font-size:12px;color:var(--g4);cursor:pointer;}
+.paper-result canvas{width:100%;height:auto;margin-top:8px;border:1px solid var(--line);border-radius:4px;}
+.mark-row.row-flag,.mark-row.row-flag:hover{background:var(--warn-bg);}
+.mark-row.row-flag .q-num{color:var(--warn);font-weight:600;}
 /* FOOTER */
 .footer{background:var(--paper);padding:14px 16px 28px;border-top:1px solid var(--g5);}
 .footer-inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 2fr;gap:10px;}
@@ -130,7 +150,7 @@ select:focus{outline:none;border-color:var(--g5);}
 /* 印刷：入力した解答の控え */
 @media print{
   body{background:#fff;}
-  .topbar,.footer,.modal-bg,.loading-overlay,.login-screen,.draft-banner{display:none!important;}
+  .topbar,.footer,.modal-bg,.loading-overlay,.login-screen,.draft-banner,.paper-box{display:none!important;}
   .content{max-width:none;padding:0;}
   .card{border:none;}
   .sheet-header{position:static;}
@@ -216,6 +236,17 @@ select:focus{outline:none;border-color:var(--g5);}
         <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
       </div>
     </div>
+    <div class="paper-box">
+      <div class="section-label">紙のマークシートから読み込む</div>
+      <div class="paper-btns">
+        <button class="btn-paper" onclick="document.getElementById('paperCam').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>撮って読み込む</button>
+        <button class="btn-paper sub" onclick="document.getElementById('paperFile').click()">画像・PDF</button>
+      </div>
+      <input type="file" id="paperCam" accept="image/*" capture="environment" hidden onchange="paperPicked(this)">
+      <input type="file" id="paperFile" accept="image/jpeg,image/png,image/webp,application/pdf" hidden onchange="paperPicked(this)">
+      <div class="paper-note">用紙を机に置き、四隅の■が4つとも入るように真上から撮る。読み取った答えがこの下に入るので、確かめてから送信する。</div>
+      <div id="paperResult"></div>
+    </div>
     <div class="sheet-header" id="sheetHeader" style="grid-template-columns:44px 1fr 1fr 1fr 1fr 1fr;">
       <div class="sheet-header-num">問</div>
       <div class="sheet-header-num">1</div>
@@ -259,6 +290,9 @@ let answers      = {};
 let originalAnswers = {};
 let currentStatus   = 'new';
 let examMasterCache = {};
+let paperMode = false;  // 紙から読み込んだ解答＝先生の確認待ちで出す（自分では提出にならない）
+let afterLoad = null;  // 読み込み完了後に1回だけ実行
+let paperFlags = {};   // 紙から読み込んだときの要確認（問題番号→{flag,alt}）
 
 // ===== AUTH =====
 function signIn() {
@@ -382,16 +416,19 @@ function checkAndLoad() {
   if (!currentExam) { document.getElementById('sheetCard').classList.add('hidden'); return; }
   showLoading('同期中...');
   const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
+  paperFlags = {}; document.getElementById('paperResult').innerHTML = '';
   db.ref(path).once('value').then(snap => {
     const data = snap.val();
     originalAnswers = data ? { ...data.answers } : {};
     answers         = data ? { ...data.answers } : {};
     currentStatus   = data ? data.status : 'new';
+    paperMode       = !!data && (data.status === 'paper_pending' || (data.status === 'draft' && data.source === 'paper'));
     updateStatusUI();
     renderSheet();
     document.getElementById('sheetCard').classList.remove('hidden');
     hideLoading();
-  }).catch(e => { hideLoading(); showAlert('データ取得に失敗しました'); });
+    if (afterLoad) { const f = afterLoad; afterLoad = null; f(); }
+  }).catch(e => { afterLoad = null; hideLoading(); showAlert('データ取得に失敗しました'); });
 }
 
 // ===== ステータスUI =====
@@ -400,7 +437,10 @@ function updateStatusUI() {
   const btn    = document.getElementById('submitBtn');
   const banner = document.getElementById('draftBanner');
   badge.className = 'badge';
-  if (currentStatus === 'submitted') {
+  if (currentStatus === 'paper_pending') {
+    badge.classList.add('badge-draft'); badge.textContent = '先生の確認待ち';
+    btn.textContent = '直して確認に回す'; banner.classList.remove('show');
+  } else if (currentStatus === 'submitted') {
     badge.classList.add('badge-done'); badge.textContent = '提出済';
     btn.textContent = '修正して再送信'; banner.classList.remove('show');
   } else if (currentStatus === 'draft') {
@@ -410,6 +450,7 @@ function updateStatusUI() {
     badge.classList.add('badge-new'); badge.textContent = '新規入力';
     btn.textContent = '解答を送信する'; banner.classList.remove('show');
   }
+  if (paperMode && currentStatus !== 'paper_pending') btn.textContent = '先生の確認に回す';
 }
 
 // ===== シート描画 =====
@@ -431,6 +472,7 @@ function renderSheet() {
     row.style.gridTemplateColumns = colW;
     const li = i - start;
     if (Math.floor(li/10)%2===1) row.classList.add('row-alt');
+    if (paperFlags[i]) row.classList.add('row-flag');
     if (i%10===0) row.classList.add('sep-10');
     else if (i%5===0) row.classList.add('sep-5');
 
@@ -490,7 +532,8 @@ function handleSave() {
   db.ref(path).set({
     answers, status: 'draft',
     email: currentUser.email,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    ...(paperMode ? { source: 'paper' } : {})
   }).then(() => {
     hideLoading();
     showAlert('一時保存しました', () => { currentStatus='draft'; updateStatusUI(); });
@@ -499,6 +542,7 @@ function handleSave() {
 
 function handleSubmit() {
   if (!currentExam) return showAlert('模試を選択してください');
+  if (paperMode) return submitPaper();
   showConfirm('解答を送信します。\nよろしいですか？', () => {
     showLoading('送信・採点中...');
     const { score, categoryScores, wrongAnswers } = calcScore(answers, currentExam, currentPart);
@@ -515,6 +559,85 @@ function handleSubmit() {
   });
 }
 
+// ===== 紙のマークシートから読み込む =====
+// 紙から読み込んだ解答は、先生が用紙と見比べて許可するまで提出（採点）にならない
+function submitPaper() {
+  showConfirm('先生の確認に回します。\n先生が用紙と見比べて許可すると提出になります。', () => {
+    showLoading('送信中...');
+    const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
+    db.ref(path).set({
+      answers, status: 'paper_pending', source: 'paper',
+      email: currentUser.email,
+      paperAt: Date.now()
+    }).then(() => {
+      hideLoading();
+      showAlert('先生の確認に回しました。\n用紙を先生に提出してください。', () => { currentStatus = 'paper_pending'; updateStatusUI(); });
+    }).catch(e => { hideLoading(); showAlert('送信に失敗しました: ' + e.message); });
+  }, '確認に回す');
+}
+
+async function paperPicked(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file || !currentExam) return;
+  if (currentStatus === 'submitted') return showAlert('この時間帯は提出済みです。\n紙の用紙で出し直す場合は先生に伝えてください。');
+  showLoading('読み取り中...');
+  let res, page;
+  try {
+    const pages = await OMR_UI.fileToPages(file);
+    page = pages[0];
+    await new Promise(r => setTimeout(r, 30));
+    res = OMR_UI.readCanvas(page.canvas);
+  } catch (e) { hideLoading(); return showAlert('読み込めませんでした：' + e.message); }
+  hideLoading();
+  if (!res.ok) return showAlert('読み取れませんでした（' + res.reason + '）\n\n' + res.tip);
+
+  const apply = () => {
+    const r = OMR_UI.withPart(res, currentPart);
+    const has = Object.keys(answers).filter(k => answers[k]).length;
+    const go = () => {
+      answers = { ...r.answers };
+      paperFlags = r.flags;
+      paperMode = true;
+      updateStatusUI();
+      renderSheet();
+      showPaperResult(r, page.canvas);
+    };
+    if (has) showConfirm(`入力済みの ${has} 問を、紙から読み取った答えで置き換えます。`, go, '置き換える');
+    else go();
+  };
+  // 用紙の午前/午後と、いま開いている時間帯が違うとき
+  if (res.part && res.part !== currentPart) {
+    // 切り替え先が提出済みかは読み込み後に判定する
+    const name = p => p === 'AM' ? '午前' : '午後';
+    showConfirm(`この用紙は${name(res.part)}です。\n${name(res.part)}に切り替えて読み込みますか？`, () => {
+      afterLoad = () => currentStatus === 'submitted'
+        ? showAlert('この時間帯は提出済みです。\n紙の用紙で出し直す場合は先生に伝えてください。')
+        : apply();   // 切り替えた時間帯の読み込みが終わってから入れる
+      setPart(res.part);
+    }, name(res.part) + 'に切り替える');
+  } else apply();
+}
+
+function showPaperResult(r, canvas) {
+  const box = document.getElementById('paperResult');
+  const n = Object.keys(r.answers).length, fl = Object.entries(r.flags);
+  const myId = OMR_UI.idOfEmail(currentUser && currentUser.email);
+  const idNg = myId && r.id !== myId;
+  const lines = [`<b>${n}</b> 問を読み取って入力しました。${100 - n} 問は空欄。`];
+  if (idNg) lines.push(`<span style="color:var(--warn)">用紙の学籍番号 <b>${r.id}</b> が、ログイン中のアカウント（${myId}）と違います。自分の用紙か確かめてください。</span>`);
+  let html = lines.join('<br>');
+  if (fl.length) {
+    html += '<div class="pr-flags">要確認（色の付いた行）：' + fl.map(([q, f]) =>
+      `問${q} ${OMR_UI.FLAG_LABEL[f.flag]}` + (f.flag === 'faint' ? `（${f.alt}？）` : '')).join('、') + '</div>';
+  }
+  html += '<div style="margin-top:6px">下の答えを用紙と見比べて、違う所はタップで直してから<b>「先生の確認に回す」</b>を押し、用紙を先生に提出してください。先生が許可すると提出になります。</div>';
+  html += '<details><summary>読み取った位置を写真で見る（緑＝塗り・橙＝要確認）</summary><div id="paperShot"></div></details>';
+  box.className = 'paper-result' + (fl.length || idNg ? ' warn' : '');
+  box.innerHTML = html;
+  document.getElementById('paperShot').appendChild(OMR_UI.overlay(canvas, r, 1000));
+}
+
 // ===== モーダル =====
 function showAlert(msg, cb) {
   document.getElementById('modalMsg').textContent = msg;
@@ -523,11 +646,11 @@ function showAlert(msg, cb) {
   document.getElementById('modal').classList.add('open');
   window._modalCb = cb||null;
 }
-function showConfirm(msg, onOk) {
+function showConfirm(msg, onOk, okLabel) {
   document.getElementById('modalMsg').textContent = msg;
   document.getElementById('modalBtns').innerHTML = `
     <button class="modal-cancel" onclick="closeModal(false)">キャンセル</button>
-    <button class="modal-ok" onclick="closeModal(true)">送信する</button>`;
+    <button class="modal-ok" onclick="closeModal(true)">${okLabel || '送信する'}</button>`;
   document.getElementById('modal').classList.add('open');
   window._modalCb = onOk;
 }
