@@ -822,6 +822,8 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-tbl td.gap{color:var(--ng);}
 .v2-tbl tr.avg-row td{background:var(--g1);font-weight:600;border-bottom:1px solid var(--g3);}
 .v2-tbl td.sec-cell{font-size:12px;}
+.ka-star .v2-tbl td.sec-cell{font-size:11.5px;}
+.ka-star .sec-path{font-size:10.5px;}
 .v2-h .v2-ctrl{gap:14px;}
 .exl-cat{margin-bottom:22px;}
 .exl-hd{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;padding:6px 0;border-bottom:1px solid var(--g5);}
@@ -878,7 +880,10 @@ body.sm-measuring .kp1 .v2-cap{margin-top:2mm;}
 .kp1 .ka-score,.kp1 .ka-gap{padding-top:2.5mm!important;padding-bottom:2.5mm!important;}
 .kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:.7mm 1.6mm!important;line-height:1.25;}
 .kp1 .ka-star .tbl-wrap{margin-top:3mm!important;}
-.kp1 .ka-star .sec-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:55%;}
+.kp1 .ka-star .sec-cell{max-width:0;width:72%;font-size:7.5pt!important;}
+.kp1 .ka-star .sp-line{display:flex;white-space:nowrap;min-width:0;}
+.kp1 .ka-star .sp-line .sec-path{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis;font-size:7pt;}
+.kp1 .ka-star .sp-line .sec-t{flex:0 .001 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-left:.3em;}
 body.sm-measuring .kp1{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}
 body.sm-measuring .sm-fit{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
 body.sm-measuring .sm-fit .sm-none{display:none!important;}
@@ -893,7 +898,10 @@ body.sm-measuring .sm-fit .sm-none{display:none!important;}
 .kp1 .ka-score,.kp1 .ka-gap{padding-top:2.5mm!important;padding-bottom:2.5mm!important;}
 .kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:.7mm 1.6mm!important;line-height:1.25;}
 .kp1 .ka-star .tbl-wrap{margin-top:3mm!important;}
-.kp1 .ka-star .sec-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:55%;}
+.kp1 .ka-star .sec-cell{max-width:0;width:72%;font-size:7.5pt!important;}
+.kp1 .ka-star .sp-line{display:flex;white-space:nowrap;min-width:0;}
+.kp1 .ka-star .sp-line .sec-path{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis;font-size:7pt;}
+.kp1 .ka-star .sp-line .sec-t{flex:0 .001 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-left:.3em;}
   .sm-fit{zoom:var(--smz,1);break-before:page;margin:0!important;}
   .sm-fit .sm-none{display:none!important;}
   .sm-fit .sm-cols{gap:0 24px!important;}
@@ -4295,7 +4303,7 @@ let rosterView   = 'exam';   // 学生一覧 'exam' | 'trend'
 let roSortBy     = { exam: { k: 'num', d: 1 }, trend: { k: 'num', d: 1 } };  // 初期は学生番号順  // 学生一覧の並び（見出しクリック）。d: 1=昇順 -1=降順
 let exLowMode    = 'map';    // この模試：'map'（出題マップ 科目→章→節）| 'cat'（科目別の問題）| 'sec'（節ワースト10）
 let exLowTh      = 50;       // 科目別の問題：正答率がこれ以下
-let karteStarTh  = 80;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
+let karteStarTh  = 70;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
 let ctxMemo      = {};
 
 if (window.Chart) {
@@ -5274,9 +5282,9 @@ function karteStarHtml(ex, uid, st) {
     `<div class="v2-note" style="margin-bottom:12px"><span class="star">★</span> クラスの${karteStarTh}%以上が正解したのに落とした <b class="mn">${stars.length}</b>問　·　× それ以外で落とした <b class="mn">${nx}</b>問</div>` + grids.join('');
   if (stars.length) {
     stars.sort((a, b) => b.cr - a.cr || a.n - b.n);
-    h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>分野</th><th>節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス正答率</th></tr></thead><tbody>` +
+    h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>科目 ▸ 章 ▸ 節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス正答率</th></tr></thead><tbody>` +
       stars.map(o => { const key = secKeyOf(ex, o.n);
-        return `<tr><td class="mn">${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td>${esc(catOf(ex, o.n) || '—')}</td><td class="sec-cell">${key ? secPathHtml(key) : '—'}</td>` +
+        return `<tr><td class="mn">${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td class="sec-cell">${key ? `<div class="sp-line">${secPathHtml(key)}</div>` : esc(catOf(ex, o.n) || '—')}</td>` +
           `<td class="r mn">${esc(o.c)}</td><td class="r mn dn">${esc(o.my || '無回答')}</td><td class="r mn">${Math.round(o.cr * 100)}%</td></tr>`; }).join('') +
       '</tbody></table></div><div class="v2-cap">★はみんなが取れている問題＝本番で差がつく。まずここから。</div>';
   }
