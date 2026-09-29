@@ -4556,7 +4556,7 @@ function karteHtml(uid, rows, showAll) {
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
   if (hasMap) h += `<section class="v2-block"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。科目を開くと章（半分以上落とした章は節まで開く）</div>${secMapHtml(ex, st, uid)}</section>`;
-  return h + karteSecHtml(rows, showAll);
+  return h;
 }
 // 分野別：本人のバー・黒い縦線がクラス（exs の模試を足し合わせる）
 function karteCatHtml(exs, uid, own, note) {
@@ -4572,7 +4572,7 @@ function karteCatHtml(exs, uid, own, note) {
   };
   return `<section class="v2-block"><div class="v2-h"><h2>分野別の正答率</h2><span class="v2-note">${note}バー＝本人　黒線と右端の数字＝クラス　赤字＝クラスより10点以上低い</span></div><div class="cats">${catRowsHtml(a, row, '基礎')}${catRowsHtml(b, row, '専門')}</div></section>`;
 }
-// 通算：これまでの模試・分野別（受けた模試の合計）・優先して取り返す節（通算）
+// 通算：これまでの模試・模試成績一覧（優先して取り返す節はややこしいので出さない）
 function karteAllHtml(uid, rows, showAll) {
   const taken = examsTakenBy(uid);                       // 新しい順
   if (!taken.length) return '<div class="v2-empty">まだ受けた模試がありません。</div>';
@@ -4590,7 +4590,8 @@ function karteAllHtml(uid, rows, showAll) {
 
   h += karteTrendHtml(uid, true);
   h += karteHistHtml(uid, [...taken].reverse());
-  return h + karteSecHtml(rows, showAll);
+  h += `<section class="v2-block"><div class="v2-h"><h2>通算の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">受けた模試 ${taken.length}回を合わせて 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率（同じ模試のクラスを合わせたもの）。科目を開くと章（半分以上落とした章は節まで開く）</div>${secMapHtml(taken.map(e => e.name), null, uid)}</section>`;
+  return h;
 }
 // 通算：模試成績一覧（全部の模試の分野別の表と同じ形。セル＝本人の正答率＋クラスとの差）。exs は古い順
 function karteHistHtml(uid, exs) {
@@ -4750,10 +4751,6 @@ async function renderKarte() {
     : currentExam ? [shortExam(currentExam), examList.find(e => e.name === currentExam)?.date ? formatDate(examList.find(e => e.name === currentExam).date) + ' 実施' : ''].filter(Boolean).join('　·　') : '';
   if (!uid) { box.innerHTML = '<div class="v2-empty">上の欄で学生を選んでください。</div>'; return; }
   const rows = karteRows(uid, karteScope);
-  const ids = karteReviewIds(karteShowAll ? rows : rows.slice(0, 10));
-  if (refState === 'ok' && ids.some(i => !(i in kqCache))) box.innerHTML = '<div class="v2-empty">国試の問題を読み込み中...</div>';
-  await loadKq(ids);
-  if (seq !== karteSeq) return;
   box.innerHTML = karteHtml(uid, rows, karteShowAll);
 }
 async function printAllKarte() {
@@ -4964,13 +4961,16 @@ function smOpen(btn, lv) {
   btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
 }
 // 出題マップ（科目 ▸ 章 ▸ 節）。クラス正答率は stats から。uid があれば本人の正誤も並べる
-function secMapHtml(ex, st, uid) {
-  const m = allData[ex]?.master || {}, r = uid ? allData[ex]?.responses?.[uid] : null;
+// ex に模試名の配列を渡すと通算（その模試を全部足す。クラス正答率も各模試のクラスを足す）
+function secMapHtml(exArg, st0, uid) {
+  const multi = Array.isArray(exArg), ex = multi ? exArg[0] : exArg;
   const subs = new Map(); let none = 0;
+  for (const exN of multi ? exArg : [exArg]) {
+  const m = allData[exN]?.master || {}, r = uid ? allData[exN]?.responses?.[uid] : null, st = multi ? ctx(exN) : st0;
   for (let n = 1; n <= 200; n++) {
     const c = String(m.answers?.[n] || '');
     if (!ansScorable(c)) continue;
-    const key = secKeyOf(ex, n);
+    const key = secKeyOf(exN, n);
     if (!key) { none++; continue; }
     const [sid, cn] = key.split('|'), info = secInfo(key), q = st?.q?.['q' + n] || { c: 0, t: 0 };
     let my = null;
@@ -4979,6 +4979,7 @@ function secMapHtml(ex, st, uid) {
     const C = S.ch.get(cn) || (S.ch.set(cn, { name: info.c || ('第' + cn + '章'), sec: new Map() }), S.ch.get(cn));
     const X = C.sec.get(key) || (C.sec.set(key, { key, name: info.t, kq: secKqIds(key).length, qs: [] }), C.sec.get(key));
     X.qs.push({ n, c: q.c, t: q.t, my });
+  }
   }
   // 出ていない科目・章・節も骨組みに入れる（灰色で出す）
   const gOf = {};
@@ -5001,7 +5002,7 @@ function secMapHtml(ex, st, uid) {
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
   const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${uid ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
-  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
+  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
   const cols = ['', ''];
@@ -5019,8 +5020,8 @@ function secMapHtml(ex, st, uid) {
       [...C.sec.values()].sort((a, b) => byNum(a.key.split('|')[2], b.key.split('|')[2])).forEach(X => {
         if (!X.qs.length) { h += `<div class="sm-row lv3 sm-none">${row(3, esc(X.name), agg(X.qs), X.kq ? X.kq + '問' : '')}</div>`; return; }
         const ax = agg(X.qs), marks = uid ? ' <span class="sm-marks">' + X.qs.map(o => o.my == null ? '' : o.my ? '<b class="ok">○</b>' : '<b class="ng">×</b>').join('') + '</span>' : '';
-        const body = uid ? '' : `<div class="exw-body">${X.qs.map(o => qDistHtml(ex, o.n, st)).join('')}</div>`;
-        const inner = row(3, `${esc(X.name)} <span class="muted mn">${X.qs.map(o => o.n <= 100 ? '午前' + o.n : '午後' + (o.n - 100)).join('・')}</span>${marks}`, ax, X.kq ? X.kq + '問' : '');
+        const body = uid ? '' : `<div class="exw-body">${X.qs.map(o => qDistHtml(ex, o.n, st0)).join('')}</div>`;
+        const inner = row(3, `${esc(X.name)} <span class="muted mn">${multi ? '' : X.qs.map(o => o.n <= 100 ? '午前' + o.n : '午後' + (o.n - 100)).join('・')}</span>${marks}`, ax, X.kq ? X.kq + '問' : '');
         h += uid ? `<div class="sm-row lv3">${inner}</div>` : `<details class="sm-x"><summary class="sm-row lv3">${inner}</summary>${body}</details>`;
       });
       h += '</details>';
@@ -5028,7 +5029,8 @@ function secMapHtml(ex, st, uid) {
     h += '</details>';
     cols[col] += h;
   });
-  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}</div>${hd('専門')}${cols[1]}</div></div>` + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝この模試で出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : '<div class="v2-cap">灰色＝この模試で出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>');
+  const where = multi ? '受けた模試のどれにも' : 'この模試で';
+  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}</div>${hd('専門')}${cols[1]}</div></div>` + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
 }
 
 // カルテ：問題ごとの正誤（旧：弱点抽出）。クラス正答率は stats から取るので学生本人の画面でも出る
