@@ -880,6 +880,8 @@ thead th{border-bottom:1px solid var(--g5);}
 .hs-tbl th.hs-empty{color:var(--g3);font-weight:400;}
 .hs-tbl td>.hs-d{min-width:0;margin-left:4px;}
 @media print{ .hs-tbl{min-width:0;} .hs-tbl col.hs-c0{width:8em;} .hs-tbl col.hs-call{width:5em;} .hs-tbl col.hs-cn{width:3em;} .hs-tbl .hs-s .hs-d{display:block;margin:0;font-size:6.5pt;line-height:1;} .hs-tbl th.ex-h{font-size:6.5pt;} }
+/* 印刷前の測定（smFitPrint）も同じ形で測る */
+body.sm-measuring .hs-tbl{min-width:0;} body.sm-measuring .hs-tbl col.hs-c0{width:8em;} body.sm-measuring .hs-tbl col.hs-call{width:5em;} body.sm-measuring .hs-tbl col.hs-cn{width:3em;} body.sm-measuring .hs-tbl .hs-s .hs-d{display:block;margin:0;font-size:6.5pt;line-height:1;} body.sm-measuring .hs-tbl th.ex-h{font-size:6.5pt;}
 .hs-tbl .hs-d.dn{color:var(--ng);} .hs-tbl .hs-d.up{color:var(--ok);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
 @media print{ .ka-review{page-break-before:auto!important;} }
@@ -5396,6 +5398,11 @@ const PRINT_W = 194 * 96 / 25.4, PRINT_H = 285 * 96 / 25.4;   // A4縦・カル�
 function smFitPrint() {
   const secs = [...document.querySelectorAll('.sm-fit, .kp1')];
   if (!secs.length) return;
+  // 測る間はスマホ幅のCSS（screen and max-width）を止め、印刷で効く (max-width:900px) は効かせる＝スマホで開いても印刷と同じ形で測る
+  const mq = [];
+  for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; }
+    for (const r of rs) { if (!(r instanceof CSSMediaRule) || !/max-width/.test(r.media.mediaText)) continue;
+      mq.push([r, r.media.mediaText]); r.media.mediaText = /screen/.test(r.media.mediaText) ? 'not all' : 'all'; } }
   document.body.classList.add('sm-measuring');
   try {
     // 縮めると幅が広がって段組み・折り返しが変わるので、比例計算でなく二分探索で「収まる最大」を探す
@@ -5414,7 +5421,7 @@ function smFitPrint() {
       fits(lo);
       sec.style.setProperty('--smz', lo.toFixed(3));
     });
-  } finally { document.body.classList.remove('sm-measuring'); }
+  } finally { document.body.classList.remove('sm-measuring'); mq.forEach(([r, t]) => { r.media.mediaText = t; }); }
 }
 window.addEventListener('beforeprint', smFitPrint);
 const smRO = typeof ResizeObserver === 'function' ? new ResizeObserver(es => requestAnimationFrame(() => es.forEach(e => e.target.isConnected && smBalance(e.target)))) : null;
