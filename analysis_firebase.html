@@ -841,6 +841,14 @@ thead th{border-bottom:1px solid var(--g5);}
 .cat-g.kg-senmon,.cat-tr tr.grp-row.kg-senmon td{background:rgba(212,36,111,.06);}
 .cat-g.kg-kiso,.cat-g.kg-senmon{padding-left:8px;padding-right:8px;}
 .sm-cont{margin-top:28px;}
+/* 出題マップ：科目・章・節の地も群の色で（基礎＝青・専門＝赤）。科目の行は少し濃く */
+.sm details.sm-s[data-g="0"]{background:rgba(26,124,193,.035);}
+.sm details.sm-s[data-g="1"]{background:rgba(212,36,111,.03);}
+.sm details.sm-s[data-g="0"]>summary.lv1{background:rgba(26,124,193,.10);}
+.sm details.sm-s[data-g="1"]>summary.lv1{background:rgba(212,36,111,.085);}
+.sm details.sm-s[data-g="0"] summary:hover{background:rgba(26,124,193,.16);}
+.sm details.sm-s[data-g="1"] summary:hover{background:rgba(212,36,111,.13);}
+@media print{ .sm details.sm-s,.sm details.sm-s>summary.lv1{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
 .cat-g.kg-kiso+.sm-hd{border-top-color:var(--kiso);}
 .cat-g.kg-senmon+.sm-hd{border-top-color:var(--senmon);}
 @media print{ .cat-g.kg-kiso,.cat-g.kg-senmon,.cat-tr tr.grp-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
