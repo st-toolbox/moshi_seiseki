@@ -745,16 +745,10 @@ thead th{border-bottom:1px solid var(--g5);}
 @media print{ .ka-go,#hlClear{display:none!important;} }
 .sv-bar[hidden]{display:none!important;}
 .cat-tr td.lo{color:var(--ng);}
-.hs-tbl td b{font-weight:700;}
-.hs-tbl b.c-ok{color:var(--ok);} .hs-tbl b.c-warn{color:var(--warn);} .hs-tbl b.c-ng{color:var(--ng);}
-.hs-tbl .e0{border-left:1px solid var(--line);}
-.hs-tbl td.sub{color:var(--g4);font-size:11.5px;}
-.hs-tbl th{font-size:10.5px;}
-.hs-tbl th.hs-ex{text-align:center;white-space:normal;line-height:1.35;}
-.hs-tbl th.hs-ex span{display:block;font-weight:400;color:var(--g3);}
-.hs-tbl tr.hs-sc td{color:var(--g5);text-align:center;}
-.hs-tbl tr.hs-sc td:first-child{text-align:left;}
-.hs-tbl tr.hs-sc.b td{font-weight:700;border-bottom:1px solid var(--g5);}
+.hs-tbl .hs-d{display:inline-block;min-width:2.6em;margin-left:6px;font-size:10.5px;color:var(--g3);font-weight:400;}
+.hs-tbl tr.hs-tot td{background:var(--g1);font-weight:600;}
+.hs-tbl tr.hs-avg td{color:var(--g4);border-bottom:1px solid var(--g3);}
+.hs-tbl .hs-d.dn{color:var(--ng);} .hs-tbl .hs-d.up{color:var(--ok);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
 @media print{ .ka-review{page-break-before:auto!important;} }
 .pg-sel{font:inherit;font-size:12.5px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--g5);max-width:280px;}
@@ -4598,27 +4592,31 @@ function karteAllHtml(uid, rows, showAll) {
   h += karteHistHtml(uid, [...taken].reverse());
   return h + karteSecHtml(rows, showAll);
 }
-// 通算：模試成績一覧（旧画面と同じ形＝行が点と分野・列が模試×［本人・問題数・クラス］）。exs は古い順
+// 通算：模試成績一覧（全部の模試の分野別の表と同じ形。セル＝本人の正答率＋クラスとの差）。exs は古い順
 function karteHistHtml(uid, exs) {
   const own = exs.map(e => studentCatStats(e.name, uid)), cls = exs.map(e => classCatStats(e.name, ctx(e.name)));
-  const sum = {};
-  own.forEach(o => Object.entries(o).forEach(([c, v]) => { const x = sum[c] || (sum[c] = { c: 0, t: 0 }); x.c += v.c; x.t += v.t; }));
+  const add = (sum, o) => Object.entries(o).forEach(([c, v]) => { const x = sum[c] || (sum[c] = { c: 0, t: 0 }); x.c += v.c; x.t += v.t; });
+  const sum = {}, csum = {};
+  own.forEach(o => add(sum, o)); cls.forEach(o => add(csum, o));
   const cats = Object.keys(sum).filter(c => sum[c].t);
   const pc = v => v && v.t ? Math.round(v.c / v.t * 100) : null;
   const who = isTeacher ? '本人' : 'あなた';
-  const cell3 = (my, n, cl) => my == null ? '<td class="r mn muted e0">—</td><td class="r mn muted">—</td><td class="r mn muted">—</td>'
-    : `<td class="r mn e0"><b class="${pctCls(my)}">${my}%</b></td><td class="r mn sub">${n}</td><td class="r mn sub">${cl != null ? cl + '%' : '—'}</td>`;
+  const td = (my, cl, n) => {
+    if (my == null) return '<td class="r mn muted">—</td>';
+    const d = cl != null ? my - cl : null;
+    return `<td class="r mn${my < 50 ? ' lo' : my >= 70 ? ' hi' : ''}"${n ? ` title="${n}問${cl != null ? `・クラス ${cl}%` : ''}"` : ''}>${my}%` +
+      (d != null ? `<span class="hs-d${d <= -10 ? ' dn' : d >= 10 ? ' up' : ''}">${signed(d)}</span>` : '') + '</td>';
+  };
   const tot = exs.map(e => examTotal(e.name, uid)), avg = exs.map(e => ctx(e.name)?.avg ?? null);
-  const srow = (lab, f, b) => `<tr class="hs-sc${b ? ' b' : ''}"><td>${lab}</td>${exs.map((e, i) => `<td class="r mn e0" colspan="3">${f(i) ?? '—'}</td>`).join('')}<td class="r mn e0" colspan="2"></td></tr>`;
+  const srow = (lab, f, cls2) => `<tr${cls2 ? ` class="${cls2}"` : ''}><td>${lab}</td>${exs.map((e, i) => `<td class="r mn">${f(i) ?? '—'}</td>`).join('')}<td></td><td></td></tr>`;
   const [a, bb] = splitCats(cats);
-  const grp = (names, head) => names.length ? `<tr class="grp-row"><td colspan="${exs.length * 3 + 3}">${head}</td></tr>` +
-    names.map(c => `<tr><td>${esc(c)}</td>${exs.map((e, i) => cell3(pc(own[i][c]), own[i][c]?.t, pc(cls[i][c]))).join('')}` +
-      `<td class="r mn e0"><b class="${pctCls(pc(sum[c]))}">${pc(sum[c])}%</b></td><td class="r mn sub">${sum[c].t}</td></tr>`).join('') : '';
-  return `<section class="v2-block"><div class="v2-h"><h2>模試成績一覧</h2><span class="v2-note">緑 70%以上　黄 50〜69%　赤 50%未満（${who}の正答率）</span></div>` +
-    `<div class="tbl-wrap"><table class="v2-tbl cat-tr hs-tbl"><thead><tr><th rowspan="2">分野</th>${exs.map(e => `<th class="e0 hs-ex" colspan="3">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="e0 hs-ex" colspan="2">通算</th></tr>` +
-    `<tr>${exs.map(() => `<th class="r e0">${who}</th><th class="r">問題数</th><th class="r">クラス</th>`).join('')}<th class="r e0">${who}</th><th class="r">問題数</th></tr></thead><tbody>` +
-    srow('午前', i => tot[i]?.am) + srow('午後', i => tot[i]?.pm) + srow('合計', i => tot[i] ? tot[i].total + (tot[i].full ? '' : '*') : null, true) + srow('クラス平均', i => avg[i]) +
-    grp(a, '基礎') + grp(bb, '専門') + '</tbody></table></div><div class="v2-cap">—＝その模試では出ていない分野。クラス＝その模試のクラスの正答率。通算＝受けた模試を合わせた正答率と問題数。* は片方の時限だけ提出。</div></section>';
+  const grp = (names, head) => names.length ? `<tr class="grp-row"><td colspan="${exs.length + 3}">${head}</td></tr>` +
+    names.map(c => `<tr><td>${esc(c)}</td>${exs.map((e, i) => td(pc(own[i][c]), pc(cls[i][c]), own[i][c]?.t)).join('')}${td(pc(sum[c]), pc(csum[c]))}<td class="r mn muted">${sum[c].t}</td></tr>`).join('') : '';
+  return `<section class="v2-block" style="margin-top:34px"><div class="v2-h"><h2>模試成績一覧</h2><span class="v2-note">${who}の正答率　小さい数字＝クラスとの差　赤 50%未満　緑 70%以上</span></div>` +
+    `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr hs-tbl"><thead><tr><th></th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">通算</th><th class="r">問題数</th></tr></thead><tbody>` +
+    srow('午前', i => tot[i]?.am) + srow('午後', i => tot[i]?.pm) + srow('合計', i => tot[i] ? `<b>${tot[i].total}</b>${tot[i].full ? '' : '*'}` : null, 'hs-tot') +
+    srow('クラス平均', i => avg[i], 'hs-avg') +
+    grp(a, '基礎') + grp(bb, '専門') + '</tbody></table></div><div class="v2-cap">—＝その模試では出ていない分野。セルにマウスを乗せると問題数とクラスの正答率。通算＝受けた模試を合わせた正答率、問題数＝その合計。* は片方の時限だけ提出。</div></section>';
 }
 // 全部の模試：クラスの分野別正答率を模試ごとに（右端＝通算）
 function catTrendHtml(exs) {
