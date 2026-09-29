@@ -1657,15 +1657,8 @@ async function loadAllData() {
 
 // 読み込み済みのデータで全画面を描き直す（ログイン直後・学生の立場で見るの出入り）
 function renderAll() {
-    // セレクト設定
-    const nResp = n => Object.keys(allData[n]?.responses || {}).length;
-    const opts = examList.map(e => {
-      const k = nResp(e.name);
-      return `<option value="${esc(e.name)}">${esc(shortExam(e.name))}${e.date ? `（${esc(formatDate(e.date))}）` : ''}${k ? (isTeacher ? ` · ${k}人` : ' · 受験済') : ''}</option>`;
-    }).join('');
-    document.getElementById('examSel').innerHTML = opts;
-    currentExam = (examList.find(e => nResp(e.name)) || examList[0])?.name || '';
-    document.getElementById('examSel').value = currentExam;
+    currentExam = '';
+    buildExamSel();
     { const nk = document.getElementById('navKarte'); if (nk) nk.textContent = isTeacher ? '学生カルテ' : 'わたしのカルテ'; }
     document.body.classList.toggle('is-stu', !isTeacher);
 
@@ -2793,6 +2786,8 @@ function updateExamDate(name, date) {
   db.ref('exams/' + name + '/date').set(date);
   const e = examList.find(x=>x.name===name); if(e) e.date=date;
   examList.sort((a, b) => (b.date ? new Date(b.date) : 0) - (a.date ? new Date(a.date) : 0));
+  ctxMemo = {};
+  buildExamSel();
   renderAdminExamTable();
 }
 // 今年度の模試（exams/<name>/thisYear だけを書く。解答・回答には触らない）
@@ -2802,6 +2797,7 @@ function updateExamYear(name, on) {
   const e = examList.find(x => x.name === name); if (e) e.thisYear = on;
   if (allData[name]?.master) allData[name].master.thisYear = on;
   ctxMemo = {};
+  buildExamSel();
   renderAdminExamTable();
 }
 function updateExamActive(name, val) {
@@ -2842,9 +2838,8 @@ async function renameExam(oldName) {
     if (e) e.name = n;
     if (allData[oldName]) { allData[n] = allData[oldName]; delete allData[oldName]; }
     // UI 全体を再描画
-    const opts = examList.map(e => `<option value="${esc(e.name)}">${esc(e.name)}（${esc(formatDate(e.date))}）</option>`).join('');
-    document.getElementById('examSel').innerHTML = opts;
-    currentExam = examList[0]?.name || '';
+    if (currentExam === oldName) currentExam = n;
+    buildExamSel();
     renderAdminExamTable();
     hideLoading();
   } catch(e) {
@@ -4207,6 +4202,18 @@ function examTotal(exam, uid) {
   return { am, pm, total: (am || 0) + (pm || 0), full: am !== null && pm !== null };
 }
 // 今年度の模試＝「模試一覧・計画」でチェックした模試（新しい順）。1つもチェックが無ければ全部の模試
+// 模試の選択肢＝今年度にチェックの入った模試だけ（チェックが1つも無ければ全部）。選択中の回が外れたら受験者のいる最新の回へ
+function buildExamSel() {
+  const sel = document.getElementById('examSel'); if (!sel) return;
+  const nResp = n => Object.keys(allData[n]?.responses || {}).length;
+  const list = yearExams();
+  sel.innerHTML = list.map(e => {
+    const k = nResp(e.name);
+    return `<option value="${esc(e.name)}">${esc(shortExam(e.name))}${e.date ? `（${esc(formatDate(e.date))}）` : ''}${k ? (isTeacher ? ` · ${k}人` : ' · 受験済') : ''}</option>`;
+  }).join('');
+  if (!list.some(e => e.name === currentExam)) currentExam = (list.find(e => nResp(e.name)) || list[0])?.name || '';
+  sel.value = currentExam;
+}
 function yearExams() { const y = examList.filter(e => e.thisYear); return y.length ? y : examList; }
 function yearNo(name) {   // 実施日の順に今年度の第何回か（チェックが無い模試は null）
   const y = examList.filter(e => e.thisYear).slice().sort((a, b) => (a.date ? new Date(a.date) : Infinity) - (b.date ? new Date(b.date) : Infinity) || String(a.name).localeCompare(String(b.name)));
