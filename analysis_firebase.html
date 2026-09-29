@@ -334,7 +334,7 @@ tbody tr:hover td{background:var(--g1);}
 @media print {
   @page{size:A4 landscape;margin:10mm 12mm;}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-  .topbar,.sidebar,.filter-row,.legend-row,.btn-admin-add,.btn-admin-save,.print-btn,.tog-btn,.vdiv,.filter-input,.student-select,.exam-inline-sel{display:none!important;}
+  .topbar,.sidebar,.pr-top,.filter-row,.legend-row,.btn-admin-add,.btn-admin-save,.print-btn,.tog-btn,.vdiv,.filter-input,.student-select,.exam-inline-sel{display:none!important;}
   body{background:#fff!important;}
   .layout{display:block!important;}
   .main{overflow:visible!important;}
@@ -490,10 +490,6 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 .nav-item:hover,.nav-item-view:hover,.nav-item-trend:hover,.nav-item-admin:hover{background:var(--g1)!important;color:var(--g5)!important;}
 .nav-item.active,.nav-item-view.active,.nav-item-trend.active,.nav-item-admin.active{background:var(--g1)!important;color:var(--g5)!important;font-weight:600!important;box-shadow:inset 2px 0 0 var(--accent);border-radius:0 4px 4px 0;}
 .print-btn{border:none;box-shadow:none;background:none;width:100%;margin:0;color:var(--g4);font-size:13.5px;}
-.print-note{font-size:11px;line-height:1.5;color:var(--g4);padding:4px 12px 8px;}
-.print-note b{color:var(--g5);font-weight:600;}
-@media print{ .print-note{display:none!important;} }
-@media screen and (max-width:760px){ .sidebar .print-note{display:none!important;} }
 .print-btn:hover{background:var(--g1);box-shadow:none;color:var(--g5);}
 .gakunen-filter-btn{border-radius:4px;border:1px solid var(--g2);font-weight:500;padding:3px 10px;}
 .gakunen-filter-btn:hover{border-color:var(--g5);color:var(--g5);}
@@ -508,14 +504,12 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 .nav-legacy summary span{letter-spacing:.04em;font-weight:400;color:var(--g3);margin-left:auto;margin-right:8px;}
 .nav-legacy .nav-item{font-size:12.5px;padding:6px 10px;}
 .nav-admin{margin-top:14px;border-top:1px solid var(--line);}
-.nav-print{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
 /* サイドバーのカテゴリー見出し：項目と見分けがつくように（濃い字・左の色の印・上に区切り線） */
 .sidebar .nav-section-label,.nav-legacy summary{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--g5);padding:9px 10px 6px;margin:12px 0 2px;border-top:1px solid var(--line);display:flex;align-items:center;gap:7px;}
 .sidebar .nav-section-label::before,.nav-legacy summary::before{content:"";width:3px;height:12px;border-radius:1px;background:var(--accent);flex:none;}
 .sidebar .nav-section-label:first-child,.sidebar .nav-target{margin-top:0;border-top:none;padding-top:6px;}
 .nav-legacy{margin-top:0;border-top:none;padding-top:0;}
 .nav-legacy summary{justify-content:flex-start;}
-.nav-print{padding-top:9px;}
 
 /* 旧画面の部品も同じ色味に */
 .card{border:1px solid var(--line);border-radius:var(--r);}
@@ -706,7 +700,7 @@ thead th{border-bottom:1px solid var(--g5);}
   #userName{display:none;}
   .layout{flex-direction:column;}
   .sidebar{position:static;width:auto;min-width:0;height:auto;border-right:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 12px;gap:6px;}
-  .sidebar .nav-section-label,.sidebar .print-btn,.sidebar .print-note,.sidebar .nav-legacy{display:none!important;}
+  .sidebar .nav-section-label,.sidebar .nav-legacy{display:none!important;}
   .sidebar .nav-admin{display:contents;}   /* 管理もスマホから開ける（見出しだけ消して同じ列に並べる） */
   .sidebar .nav-admin .nav-item{color:var(--g4);font-size:12px;padding:5px 10px;}
   .sidebar .top-sel{width:100%!important;margin:0!important;}
@@ -778,8 +772,9 @@ thead th{border-bottom:1px solid var(--g5);}
 #page-scope .sc-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px;}
 .sc-tbl td{padding:2px 3px;line-height:1.4;border-bottom:1px dotted var(--line);vertical-align:top;}
 .sc-tbl tr{break-inside:avoid;}
-.sc-tbl td.sc-cb{width:18px;padding-right:0;}
-.sc-tbl td.sc-nn{width:30px;text-align:right;color:var(--g4);}
+.sc-tbl td.sc-cb{padding-left:10px;padding-right:0;}
+.sc-tbl col.sc-c1{width:28px;} .sc-tbl col.sc-c3{width:30px;}
+.sc-tbl td.sc-nn{text-align:right;color:var(--g4);}
 .sc-tbl tr.sc-ch td{background:var(--g1);font-weight:700;font-size:12px;}
 .sc-tbl tr.sc-top td{background:color-mix(in srgb,var(--accent) 9%,transparent);font-weight:600;}
 .sc-tbl tr.sc-zero td.sc-t{color:var(--g4);}
@@ -800,8 +795,9 @@ thead th{border-bottom:1px solid var(--g5);}
   .sc-tbl td{padding:0 0.4mm!important;line-height:1.06;border-bottom:0.1mm dotted #bbb;overflow:hidden;}
   .sc-tbl td.sc-nn{white-space:nowrap;}
   .sc-tbl td *{font-size:inherit!important;line-height:inherit!important;vertical-align:top!important;font-family:inherit!important;}
-  .sc-tbl td.sc-cb{width:3mm;padding:0!important;line-height:0!important;overflow:visible!important;}
-  .sc-tbl td.sc-nn{width:4.6mm;color:#555;}
+  .sc-tbl col.sc-c1{width:4.2mm;} .sc-tbl col.sc-c3{width:4.6mm;}
+  .sc-tbl td.sc-cb{padding:0 0 0 1.4mm!important;line-height:0!important;overflow:visible!important;}
+  .sc-tbl td.sc-nn{color:#555;}
   .sc-tbl tr.sc-ch td{background:#d6d6d6!important;font-size:calc(7pt * .93)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .sc-tbl tr.sc-top td{background:#e6e6e6!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .sc-tl{display:none;} .sc-ts{display:inline;}
@@ -884,7 +880,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .pr-btn.pr-all{background:transparent;color:var(--g5);}
 .pr-btn.pr-all:hover{background:var(--g1);opacity:1;}
 body:not(.pg-allpr) .pr-all{display:none!important;}
-@media screen and (max-width:760px){ .pr-top{padding-left:6px;gap:4px;} .pr-btn{padding:6px 9px;} }
+@media screen and (max-width:760px){ .pr-top{padding-left:0;margin-left:0;border-left:none;} .pr-btn{padding:6px 9px;} .pr-all{display:none!important;} }  /* 全員分の印刷はPCでやる */
 .sv-on .sv-btn{background:var(--g5);color:var(--paper);border-color:var(--g5);}
 .sv-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;background:var(--paper);border:1px solid var(--g3);border-radius:var(--rs);padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);width:260px;}
 .sv-pop-h{font-size:11px;color:var(--g4);letter-spacing:.06em;margin-bottom:6px;}
@@ -1163,7 +1159,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <span class="role-badge" id="userRole">教員</span>
   </div>
   <div class="sv" id="svWrap" style="display:none;">
-    <button class="sv-btn" id="svBtn" onclick="svToggle()"><span class="t-lg">学生の立場で見る</span><span class="t-sm">学生の画面</span></button>
+    <button class="sv-btn" id="svBtn" onclick="svToggle()"><span class="t-lg">学生の立場で見る</span><span class="t-sm">学生</span></button>
     <div class="sv-pop" id="svPop" hidden>
       <div class="sv-pop-h">どの学生の画面を見るか</div>
       <select id="svSel" size="12" onchange="svEnter(this.value)"></select>
@@ -1980,7 +1976,7 @@ function svExit() {
   const stu = svSaved.stu; svSaved = null;
   ctxMemo = {}; questionCache = {};
   document.body.classList.remove('sv-on');
-  document.getElementById('svBtn').innerHTML = '<span class="t-lg">学生の立場で見る</span><span class="t-sm">学生の画面</span>';
+  document.getElementById('svBtn').innerHTML = '<span class="t-lg">学生の立場で見る</span><span class="t-sm">学生</span>';
   document.getElementById('svBar').hidden = true;
   document.getElementById('userRole').textContent = '教員';
   renderAll();
@@ -5610,14 +5606,14 @@ async function renderScope() {
     let body = '', sn = 0;
     [...chs.entries()].sort((a, b) => a[0] - b[0]).forEach(([, c]) => {
       const cn = c.rows.reduce((a, x) => a + x.n, 0); sn += cn;
-      body += `<tr class="sc-ch"><td class="sc-cb"></td><td class="sc-t">${esc(c.c.replace(/^第(\d+)章[｜|]\s*/, '$1 '))}</td>${num(cn)}</tr>` +
+      body += `<tr class="sc-ch"><td class="sc-t" colspan="2">${esc(c.c.replace(/^第(\d+)章[｜|]\s*/, '$1 '))}</td>${num(cn)}</tr>` +
         c.rows.map(x => `<tr class="${['sc-sec', x.n ? '' : 'sc-zero', topSet.has(x.k) ? 'sc-top' : ''].filter(Boolean).join(' ')}"><td class="sc-cb"><span class="sc-mark"></span></td>` +
           `<td class="sc-t"><span class="sc-tl">${esc(x.t)}</span><span class="sc-ts">${esc(scShort(x.t))}</span></td>${num(x.n)}</tr>`).join('');
     });
     const grp = gIdx(sName) < split ? 0 : 1;
     if (grp !== lastGrp) { h += `<div class="sc-grp${grp ? ' sc-grp2 kg-senmon' : ' kg-kiso'}">${grp ? '専門' : '基礎'}</div>`; lastGrp = grp; }
     h += `<div class="sc-subj"><div class="sc-sum"><span class="sc-sn">${esc(sName)}</span><span class="sc-pn mn">${sn}問</span></div>` +
-      `<table class="sc-tbl"><tbody>${body}</tbody></table></div>`;
+      `<table class="sc-tbl"><colgroup><col class="sc-c1"><col><col class="sc-c3"></colgroup><tbody>${body}</tbody></table></div>`;
   });
   box.innerHTML = `<div class="sc-list">${h}</div>`;
 }
