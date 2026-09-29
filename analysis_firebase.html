@@ -723,6 +723,11 @@ thead th{border-bottom:1px solid var(--g5);}
   .v2-tbl td:nth-child(2):has(.rv-sec-g,.sec-path),.v2-tbl td:has(.sec-path){white-space:normal;min-width:11em;}
   .v2-tbl td:first-child{white-space:normal;min-width:7em;}
   .v2-tbl td.rk{min-width:0;}
+  /* 管理・旧画面の表：列を潰して1字ずつ折り返すより、横に流す */
+  .main{min-width:0;}
+  .page>.card,.page .card{padding-left:12px;padding-right:12px;}
+  .tbl-wrap>table:not(.v2-tbl) th,.tbl-wrap>table:not(.v2-tbl) td{white-space:nowrap;}
+  .page-header-row{flex-wrap:wrap;gap:10px;}
 }
 
 @media print{
@@ -842,6 +847,7 @@ thead th{border-bottom:1px solid var(--g5);}
 @media print{ .sm-tools{display:none;} }
 .sv{position:relative;}
 .t-sm{display:none;}
+@media screen and (max-width:360px){ .topbar .app-title>span{display:none;} .topbar{gap:6px;} }
 .sv-btn{padding:6px 12px;font-size:12px;border:1px solid var(--g3);border-radius:var(--rs);background:transparent;color:var(--g5);cursor:pointer;white-space:nowrap;font-family:inherit;}
 .sv-btn:hover{background:var(--g1);}
 .sv-on .sv-btn{background:var(--g5);color:var(--paper);border-color:var(--g5);}
@@ -915,6 +921,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .qg-c.st b,.qg-c.st i{color:var(--ng);}
 .qg-c.na{background:var(--g1);}
 .sm-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start;}
+@media screen and (max-width:900px){ .sm-cols{grid-template-columns:1fr;} }
 .sm .cat-g{border-bottom:none;padding-bottom:4px;}
 :root{--kiso:#1a7cc1;--senmon:#d4246f;}
 .cat-g.kg-kiso,.cat-tr tr.grp-row.kg-kiso td{color:var(--kiso);border-bottom-color:var(--kiso);}
@@ -1056,7 +1063,14 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
   .sm-q,.sm-kq,.sm-hd span:nth-child(2),.sm-hd span:last-child{display:none;}
   .sm-row.lv3 .sm-name{padding-left:18px;} .sm-row.lv2 .sm-name{padding-left:8px;}
   .sm-x .exw-body{padding-left:0;}
+  .sm-hd .sm-who{display:none;}
+  .sm-hd span{white-space:nowrap;}
+  .hs-tbl{min-width:760px;}
+  .hs-tbl col.hs-c0{width:8.5em;}
+  .hs-tbl td:first-child,.hs-tbl th:first-child{position:sticky;left:0;z-index:1;background:var(--g1);box-shadow:1px 0 0 var(--line);}
+  .hs-tbl tr.grp-row td:first-child{position:static;box-shadow:none;}
 }
+.sm-who{font-style:normal;}
 @media print{ .sm-row{break-inside:avoid;} .sm-bar i{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
 @media screen and (max-width:760px){
   .qg{grid-template-columns:1fr;gap:4px;}
@@ -5398,8 +5412,10 @@ function secMapHtml(exArg, st0, uid) {
   const starOf = qs => { const k = qs.filter(o => o.star).length; return k ? `<b class="sm-star" title="★ ${k}問（${isTeacher ? '本人' : 'あなた'}が落としたが、クラスの${karteStarTh}%以上が取れている）">★${k > 1 ? k : ''}</b>` : ''; };
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
-  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる" class="on">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
-  const hdIn = (g, lb) => `<div class="cat-g${kgCls(g)}">${lb || g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '全部' : 'この模試'}</span>${uid ? `<span class="r">${who}</span>` : ''}<span>${uid ? `${who}の正答率<b class="sm-cls-lg"></b>クラス` : 'クラス正答率'}</span><span class="r">国試</span></div>`;
+  // スマホは科目だけで始める（章まで開くと縦に数万pxになる）
+  const mob = matchMedia('screen and (max-width:760px)').matches;
+  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${mob ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる"${mob ? '' : ' class="on"'}>章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
+  const hdIn = (g, lb) => `<div class="cat-g${kgCls(g)}">${lb || g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '全部' : 'この模試'}</span>${uid ? `<span class="r">${who}</span>` : ''}<span>${uid ? `<i class="sm-who">${who}の</i>正答率<b class="sm-cls-lg"></b>クラス` : 'クラス正答率'}</span><span class="r">国試</span></div>`;
   const hd = g => `<div class="sm${uid ? ' sm-u' : ''}">${hdIn(g)}`;
   const cont = g => `<div class="sm-cont" hidden>${hdIn(g, g + '（続き）')}</div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
@@ -5411,7 +5427,7 @@ function secMapHtml(exArg, st0, uid) {
     h = '';
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
     const skq = chs.reduce((a, C) => a + kqSum(C), 0);
-    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}" open><summary class="sm-row lv1">${row(1, `${starOf(allQs(S))}${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
+    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}"${mob ? '' : ' open'}><summary class="sm-row lv1">${row(1, `${starOf(allQs(S))}${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
     [...S.ch.entries()].sort((a, b) => byNum(a[0], b[0])).forEach(([cn, C]) => {
       const ac = agg(allQs(C)), kq = kqSum(C);
       h += `<details class="sm-c${ac.q ? '' : ' sm-none'}"><summary class="sm-row lv2">${row(2, starOf(allQs(C)) + esc(C.name), ac, kq ? kq + '問' : '')}</summary>`;
