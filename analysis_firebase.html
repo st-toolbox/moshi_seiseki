@@ -648,6 +648,18 @@ thead th{border-bottom:1px solid var(--g5);}
 .qd-ch{border-top:1px dashed var(--g3);margin-top:4px;padding-top:4px;}
 .qd-opt{display:grid;grid-template-columns:1.6em 1fr 120px 3em;gap:10px;align-items:center;font-size:12.5px;line-height:1.55;padding:1px 0;}
 .qd-opt.ok{font-weight:600;}
+.qd-opt.nb{grid-template-columns:1.6em 1fr;}
+.qd-opt.me:not(.ok) span:nth-child(2){color:var(--ng);}
+.qd-me{font-style:normal;font-size:10px;margin-left:6px;padding:0 5px;border:1px solid currentColor;border-radius:8px;color:var(--ng);white-space:nowrap;}
+.qd-opt.ok .qd-me{color:var(--ok);}
+/* カルテの★の表：行をタップで問題を開く */
+.ka-star tr.st-q{cursor:pointer;}
+.ka-star tr.st-q:hover td{background:var(--g1);}
+.st-ar{display:inline-block;width:1em;color:var(--g4);font-size:10px;transition:transform .15s;}
+.ka-star tr.st-q.open .st-ar{transform:rotate(90deg);}
+.ka-star tr.st-qd>td{padding:10px 12px!important;white-space:normal!important;}
+.ka-star tr.st-qd .qd{position:sticky;left:12px;}
+@media print{ .ka-star tr.st-qd{display:none!important;} .st-ar{display:none;} }
 .qd-opt.ok .qd-k::after{content:"正";font-size:9px;color:var(--ok);margin-left:2px;vertical-align:top;}
 .qd-k{font-family:'DM Mono',monospace;color:var(--g4);}
 .qd-bar{height:5px;background:var(--g2);border-radius:3px;overflow:hidden;}
@@ -994,15 +1006,15 @@ body.sm-measuring .kp1 .ka-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1f
 body.sm-measuring .kp1 .ka-gap{border-left:1px solid var(--line)!important;border-top:none!important;padding-left:6mm!important;}
 body.sm-measuring .kp1 .ka-score{padding-right:6mm!important;}
 body.sm-measuring .kp1 .v2-cap{margin-top:2mm;}
-.kp1 .v2-block{margin-bottom:5mm!important;}
-.kp1 .ka-top{margin-bottom:5mm!important;}
-.kp1 .ka-score,.kp1 .ka-gap{padding-top:2.5mm!important;padding-bottom:2.5mm!important;}
-.kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:.7mm 1.6mm!important;line-height:1.25;}
-.kp1 .ka-star .tbl-wrap{margin-top:3mm!important;}
-.kp1 .ka-star .sec-cell{max-width:0;width:72%;font-size:7.5pt!important;}
-.kp1 .ka-star .sp-line{display:flex;white-space:nowrap;min-width:0;}
-.kp1 .ka-star .sp-line .sec-path{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis;font-size:7pt;}
-.kp1 .ka-star .sp-line .sec-t{flex:0 .001 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-left:.3em;}
+body.sm-measuring .kp1 .v2-block{margin-bottom:5mm!important;}
+body.sm-measuring .kp1 .ka-top{margin-bottom:5mm!important;}
+body.sm-measuring .kp1 .ka-score,.kp1 .ka-gap{padding-top:2.5mm!important;padding-bottom:2.5mm!important;}
+body.sm-measuring .kp1 .v2-tbl th,.kp1 .v2-tbl td{padding:.7mm 1.6mm!important;line-height:1.25;}
+body.sm-measuring .kp1 .ka-star .tbl-wrap{margin-top:3mm!important;}
+body.sm-measuring .kp1 .ka-star .sec-cell{max-width:0;width:72%;font-size:7.5pt!important;}
+body.sm-measuring .kp1 .ka-star .sp-line{display:flex;white-space:nowrap;min-width:0;}
+body.sm-measuring .kp1 .ka-star .sp-line .sec-path{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis;font-size:7pt;}
+body.sm-measuring .kp1 .ka-star .sp-line .sec-t{flex:0 .001 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-left:.3em;}
 body.sm-measuring .kp1{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}
 body.sm-measuring .sm-fit{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
 body.sm-measuring .sm-fit .sm-none{display:none!important;}
@@ -4722,7 +4734,7 @@ function examQs(ex, key) {
   for (let n = 1; n <= 200; n++) if (secKeyOf(ex, n) === key && ansScorable(String(m?.answers?.[n] || ''))) out.push(n);
   return out;
 }
-function qDistHtml(ex, n, st) {
+function qDistHtml(ex, n, st, o = {}) {   // o.my＝本人の答え（印を付ける） o.bars=false＝選択肢ごとの割合を出さない（受験5人未満）
   const m = allData[ex]?.master || {};
   const qq = m.questions?.[n];
   const correct = String(m.answers?.[n] || '');
@@ -4735,8 +4747,10 @@ function qDistHtml(ex, n, st) {
     const p = qs.t ? Math.round((oc[k] || 0) / qs.t * 100) : 0;
     const np = nch && nch[k] != null ? Math.round(Number(nch[k])) : null;
     const mk = np != null ? `<b class="qd-nm" style="left:${np}%" title="全国 ${np}%"></b>` : '';
-    return `<div class="qd-opt${withBar && isC(k) ? ' ok' : ''}"><span class="qd-k">${esc(k)}</span><span>${esc(text)}</span>` +
-      (withBar ? `<span class="qd-bar"><i style="width:${p}%"></i>${mk}</span><span class="qd-p mn">${p}%${np != null ? `<span class="qd-np">全国${np}</span>` : ''}</span>` : '<span></span><span></span>') + '</div>';
+    const me = o.my != null && withBar && String(o.my).split(',').map(x => x.trim()).includes(k);
+    const bar = withBar && o.bars !== false;
+    return `<div class="qd-opt${withBar && isC(k) ? ' ok' : ''}${me ? ' me' : ''}${o.bars === false ? ' nb' : ''}"><span class="qd-k">${esc(k)}</span><span>${esc(text)}${me ? '<em class="qd-me">' + (isTeacher ? '本人' : 'あなた') + '</em>' : ''}</span>` +
+      (bar ? `<span class="qd-bar"><i style="width:${p}%"></i>${mk}</span><span class="qd-p mn">${p}%${np != null ? `<span class="qd-np">全国${np}</span>` : ''}</span>` : (o.bars === false ? '' : '<span></span><span></span>')) + '</div>';
   };
   let h = `<div class="qd"><div class="qd-hd"><span class="mn">${n <= 100 ? '午前' : '午後'} 問${n <= 100 ? n : n - 100}</span><span>正答 <b>${esc(correct)}</b></span><span>クラス正答率 <b class="mn">${rate ?? '—'}%</b></span><span>${qs.t}人</span>` +
     (nq != null ? `<span class="nat-t">全国正答率 <b class="mn">${Math.round(nq)}%</b>${rate != null ? `（クラスは ${signed(rate - Math.round(nq))}）` : ''}</span>` : '') + '</div>';
@@ -4750,7 +4764,8 @@ function qDistHtml(ex, n, st) {
   } else {
     h += `<div class="qd-opts">${opts.map(([k, v]) => row(k, String(v), true)).join('')}</div>`;
   }
-  if (oc['']) h += `<div class="qd-foot">無回答 ${oc['']}人</div>`;
+  if (o.bars === false && st?.opt) h += '<div class="qd-foot">受験が5人未満のため、選択肢ごとの割合は出していません。</div>';
+  else if (oc['']) h += `<div class="qd-foot">無回答 ${oc['']}人</div>`;
   if (nch) h += `<div class="qd-foot nat-t">縦線・「全国」＝全国でその選択肢を選んだ人の割合${nch['0'] != null ? `（全国の無回答 ${Math.round(Number(nch['0']))}%）` : ''}</div>`;
   if (nd) h += `<div class="qd-foot nat-warn">主催の正答は「${esc(nd)}」（このアプリの正答と違う）。全国正答率は主催の正答で数えた率。</div>`;
   return h + '</div>';
@@ -5493,6 +5508,14 @@ function secMapHtml(exArg, st0, uid) {
   return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}${cont('専門')}</div>${hd('専門')}${cols[1]}${cont('基礎')}</div></div>` + (none ? `<div class="v2-cap">${starCap}節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">${starCap}灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
 }
 
+document.addEventListener('click', e => {
+  const tr = e.target.closest?.('.ka-star tr.st-q'); if (!tr) return;
+  const d = tr.nextElementSibling; if (!d?.classList.contains('st-qd')) return;
+  d.hidden = !d.hidden; tr.classList.toggle('open', !d.hidden);
+  const w = tr.closest('.tbl-wrap'), q = d.querySelector('.qd');   // 横スクロールの表でも問題文は見えている幅に収める
+  if (w && q) q.style.maxWidth = (w.clientWidth - 26) + 'px';
+});
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.ka-star tr.st-q')) { e.preventDefault(); e.target.click(); } });
 // カルテ：問題ごとの正誤（旧：弱点抽出）。クラス正答率は stats から取るので学生本人の画面でも出る
 function karteStarHtml(ex, uid, st) {
   const m = allData[ex]?.master, r = allData[ex]?.responses?.[uid];
@@ -5521,9 +5544,11 @@ function karteStarHtml(ex, uid, st) {
     stars.sort((a, b) => b.cr - a.cr || a.n - b.n);
     h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>科目 ▸ 章 ▸ 節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス正答率</th>${natOf(ex)?.q ? '<th class="r nat-t">全国正答率</th>' : ''}</tr></thead><tbody>` +
       stars.map(o => { const key = secKeyOf(ex, o.n);
-        return `<tr><td class="mn">${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td class="sec-cell">${key ? `<div class="sp-line">${secPathHtml(key)}</div>` : esc(catOf(ex, o.n) || '—')}</td>` +
-          `<td class="r mn">${esc(o.c)}</td><td class="r mn dn">${esc(o.my || '無回答')}</td><td class="r mn">${Math.round(o.cr * 100)}%</td>${natOf(ex)?.q ? `<td class="r mn nat-t">${natQ(ex, o.n) != null ? Math.round(natQ(ex, o.n)) + '%' : '—'}</td>` : ''}</tr>`; }).join('') +
-      '</tbody></table></div><div class="v2-cap">★はみんなが取れている問題＝本番で差がつく。まずここから。</div>';
+        const nc = natOf(ex)?.q ? 6 : 5;
+        return `<tr class="st-q" tabindex="0" title="タップで問題を開く"><td class="mn"><span class="st-ar">▸</span>${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td class="sec-cell">${key ? `<div class="sp-line">${secPathHtml(key)}</div>` : esc(catOf(ex, o.n) || '—')}</td>` +
+          `<td class="r mn">${esc(o.c)}</td><td class="r mn dn">${esc(o.my || '無回答')}</td><td class="r mn">${Math.round(o.cr * 100)}%</td>${natOf(ex)?.q ? `<td class="r mn nat-t">${natQ(ex, o.n) != null ? Math.round(natQ(ex, o.n)) + '%' : '—'}</td>` : ''}</tr>` +
+          `<tr class="st-qd" hidden><td colspan="${nc}">${qDistHtml(ex, o.n, st, { my: o.my, bars: !!st?.opt && (st?.n || 0) >= 5 })}</td></tr>`; }).join('') +
+      '</tbody></table></div><div class="v2-cap">★はみんなが取れている問題＝本番で差がつく。まずここから。行をタップすると問題が開きます。</div>';
   }
   return h + '</section>';
 }
