@@ -952,6 +952,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 .sm-row.lv2 .sm-name{padding-left:18px;}
 .sm-row.lv3{font-size:12.5px;color:var(--g5);}
 .sm-row.lv3 .sm-name{padding-left:38px;}
+.sm-star{color:var(--ng);font-weight:700;margin-right:4px;font-family:'DM Mono',monospace;font-size:.95em;}
 .sm details>summary .sm-name::before{content:'▸';display:inline-block;width:1em;color:var(--g3);transition:transform .15s;}
 .sm details[open]>summary .sm-name::before{transform:rotate(90deg);}
 .sm div.sm-row .sm-name::before{content:'';display:inline-block;width:1em;}
@@ -4703,7 +4704,7 @@ function karteHtml(uid, rows, showAll) {
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
   h += '</div>';   // 印刷1ページ目ここまで（kp1）
-  if (hasMap) h += `<section class="v2-block sm-fit"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。最初は章まで開いている（章を開くと節）</div>${secMapHtml(ex, st, uid)}</section>`;
+  if (hasMap) h += `<section class="v2-block sm-fit"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。最初は章まで開いている（章を開くと節）。<b class="sm-star">★</b>＝上の「問題ごとの正誤・弱点」の★がある所（数字は問題数）</div>${secMapHtml(ex, st, uid)}</section>`;
   return h;
 }
 // 分野別：本人のバー・黒い縦線がクラス（exs の模試を足し合わせる）
@@ -5188,7 +5189,9 @@ function secMapHtml(exArg, st0, uid) {
     const S = subs.get(sid) || (subs.set(sid, { name: info.s || sid, ch: new Map() }), subs.get(sid));
     const C = S.ch.get(cn) || (S.ch.set(cn, { name: info.c || ('第' + cn + '章'), sec: new Map() }), S.ch.get(cn));
     const X = C.sec.get(key) || (C.sec.set(key, { key, name: info.t, kq: secKqIds(key).length, qs: [] }), C.sec.get(key));
-    X.qs.push({ n, c: q.c, t: q.t, my });
+    // ★＝本人が落としたがクラスは取れている問題（カルテの「問題ごとの正誤・弱点」と同じ基準）
+    const cr = q.t ? q.c / q.t : null, star = !multi && my === false && cr != null && cr * 100 >= karteStarTh;
+    X.qs.push({ n, c: q.c, t: q.t, my, star });
   }
   }
   // 出ていない科目・章・節も骨組みに入れる（灰色で出す）
@@ -5209,6 +5212,7 @@ function secMapHtml(exArg, st0, uid) {
   const row = (lv, name, a, extra) => !a.q
     ? `<span class="sm-name">${name}</span><span class="sm-q mn">—</span>${uid ? '<span class="sm-my"></span>' : ''}<span class="sm-bar"></span><span class="sm-p"></span><span class="sm-kq mn">${extra}</span>`
     : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
+  const starOf = qs => { const k = qs.filter(o => o.star).length; return k ? `<b class="sm-star" title="★ ${k}問（${isTeacher ? '本人' : 'あなた'}が落としたが、クラスの${karteStarTh}%以上が取れている）">★${k > 1 ? k : ''}</b>` : ''; };
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
   const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる" class="on">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
@@ -5224,15 +5228,15 @@ function secMapHtml(exArg, st0, uid) {
     h = '';
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
     const skq = chs.reduce((a, C) => a + kqSum(C), 0);
-    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}" open><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
+    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}" open><summary class="sm-row lv1">${row(1, `${starOf(allQs(S))}${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
     [...S.ch.entries()].sort((a, b) => byNum(a[0], b[0])).forEach(([cn, C]) => {
       const ac = agg(allQs(C)), kq = kqSum(C);
-      h += `<details class="sm-c${ac.q ? '' : ' sm-none'}"><summary class="sm-row lv2">${row(2, esc(C.name), ac, kq ? kq + '問' : '')}</summary>`;
+      h += `<details class="sm-c${ac.q ? '' : ' sm-none'}"><summary class="sm-row lv2">${row(2, starOf(allQs(C)) + esc(C.name), ac, kq ? kq + '問' : '')}</summary>`;
       [...C.sec.values()].sort((a, b) => byNum(a.key.split('|')[2], b.key.split('|')[2])).forEach(X => {
         if (!X.qs.length) { h += `<div class="sm-row lv3 sm-none">${row(3, esc(X.name), agg(X.qs), X.kq ? X.kq + '問' : '')}</div>`; return; }
-        const ax = agg(X.qs), marks = uid ? ' <span class="sm-marks">' + X.qs.map(o => o.my == null ? '' : o.my ? '<b class="ok">○</b>' : '<b class="ng">×</b>').join('') + '</span>' : '';
+        const ax = agg(X.qs), marks = uid ? ' <span class="sm-marks">' + X.qs.map(o => o.my == null ? '' : o.my ? '<b class="ok">○</b>' : o.star ? '<b class="ng">★</b>' : '<b class="ng">×</b>').join('') + '</span>' : '';
         const body = uid ? '' : `<div class="exw-body">${X.qs.map(o => qDistHtml(ex, o.n, st0)).join('')}</div>`;
-        const inner = row(3, `${esc(X.name)} <span class="muted mn">${multi ? '' : X.qs.map(o => o.n <= 100 ? '午前' + o.n : '午後' + (o.n - 100)).join('・')}</span>${marks}`, ax, X.kq ? X.kq + '問' : '');
+        const inner = row(3, `${starOf(X.qs)}${esc(X.name)} <span class="muted mn">${multi ? '' : X.qs.map(o => o.n <= 100 ? '午前' + o.n : '午後' + (o.n - 100)).join('・')}</span>${marks}`, ax, X.kq ? X.kq + '問' : '');
         h += uid ? `<div class="sm-row lv3">${inner}</div>` : `<details class="sm-x"><summary class="sm-row lv3">${inner}</summary>${body}</details>`;
       });
       h += '</details>';
@@ -5241,7 +5245,8 @@ function secMapHtml(exArg, st0, uid) {
     cols[col] += h;
   });
   const where = multi ? '受けた模試のどれにも' : 'この模試で';
-  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}${cont('専門')}</div>${hd('専門')}${cols[1]}${cont('基礎')}</div></div>` + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
+  const starCap = uid && !multi ? `★＝「問題ごとの正誤・弱点」の★（クラスの${karteStarTh}%以上が取れているのに落とした問題）がある科目・章・節。数字は問題数。` : '';
+  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}${cont('専門')}</div>${hd('専門')}${cols[1]}${cont('基礎')}</div></div>` + (none ? `<div class="v2-cap">${starCap}節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">${starCap}灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
 }
 
 // カルテ：問題ごとの正誤（旧：弱点抽出）。クラス正答率は stats から取るので学生本人の画面でも出る
