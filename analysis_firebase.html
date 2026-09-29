@@ -5159,12 +5159,14 @@ function smFitPrint() {
   try {
     // 縮めると幅が広がって段組み・折り返しが変わるので、比例計算でなく二分探索で「収まる最大」を探す
     secs.forEach(sec => {
-      let lim = PRINT_H * 0.97;
+      let lim = PRINT_H * 0.92;   // 測った高さと印刷の高さは少しずれる（0.97では最後の1行が3枚目に落ちた）
       if (sec.classList.contains('kp1')) {   // 同じページの先頭に学生名の見出しが載る
         const head = (sec.closest('.student-print-page') || document.getElementById('page-karte'))?.querySelector('.v2-head');
         if (head) lim -= head.getBoundingClientRect().height + 5 * 96 / 25.4;
       }
-      const fits = z => { sec.style.setProperty('--smz', z); sec.querySelectorAll('.sm-cols').forEach(smBalance); return sec.getBoundingClientRect().height <= lim; };
+      // 高さだけで決めると、行が少ない時に倍率が上がり、固定幅の列（問題数・バー・%）に押されて科目名が「医学…」まで潰れる＝名前の欄が行幅の4割以上あることも条件
+      const nameOk = () => { const r = sec.querySelector('.sm-row.lv1'), n = r?.querySelector('.sm-name'); return !r || !r.offsetWidth || n.offsetWidth / r.offsetWidth >= 0.4; };
+      const fits = z => { sec.style.setProperty('--smz', z); sec.querySelectorAll('.sm-cols').forEach(smBalance); return sec.getBoundingClientRect().height <= lim && nameOk(); };
       let lo = 0.2, hi = 1;
       if (fits(1)) lo = 1;
       else for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
