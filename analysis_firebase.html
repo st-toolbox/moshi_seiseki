@@ -764,75 +764,50 @@ thead th{border-bottom:1px solid var(--g5);}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 /* 統合：推移・落としたところ・問題ごとの正誤 */
-.sc-q{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--g3);border-radius:var(--rs);background:var(--paper);color:var(--g5);width:11em;}
-.sc-oc{display:flex;gap:10px;}
-.sc-list{display:flex;flex-direction:column;margin-top:-12px;}
-.sc-subj{border-bottom:1px solid var(--line);}
-.sc-subj>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding:12px 4px;}
-.sc-subj>summary::-webkit-details-marker{display:none;}
-.sc-subj>summary::before{content:'▸';color:var(--g4);font-size:11px;width:10px;}
-.sc-subj[open]>summary::before{content:'▾';}
-.sc-sn{font-size:14.5px;font-weight:600;min-width:9em;}
-.sc-sm{font-size:12px;color:var(--g4);}
-.sc-sm b{color:var(--g5);font-weight:600;}
-.sc-subj .tbl-wrap{padding:0 0 16px 14px;}
-.sc-tbl td.sc-t{width:52%;}
-.sc-tbl td.sc-cb,.sc-tbl th.sc-cb{width:28px;padding-left:2px;padding-right:0;text-align:center;}
-.sc-tbl td.sc-d,.sc-tbl th.sc-d{width:22px;padding-left:0;padding-right:0;text-align:center;color:var(--g4);}
-.sc-tbl tr.sc-top td{background:color-mix(in srgb,var(--accent) 7%,transparent);}
-.sc-tbl tr.sc-top td.sc-t{font-weight:600;}
-.sc-grp{font-size:11px;letter-spacing:.14em;font-weight:700;padding:4px 8px;margin:6px 0 0;border-bottom:1px solid;}
+/* 出題範囲チェックシート：画面も印刷と同じ見た目（段組み・□・網かけ・右の数字＝国試の出題数） */
+#page-scope .v2-head{align-items:baseline;}
+.sc-plg{font-size:12px;line-height:1.6;color:var(--g4);margin:0 0 12px;}
+.sc-list{column-width:250px;column-gap:18px;column-rule:1px solid var(--line);}
+.sc-grp{font-size:11.5px;letter-spacing:.14em;font-weight:700;padding:3px 6px;border-bottom:1px solid;break-after:avoid;}
 .sc-grp.kg-kiso{color:var(--kiso);border-color:var(--kiso);background:rgba(26,124,193,.07);}
 .sc-grp.kg-senmon{color:var(--senmon);border-color:var(--senmon);background:rgba(212,36,111,.06);}
-.sc-grp2{margin-top:22px;border-top:3px solid var(--senmon);}
-.sc-guide{font-size:12.5px;line-height:1.8;color:var(--g4);margin:0 0 14px;}
-.sc-guide b{color:var(--g5);}
-.sc-mark{display:none;}
-.sc-tbl .sc-cb{display:none;}
-.sc-pnote{display:none;}
-.sc-plg,.sc-pn,.sc-ts{display:none;}
-.sc-tbl tr.sc-ch td{background:var(--g1);font-weight:600;font-size:12.5px;}
-.sc-tbl tr.sc-sec td.sc-t{padding-left:8px;}
+.sc-grp2{margin-top:10px;border-top:3px solid var(--senmon);}
+.sc-sum{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 0 2px;border-bottom:1.5px solid var(--g5);break-after:avoid;}
+.sc-sn{font-size:13.5px;font-weight:700;}
+.sc-pn{font-size:11.5px;color:var(--g4);}
+#page-scope .sc-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px;}
+.sc-tbl td{padding:2px 3px;line-height:1.4;border-bottom:1px dotted var(--line);vertical-align:top;}
+.sc-tbl tr{break-inside:avoid;}
+.sc-tbl td.sc-cb{width:18px;padding-right:0;}
+.sc-tbl td.sc-nn{width:30px;text-align:right;color:var(--g4);}
+.sc-tbl tr.sc-ch td{background:var(--g1);font-weight:700;font-size:12px;}
+.sc-tbl tr.sc-top td{background:color-mix(in srgb,var(--accent) 9%,transparent);font-weight:600;}
 .sc-tbl tr.sc-zero td.sc-t{color:var(--g4);}
-.sc-bar{display:inline-block;width:60px;height:6px;background:var(--g2);border-radius:3px;margin-right:8px;vertical-align:middle;overflow:hidden;}
-.sc-bar i{display:block;height:100%;background:var(--accent);}
 .sc-na{color:var(--g3);}
-.sc-kr{color:var(--g5);}
-.sc-list .c-ok{color:var(--ok);font-weight:600;}
-.sc-list .c-warn{color:var(--warn);font-weight:600;}
-.sc-list .c-ng{color:var(--ng);font-weight:600;}
-@media (max-width:700px){ .sc-tbl td.sc-t{width:auto;min-width:9em;} .sc-bar{display:none;} .sc-q{width:9em;} .sc-subj .tbl-wrap{padding-left:0;} .sc-tbl .sc-n5{display:none;} }
+.sc-ts{display:none;}
+.sc-mark{display:inline-block;width:11px;height:11px;margin-top:3px;border:1px solid var(--g4);border-radius:2px;box-sizing:border-box;}
 @media print{
-  .sc-oc,.sc-q,#page-scope .v2-ctrl,.sc-guide,.sc-sm,.sc-tbl thead,.sc-tbl .sc-d,.sc-tbl .sc-n5,.sc-tbl .sc-r,#page-scope .v2-cap,#scSub,#page-scope .v2-kicker{display:none!important;}
-  #page-scope .v2-head{display:flex;align-items:baseline;gap:4mm;margin:0 0 1mm;padding:0 0 0.8mm;border-bottom:0.4mm solid #000;}
-  #page-scope .v2-title{font-size:11pt;}
-  .sc-plg{display:block!important;font-size:6pt;color:#333;line-height:1.3;}
-  .sc-list{margin-top:0;display:block;column-count:4;column-gap:2.5mm;column-rule:0.15mm solid #ccc;column-fill:balance;}
-  .sc-list+.v2-cap{display:none;}
-  .sc-subj{border-bottom:none;}
-  .sc-subj>summary{display:flex;justify-content:space-between;padding:0.3mm 0 0;border-bottom:0.25mm solid #000;break-after:avoid;}
-  .sc-subj>summary::before,.sc-subj[open]>summary::before{content:none;display:none;}
-  .sc-sn{font-size:6.2pt;min-width:0;font-weight:700;}
-  .sc-pn{display:inline!important;font-size:5.6pt;color:#555;font-weight:400;}
-  .sc-subj .tbl-wrap{padding:0;overflow:visible!important;}
-  #page-scope .sc-tbl{font-size:5.3pt!important;width:100%;table-layout:fixed;border-collapse:collapse;}
-  .sc-tbl td{padding:0 0.4mm!important;line-height:1.04;border-bottom:0.1mm dotted #bbb;white-space:nowrap;overflow:hidden;text-overflow:clip;}
-  .sc-tbl td.sc-cb{display:table-cell!important;width:2.6mm;padding:0!important;}
-  .sc-tbl td *{font-size:inherit!important;line-height:inherit!important;vertical-align:top!important;font-family:inherit!important;}
-  .sc-tbl td.sc-cb{line-height:0!important;vertical-align:top;overflow:visible!important;}
-  .sc-tbl td.sc-cb .sc-mark{vertical-align:top!important;box-sizing:border-box;}
-  .sc-tbl td.sc-t{width:auto;}
-  .sc-tbl td.sc-nn{width:4mm;text-align:right;color:#555;}
-  .sc-bar{display:none!important;}
-  .sc-tbl tr{break-inside:avoid;}
-  .sc-tbl tr.sc-ch td{background:#d6d6d6!important;font-weight:700;font-size:4.9pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .sc-tbl tr.sc-sec td.sc-t{padding-left:0.4mm!important;}
-  .sc-tbl tr.sc-top td{background:#e6e6e6!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .sc-tl{display:none;} .sc-ts{display:inline!important;}
-  .sc-grp{font-size:6pt;letter-spacing:.1em;padding:0.2mm 0.8mm;margin:0;border-bottom:0.3mm solid;break-after:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #page-scope .v2-head{display:flex;gap:4mm;margin:0 0 1mm;padding:0 0 0.8mm;border-bottom:0.4mm solid #000;}
+  #page-scope .v2-title{font-size:12pt;}
+  .sc-plg{font-size:6.5pt;color:#333;line-height:1.3;margin:0 0 1mm;}
+  .sc-list{column-width:auto;column-count:4;column-gap:2.5mm;column-rule:0.15mm solid #ccc;column-fill:balance;}
+  .sc-grp{font-size:6.8pt;letter-spacing:.1em;padding:0.2mm 0.8mm;margin:0;border-bottom:0.3mm solid;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .sc-grp2{margin-top:1mm;border-top:0.8mm solid var(--senmon);}
-  .sc-mark{display:inline-block;width:1.6mm;height:1.6mm;margin-top:0.1mm;border:0.2mm solid #333;border-radius:0.3mm;vertical-align:middle;font-size:5pt;line-height:2.3mm;text-align:center;}
+  .sc-sum{padding:0.4mm 0 0;border-bottom:0.25mm solid #000;}
+  .sc-sn{font-size:calc(7pt * 1.18);}
+  .sc-pn{font-size:calc(7pt * 1.05);color:#555;}
+  #page-scope .sc-tbl{font-size:7pt!important;}
+  .sc-tbl td{padding:0 0.4mm!important;line-height:1.06;border-bottom:0.1mm dotted #bbb;overflow:hidden;}
+  .sc-tbl td.sc-nn{white-space:nowrap;}
+  .sc-tbl td *{font-size:inherit!important;line-height:inherit!important;vertical-align:top!important;font-family:inherit!important;}
+  .sc-tbl td.sc-cb{width:3mm;padding:0!important;line-height:0!important;overflow:visible!important;}
+  .sc-tbl td.sc-nn{width:4.6mm;color:#555;}
+  .sc-tbl tr.sc-ch td{background:#d6d6d6!important;font-size:calc(7pt * .93)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .sc-tbl tr.sc-top td{background:#e6e6e6!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .sc-tl{display:none;} .sc-ts{display:inline;}
+  .sc-mark{width:1.9mm;height:1.9mm;margin-top:0.15mm;border:0.2mm solid #333;border-radius:0.3mm;}
 }
+
 
 /* 全国データ（表示するときだけ出る） */
 :root{--nat:#6d5a9e;}
@@ -1416,15 +1391,8 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 
     <!-- 復習 -->
     <div class="page" id="page-scope">
-      <header class="v2-head">
-        <div><div class="v2-kicker">出題範囲・チェックシート</div><h1 class="v2-title">科目 ▸ 章 ▸ 節</h1><div class="v2-sub" id="scSub"></div></div>
-        <div class="v2-ctrl">
-          <label>表示 <span class="seg" id="scShowBtns"><button data-val="all" class="active" onclick="setScShow('all')">すべての節</button><button data-val="kq" onclick="setScShow('kq')">国試に出た節</button><button data-val="top" onclick="setScShow('top')">得点源だけ</button></span></label>
-          <label>絞り込み <input class="sc-q" id="scQ" type="search" placeholder="節・章の名前" oninput="scFilter=this.value;renderScope()"></label>
-          <span class="sc-oc"><button class="linkbtn" onclick="scOpenAll(true)">すべて開く</button><button class="linkbtn" onclick="scOpenAll(false)">すべて閉じる</button><button class="linkbtn" onclick="scPrint()">印刷する</button></span>
-        </div>
-      </header>
-      <div class="sc-guide" id="scGuide"></div><div class="sc-plg" id="scPlg"></div>
+      <header class="v2-head"><h1 class="v2-title">出題範囲チェックシート</h1></header>
+      <div class="sc-plg" id="scPlg"></div>
       <div id="scBody"></div>
     </div>
 
@@ -5586,27 +5554,18 @@ function renderV2() {
   else if (a === 'page-scope') renderScope();
 }
 
-// ===== 出題範囲・チェックシート：国試の分析から出した 科目→章→節（学生・模試には依存しない読み物） =====
-// 知識マップA3（school/build_knowledge_map_a3.py）と同じ規則：得点源＝国試に多い順の上位（全体の約4割）・○△●＝国試の正答率 68.1/51.0 の三分位
-let scShow = 'all', scFilter = '', scOpen = new Set(), scStat = null, scStatState = 'idle';
-const SC_EASY = 68.1, SC_HARD = 51.0, SC_TOP_RATIO = 294 / 713;
-function loadScStat() {   // ref/secstat＝節の並び順 o・国試の平均正答率 r（rn問の平均）
+// ===== 出題範囲・チェックシート：国試の分析から出した 科目→章→節（学生・模試には依存しない読み物）。画面も印刷と同じ見た目 =====
+// 知識マップA3（school/build_knowledge_map_a3.py）と同じ規則：得点源＝国試に多い順の上位（全体の約4割）
+let scStat = null, scStatState = 'idle';
+const SC_TOP_RATIO = 294 / 713;
+function loadScStat() {   // ref/secstat＝節の並び順 o
   if (scStatState !== 'idle') return Promise.resolve();
   scStatState = 'loading';
   return db.ref('ref/secstat').once('value').then(v => { scStat = v.val() || {}; scStatState = 'ok'; })
     .catch(() => { scStat = {}; scStatState = 'denied'; });
 }
-function setScShow(v) { scShow = v; setSegActive('scShowBtns', v); renderScope(); }
-function scOpenAll(on) {
-  document.querySelectorAll('#scBody details.sc-subj').forEach(d => { d.open = on; });
-}
-function scPrint() {
-  document.querySelectorAll('#scBody details.sc-subj').forEach(d => { d.open = true; });
-  withPortraitPrint(() => window.print(), '7mm 8mm');
-}
-function scPct(p, title) { return p == null ? '<span class="sc-na">—</span>' : `<span class="mn sc-kr"${title ? ` title="${esc(title)}"` : ''}>${p}%</span>`; }
+function scPrint() { withPortraitPrint(() => window.print(), '7mm 8mm'); }
 function scShort(t) { t = t.split(/\s*[―—]\s*/)[0]; return t.length > 17 ? t.replace(/（[^）]*）$/, '') : t; }
-function scBand(r) { return r == null ? '' : r >= SC_EASY ? '○' : r < SC_HARD ? '●' : '△'; }
 async function renderScope() {
   const box = document.getElementById('scBody');
   if (!box) return;
@@ -5618,30 +5577,14 @@ async function renderScope() {
     if (!document.getElementById('page-scope').classList.contains('active')) return;
   }
   const st = scStat || {};
-  const secs = Object.entries(refSections).map(([k, v]) => {
-    const kq = secKqIds(k);
-    return { k, s: v.s || '', c: v.c || '', ch: Number(k.split('|')[1]) || 0, t: v.t || k, kq, o: st[k]?.o ?? 1e9, r: st[k]?.r ?? null, rn: st[k]?.rn || 0 };
-  });
-  // 国試：回の範囲と直近5回
-  const ys = secs.flatMap(x => x.kq.map(i => Number(i.split('-')[0])));
+  const secs = Object.entries(refSections).map(([k, v]) => ({ k, s: v.s || '', c: v.c || '', ch: Number(k.split('|')[1]) || 0, t: v.t || k, n: secKqIds(k).length, o: st[k]?.o ?? 1e9 }));
+  const ys = Object.keys(refSections).flatMap(k => secKqIds(k).map(i => Number(i.split('-')[0])));
   const yMax = ys.length ? Math.max(...ys) : 0, yMin = ys.length ? Math.min(...ys) : 0;
-  secs.forEach(x => { x.n = x.kq.length; x.n5 = x.kq.filter(i => Number(i.split('-')[0]) > yMax - 5).length; });
   const kqTotal = secs.reduce((a, x) => a + x.n, 0);
   // 得点源＝国試に多い順の上位（同数は並び順）
-  const topK = Math.round(secs.length * SC_TOP_RATIO);
-  const topSet = new Set([...secs].filter(x => x.n > 0).sort((a, b) => b.n - a.n || a.o - b.o).slice(0, topK).map(x => x.k));
-  const topQ = secs.filter(x => topSet.has(x.k)).reduce((a, x) => a + x.n, 0);
-  const band = { '○': 0, '△': 0, '●': 0 };
-  secs.forEach(x => { const b = scBand(x.r); if (b) band[b]++; });
-  document.getElementById('scSub').textContent = `国試 第${yMin}〜${yMax}回 ${kqTotal.toLocaleString()}問を ${secs.length}節に紐づけ　·　得点源 ${topSet.size}節に ${kqTotal ? Math.round(topQ / kqTotal * 100) : 0}%の問題`;
-  document.getElementById('scGuide').innerHTML =
-    `<b>使い方</b>　色の付いた行＝<b>得点源</b>（国試に多い順の上位${topSet.size}節）。まずここから。「印刷する」でA4 2枚のチェックシートになる（□＝過去問で正解できたら✓）。` +
-    `<b>○△●</b>＝その節の国試の正答率。<b>○ 取りやすい</b>（${SC_EASY}%以上・${band['○']}節）　<b>△ 普通</b>（${SC_HARD}〜${SC_EASY}%・${band['△']}節）　<b>● 難しい</b>（${SC_HARD}%未満・${band['●']}節）。` +
-    `●は落としても差がつきにくい。○を落とすのが一番痛い。出題1〜2問の節は深追いしない。`;
+  const topSet = new Set([...secs].filter(x => x.n > 0).sort((a, b) => b.n - a.n || a.o - b.o).slice(0, Math.round(secs.length * SC_TOP_RATIO)).map(x => x.k));
   document.getElementById('scPlg').textContent = `言語聴覚士国家試験の出題範囲　全${secs.length}節（国試 第${yMin}〜${yMax}回 ${kqTotal.toLocaleString()}問）　網かけ＝得点源${topSet.size}節（国試に多い順の上位・まずここ）　□＝過去問で正解できたら✓　右の数字＝その節から出た問題数`;
-  const q = scFilter.trim();
-  const keep = x => (scShow === 'all' || (scShow === 'kq' ? x.n > 0 : topSet.has(x.k))) && (!q || (x.t + ' ' + x.c + ' ' + x.s).includes(q));
-  // 科目→章→節（章・節はノートの並び順）
+  // 科目→章→節（章・節はノートの並び順）。科目は出題マップと同じ並び：分野の順・失語症から専門
   const subj = new Map(), sG = {}, sO = {};
   secs.forEach(x => { sG[x.s] ??= refSections[x.k]?.g || ''; sO[x.s] = Math.min(sO[x.s] ?? 1e9, x.o); });
   secs.sort((a, b) => a.o - b.o || a.k.localeCompare(b.k)).forEach(x => {
@@ -5650,53 +5593,25 @@ async function renderScope() {
     if (!chs.has(x.ch)) chs.set(x.ch, { c: x.c, rows: [] });
     chs.get(x.ch).rows.push(x);
   });
-  const nMax = Math.max(1, ...secs.map(x => x.n));
-  const agg = rows => {
-    const a = { n: 0, n5: 0, rs: 0, rn: 0 };
-    rows.forEach(x => { a.n += x.n; a.n5 += x.n5; if (x.r != null) { a.rs += x.r * x.rn; a.rn += x.rn; } });
-    a.r = a.rn ? Math.round(a.rs / a.rn) : null;
-    return a;
-  };
-  const zero = v => v || '<span class="sc-na">0</span>';
-  const cells = (a, bar) => `<td class="r sc-nn">${bar ? `<span class="sc-bar"><i style="width:${Math.round(a.n / nMax * 100)}%"></i></span>` : ''}<span class="mn">${zero(a.n)}</span></td>` +
-    `<td class="r mn sc-n5">${zero(a.n5)}</td><td class="r sc-r">${scPct(a.r, a.rn ? `国試${a.rn}問の平均` : '')}</td>`;
-  const head = `<tr><th class="sc-cb"></th><th class="sc-d"></th><th>章・節</th><th class="r">国試の出題数</th><th class="r sc-n5">直近5回</th><th class="r">国試の正答率</th></tr>`;
-  let h = '', shown = 0;
-  // 科目は出題マップ（出題されたところ・落としたところ）と同じ並び：分野の順・失語症から専門
   const gIdx = sName => { const i = CATEGORY_ORDER.indexOf(sG[sName]); return i < 0 ? 999 : i; };
   const split = CATEGORY_ORDER.indexOf('失語症');
-  let lastGrp = -1;
-  [...subj.entries()].map(([sName, chs]) => [sName, chs, agg([...chs.values()].flatMap(c => c.rows))]).sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || sO[a[0]] - sO[b[0]] || a[0].localeCompare(b[0])).forEach(([sName, chs, sa]) => {
-    let body = '', nTop = 0;
+  const num = n => `<td class="sc-nn mn">${n || '<span class="sc-na">0</span>'}</td>`;
+  let h = '', lastGrp = -1;
+  [...subj.entries()].sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || sO[a[0]] - sO[b[0]] || a[0].localeCompare(b[0])).forEach(([sName, chs]) => {
+    let body = '', sn = 0;
     [...chs.entries()].sort((a, b) => a[0] - b[0]).forEach(([, c]) => {
-      nTop += c.rows.filter(x => topSet.has(x.k)).length;
-      const rows = c.rows.filter(keep);
-      if (!rows.length) return;
-      body += `<tr class="sc-ch"><td class="sc-cb"></td><td class="sc-d"></td><td class="sc-t">${esc(c.c.replace(/^第(\d+)章[｜|]\s*/, '$1 '))}</td>${cells(agg(c.rows), false)}</tr>`;
-      body += rows.map(x => {
-        shown++;
-        const cl = ['sc-sec', x.n ? '' : 'sc-zero', topSet.has(x.k) ? 'sc-top' : ''].filter(Boolean).join(' ');
-        return `<tr class="${cl}"><td class="sc-cb"><span class="sc-mark"></span></td>` +
-          `<td class="sc-d">${scBand(x.r)}</td><td class="sc-t"><span class="sc-tl">${esc(x.t)}</span><span class="sc-ts">${esc(scShort(x.t))}</span></td>${cells(agg([x]), true)}</tr>`;
-      }).join('');
+      const cn = c.rows.reduce((a, x) => a + x.n, 0); sn += cn;
+      body += `<tr class="sc-ch"><td class="sc-cb"></td><td class="sc-t">${esc(c.c.replace(/^第(\d+)章[｜|]\s*/, '$1 '))}</td>${num(cn)}</tr>` +
+        c.rows.map(x => `<tr class="${['sc-sec', x.n ? '' : 'sc-zero', topSet.has(x.k) ? 'sc-top' : ''].filter(Boolean).join(' ')}"><td class="sc-cb"><span class="sc-mark"></span></td>` +
+          `<td class="sc-t"><span class="sc-tl">${esc(x.t)}</span><span class="sc-ts">${esc(scShort(x.t))}</span></td>${num(x.n)}</tr>`).join('');
     });
-    if (!body) return;
     const grp = gIdx(sName) < split ? 0 : 1;
     if (grp !== lastGrp) { h += `<div class="sc-grp${grp ? ' sc-grp2 kg-senmon' : ' kg-kiso'}">${grp ? '専門' : '基礎'}</div>`; lastGrp = grp; }
-    const open = q || scOpen.has(sName);
-    h += `<details class="sc-subj" data-s="${esc(sName)}"${open ? ' open' : ''}><summary><span class="sc-sn">${esc(sName)}</span>` +
-      `<span class="sc-sm">国試 <b class="mn">${sa.n}</b>問（${kqTotal ? Math.round(sa.n / kqTotal * 1000) / 10 : 0}%）　直近5回 <b class="mn">${sa.n5}</b>　正答率 ${scPct(sa.r)}　得点源 <b class="mn">${nTop}</b>節</span>` +
-      `<span class="sc-pn">${sa.n}問</span></summary>` +
-      `<div class="tbl-wrap"><table class="v2-tbl sc-tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
+    h += `<div class="sc-subj"><div class="sc-sum"><span class="sc-sn">${esc(sName)}</span><span class="sc-pn mn">${sn}問</span></div>` +
+      `<table class="sc-tbl"><tbody>${body}</tbody></table></div>`;
   });
-  box.innerHTML = (h ? `<div class="sc-list">${h}</div>` : '<div class="v2-empty">該当する節がありません。</div>') +
-    `<div class="v2-cap">国試の出題数＝国試 第${yMin}〜${yMax}回でその節から出た問題数（直近5回＝第${yMax - 4}〜${yMax}回）。国試の正答率＝過去問を初めて解いたときの正答率（30人以上が解いた問題だけの平均）。科目は出題マップと同じ並び（基礎→専門）、章・節は教科書の並び。${shown}節を表示。</div>`;
-  box.querySelectorAll('details.sc-subj').forEach(d => d.addEventListener('toggle', () => {
-    if (q) return;
-    if (d.open) scOpen.add(d.dataset.s); else scOpen.delete(d.dataset.s);
-  }));
+  box.innerHTML = `<div class="sc-list">${h}</div>`;
 }
-window.addEventListener('beforeprint', () => document.querySelectorAll('#scBody details.sc-subj').forEach(d => { d.open = true; }));
 </script>
 </body>
 </html>
