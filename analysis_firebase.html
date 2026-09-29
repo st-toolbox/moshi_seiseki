@@ -1175,7 +1175,7 @@ thead th{border-bottom:1px solid var(--g5);}
       </div>
       <div class="card" id="examListCard">
         <div class="card-title">模試一覧</div>
-        <div class="tbl-wrap"><table><thead><tr><th>模試名</th><th>実施日</th><th>受付状態</th><th>操作</th></tr></thead><tbody id="adminExamTable"></tbody></table></div>
+        <div class="tbl-wrap"><table><thead><tr><th title="チェックした模試を実施日の順に今年度の第1回・第2回…と数える。通算・推移はこの模試だけで出す">今年度</th><th>回</th><th>模試名</th><th>実施日</th><th>受付状態</th><th>操作</th></tr></thead><tbody id="adminExamTable"></tbody></table></div>
       </div>
     </div>
 
@@ -1661,7 +1661,7 @@ function renderAll() {
     const nResp = n => Object.keys(allData[n]?.responses || {}).length;
     const opts = examList.map(e => {
       const k = nResp(e.name);
-      return `<option value="${esc(e.name)}">${esc(e.name)}${e.date ? `（${esc(formatDate(e.date))}）` : ''}${k ? (isTeacher ? ` · ${k}人` : ' · 受験済') : ''}</option>`;
+      return `<option value="${esc(e.name)}">${esc(shortExam(e.name))}${e.date ? `（${esc(formatDate(e.date))}）` : ''}${k ? (isTeacher ? ` · ${k}人` : ' · 受験済') : ''}</option>`;
     }).join('');
     document.getElementById('examSel').innerHTML = opts;
     currentExam = (examList.find(e => nResp(e.name)) || examList[0])?.name || '';
@@ -2751,7 +2751,10 @@ function renderAdminExamTable() {
   if (!tbody) return;
   tbody.innerHTML = examList.map((e,i) => {
     function toInputDate(d){if(!d)return'';const m=String(d).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);if(m)return`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;try{const dt=new Date(d);if(!isNaN(dt))return dt.toISOString().split('T')[0];}catch(e){}return'';}
+    const no = e.thisYear ? yearNo(e.name) : null;
     return `<tr data-exam="${esc(e.name)}">
+      <td style="text-align:center"><input type="checkbox" data-action="update-year" ${e.thisYear ? 'checked' : ''} title="今年度実施の模試"></td>
+      <td class="mn" style="white-space:nowrap">${no ? '第' + no + '回' : '<span style="color:var(--g3)">—</span>'}</td>
       <td style="font-weight:500">${esc(e.name)}</td>
       <td><input type="date" class="admin-input" style="width:140px;" value="${esc(toInputDate(e.date))}" data-action="update-date"></td>
       <td><select class="admin-select" data-action="update-active">
@@ -2781,6 +2784,7 @@ function renderAdminExamTable() {
     const action = ev.target.dataset.action;
     if (action === 'update-date')   updateExamDate(name, ev.target.value);
     if (action === 'update-active') updateExamActive(name, ev.target.value);
+    if (action === 'update-year')   updateExamYear(name, ev.target.checked);
   };
 }
 
@@ -2788,6 +2792,17 @@ function updateExamDate(name, date) {
   if (!isTeacher) return;
   db.ref('exams/' + name + '/date').set(date);
   const e = examList.find(x=>x.name===name); if(e) e.date=date;
+  examList.sort((a, b) => (b.date ? new Date(b.date) : 0) - (a.date ? new Date(a.date) : 0));
+  renderAdminExamTable();
+}
+// 今年度の模試（exams/<name>/thisYear だけを書く。解答・回答には触らない）
+function updateExamYear(name, on) {
+  if (!isTeacher) return;
+  db.ref('exams/' + name + '/thisYear').set(on ? true : null);
+  const e = examList.find(x => x.name === name); if (e) e.thisYear = on;
+  if (allData[name]?.master) allData[name].master.thisYear = on;
+  ctxMemo = {};
+  renderAdminExamTable();
 }
 function updateExamActive(name, val) {
   if (!isTeacher) return;
@@ -3098,7 +3113,7 @@ function ansIsCorrect(correct, user) {
 }
 
 function examsWithSections() {
-  return examList.filter(e => allData[e.name]?.master?.sections).map(e => e.name);
+  return yearExams().filter(e => allData[e.name]?.master?.sections).map(e => e.name);
 }
 function scopeExams(scope) {
   if (scope === 'exam') return currentExam ? [currentExam] : [];
@@ -4191,8 +4206,15 @@ function examTotal(exam, uid) {
   if (am === null && pm === null) return null;
   return { am, pm, total: (am || 0) + (pm || 0), full: am !== null && pm !== null };
 }
-function examsTakenBy(uid) { return examList.filter(e => examTotal(e.name, uid)); }  // 新しい順
-function shortExam(name) { return String(name || '').replace(/_/g, ' '); }
+// 今年度の模試＝「模試一覧・計画」でチェックした模試（新しい順）。1つもチェックが無ければ全部の模試
+function yearExams() { const y = examList.filter(e => e.thisYear); return y.length ? y : examList; }
+function yearNo(name) {   // 実施日の順に今年度の第何回か（チェックが無い模試は null）
+  const y = examList.filter(e => e.thisYear).slice().sort((a, b) => (a.date ? new Date(a.date) : Infinity) - (b.date ? new Date(b.date) : Infinity) || String(a.name).localeCompare(String(b.name)));
+  const i = y.findIndex(e => e.name === name);
+  return i < 0 ? null : i + 1;
+}
+function examsTakenBy(uid) { return yearExams().filter(e => examTotal(e.name, uid)); }  // 今年度・新しい順
+function shortExam(name) { const no = yearNo(name), n = String(name || '').replace(/_/g, ' '); return no ? `第${no}回 ${n}` : n; }
 function signed(v) { return v > 0 ? '+' + v : v < 0 ? '−' + (-v) : '±0'; }
 
 // 模試1回分のクラス集計：合計点の分布（午前午後とも提出した人）・各問の正答数・選択肢の分布
@@ -4458,12 +4480,13 @@ function renderRoster() {
 }
 // この模試：学生ごとの点（旧：学生一覧の「この模試」）
 function examStudentsHtml(ex) {
-  const list = getActiveStudents(), idx = examList.findIndex(e => e.name === ex);
+  const yl = yearExams().some(e => e.name === ex) ? yearExams() : examList;   // 前回・推移は今年度の模試の中で
+  const list = getActiveStudents(), idx = yl.findIndex(e => e.name === ex);
   const rows = list.map(s => {
     const t = examTotal(ex, s.uid);
-    const prev = examList.slice(idx + 1).find(e => examTotal(e.name, s.uid));
+    const prev = yl.slice(idx + 1).find(e => examTotal(e.name, s.uid));
     return { s, t, pt: prev ? examTotal(prev.name, s.uid) : null, weak: t ? weakCats(ex, s.uid) : [],
-             hist: examList.slice(idx).filter(e => examTotal(e.name, s.uid)).slice(0, 5).reverse()
+             hist: yl.slice(idx).filter(e => examTotal(e.name, s.uid)).slice(0, 5).reverse()
                .map(e => ({ ex: e, t: examTotal(e.name, s.uid) })) };  // この模試まで・直近5回（古い順）
   });
   roSort(rows, 'exam', (r, k) => {
@@ -4866,7 +4889,7 @@ function applyTrendHl(box) {
 }
 function renderRosterTrend(box) {
   const list = getActiveStudents();
-  const exs = examList.filter(e => list.some(s => examTotal(e.name, s.uid))).slice().reverse();  // 古い順
+  const exs = yearExams().filter(e => list.some(s => examTotal(e.name, s.uid))).slice().reverse();  // 今年度・古い順
   document.getElementById('roTitle').textContent = '点数の推移';
   document.getElementById('roSub').textContent = `対象 ${currentGakunenFilter}　·　模試 ${exs.length}回　·　学生 ${list.length}人`;
   if (!list.length || !exs.length) { box.innerHTML = '<div class="v2-empty">表示できる模試がありません。</div>'; return; }
