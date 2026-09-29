@@ -758,7 +758,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .sm-tools{display:flex;justify-content:flex-end;align-items:center;gap:4px;font-size:11px;color:var(--g4);margin:-4px 0 6px;}
 .sm-tools button{font:inherit;font-size:11px;padding:1px 8px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--g5);cursor:pointer;}
 .sm-tools button:hover{background:var(--g1);}
-.sm-tools button.on{border-color:var(--g4);}
+.sm-tools button.on{background:var(--g5);border-color:var(--g5);color:#fff;font-weight:600;}
 .sm-tools button:first-of-type{margin-left:4px;}
 @media print{ .sm-tools{display:none;} }
 .sv{position:relative;}
@@ -805,6 +805,8 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-tbl th.ex-h{white-space:normal;min-width:5.5em;max-width:9.5em;line-height:1.35;vertical-align:bottom;letter-spacing:.02em;}
 .v2-tbl th.ex-h span{display:block;font-weight:400;color:var(--g3);letter-spacing:0;margin-top:2px;}
 .v2-tbl td.hi{color:var(--ok);font-weight:600;}
+.v2-tbl td.lo{color:var(--ng);}
+.v2-tbl td.gap{color:var(--ng);}
 .v2-tbl tr.avg-row td{background:var(--g1);font-weight:600;border-bottom:1px solid var(--g3);}
 .v2-tbl td.sec-cell{font-size:12px;}
 .v2-h .v2-ctrl{gap:14px;}
@@ -4511,19 +4513,23 @@ function examStudentsHtml(ex) {
   });
   const took = rows.filter(r => r.t).length;
   if (!list.length) return '';
+  // クラス平均（両方の時限を出した学生で）。平均より下＝赤、120点以上（午前・午後は60点以上）＝緑
+  const fr = rows.filter(r => r.t && r.t.full), mean = f => fr.length ? Math.round(fr.reduce((a, r) => a + f(r.t), 0) / fr.length * 10) / 10 : null;
+  const av = { total: mean(t => t.total), am: mean(t => t.am || 0), pm: mean(t => t.pm || 0) };
+  const sc = (v, a, pass) => v == null ? '' : v >= pass ? ' hi' : a != null && v < a ? ' lo' : '';
   return `<section class="v2-block"><div class="v2-h"><h2>学生ごとの点</h2><span class="v2-note">受験 ${took} / ${list.length}人</span></div><div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
       ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', '苦手分野')}<th>推移（直近5回）</th>
-    </tr></thead><tbody>${rows.map(r => {
+    </tr></thead><tbody><tr class="avg-row"><td></td><td>クラス平均</td><td class="r mn">${av.total ?? '—'}</td><td class="r mn">${av.am ?? '—'}</td><td class="r mn">${av.pm ?? '—'}</td><td></td><td class="r mn">${av.total == null ? '—' : Math.max(0, Math.round((PASS_LINE - av.total) * 10) / 10)}</td><td></td><td></td></tr>${rows.map(r => {
       const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
       return `<tr class="click" data-uid="${esc(r.s.uid)}">
         <td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>
-        <td class="r mn"><b>${t ? t.total : '—'}</b>${t && !t.full ? '<span class="muted">*</span>' : ''}</td>
-        <td class="r mn">${t?.am ?? '—'}</td><td class="r mn">${t?.pm ?? '—'}</td>
+        <td class="r mn${t && t.full ? sc(t.total, av.total, PASS_LINE) : ''}"><b>${t ? t.total : '—'}</b>${t && !t.full ? '<span class="muted">*</span>' : ''}</td>
+        <td class="r mn${sc(t?.am, av.am, PASS_LINE / 2)}">${t?.am ?? '—'}</td><td class="r mn${sc(t?.pm, av.pm, PASS_LINE / 2)}">${t?.pm ?? '—'}</td>
         <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
-        <td class="r mn">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
+        <td class="r mn${t && t.total < PASS_LINE ? ' gap' : ''}">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
         <td>${r.weak.length ? r.weak.map(w => esc(w.c)).join('、') : '—'}</td>
         <td class="nw">${histChips(r.hist)}</td></tr>`;
-    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。</div></section>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。赤＝クラス平均より下、緑＝120点以上（午前・午後は60点以上）。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。</div></section>`;
 }
 function openKarte(uid) {
   const sel = document.getElementById('sidebarStudentSel');
@@ -5031,7 +5037,7 @@ function secMapHtml(exArg, st0, uid) {
     : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
-  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${uid ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
+  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${uid ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる"${uid ? '' : ' class="on"'}>章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
   const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
