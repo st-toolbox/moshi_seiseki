@@ -762,6 +762,14 @@ thead th{border-bottom:1px solid var(--g5);}
 .hs-tbl .hs-d{display:inline-block;min-width:2.6em;margin-left:6px;font-size:10.5px;color:var(--g3);font-weight:400;}
 .hs-tbl tr.hs-tot td{background:var(--g1);font-weight:600;}
 .hs-tbl tr.hs-avg td{color:var(--g4);border-bottom:1px solid var(--g3);}
+.hs-tbl{table-layout:fixed;width:100%;min-width:980px;}
+.hs-tbl col.hs-c0{width:12em;} .hs-tbl col.hs-call{width:7.5em;} .hs-tbl col.hs-cn{width:4em;}
+.hs-tbl th.ex-h{min-width:0;max-width:none;overflow-wrap:anywhere;}
+.hs-tbl .hs-s{border-left:1px solid var(--line);padding-left:4px!important;padding-right:6px!important;white-space:nowrap;}
+.hs-tbl .hs-all{border-left:2px solid var(--g3);}
+.hs-tbl th.hs-empty{color:var(--g3);font-weight:400;}
+.hs-tbl td>.hs-d{min-width:0;margin-left:4px;}
+@media print{ .hs-tbl{min-width:0;} .hs-tbl col.hs-c0{width:8em;} .hs-tbl col.hs-call{width:5em;} .hs-tbl col.hs-cn{width:3em;} .hs-tbl .hs-s .hs-d{display:block;margin:0;font-size:6.5pt;line-height:1;} .hs-tbl th.ex-h{font-size:6.5pt;} }
 .hs-tbl .hs-d.dn{color:var(--ng);} .hs-tbl .hs-d.up{color:var(--ok);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
 @media print{ .ka-review{page-break-before:auto!important;} }
@@ -4770,19 +4778,22 @@ function karteHistHtml(uid, exs) {
   const cats = Object.keys(sum).filter(c => sum[c].t);
   const pc = v => v && v.t ? Math.round(v.c / v.t * 100) : null;
   const who = isTeacher ? '本人' : 'あなた';
-  const td = (my, cl, n) => {
-    if (my == null) return '<td class="r mn muted">—</td>';
+  const td = (my, cl, n, k = '') => {
+    if (my == null) return `<td class="r mn muted ${k}">—</td>`;
     const d = cl != null ? my - cl : null;
-    return `<td class="r mn${my < 50 ? ' lo' : my >= 70 ? ' hi' : ''}"${n ? ` title="${n}問${cl != null ? `・クラス ${cl}%` : ''}"` : ''}>${my}%` +
+    return `<td class="r mn ${k}${my < 50 ? ' lo' : my >= 70 ? ' hi' : ''}"${n ? ` title="${n}問${cl != null ? `・クラス ${cl}%` : ''}"` : ''}>${my}%` +
       (d != null ? `<span class="hs-d${d <= -10 ? ' dn' : d >= 10 ? ' up' : ''}">${signed(d)}</span>` : '') + '</td>';
   };
   const tot = exs.map(e => examTotal(e.name, uid)), avg = exs.map(e => ctx(e.name)?.avg ?? null);
-  const srow = (lab, f, cls2) => `<tr${cls2 ? ` class="${cls2}"` : ''}><td>${lab}</td>${exs.map((e, i) => `<td class="r mn">${f(i) ?? '—'}</td>`).join('')}<td></td><td></td></tr>`;
+  // 模試は左から積む。最初から10回分の枠を取っておく（右は空いたまま）
+  const SLOTS = Math.max(10, exs.length), empty = SLOTS - exs.length;
+  const pad = cell => cell.repeat(empty);
+  const srow = (lab, f, cls2) => `<tr${cls2 ? ` class="${cls2}"` : ''}><td>${lab}</td>${exs.map((e, i) => `<td class="r mn hs-s">${f(i) ?? '—'}</td>`).join('')}${pad('<td class="hs-s"></td>')}<td class="hs-all"></td><td></td></tr>`;
   const [a, bb] = splitCats(cats);
-  const grp = (names, head) => names.length ? `<tr class="grp-row${kgCls(head)}"><td colspan="${exs.length + 3}">${head}</td></tr>` +
-    names.map(c => `<tr><td>${esc(c)}</td>${exs.map((e, i) => td(pc(own[i][c]), pc(cls[i][c]), own[i][c]?.t)).join('')}${td(pc(sum[c]), pc(csum[c]))}<td class="r mn muted">${sum[c].t}</td></tr>`).join('') : '';
+  const grp = (names, head) => names.length ? `<tr class="grp-row${kgCls(head)}"><td colspan="${SLOTS + 3}">${head}</td></tr>` +
+    names.map(c => `<tr><td>${esc(c)}</td>${exs.map((e, i) => td(pc(own[i][c]), pc(cls[i][c]), own[i][c]?.t, 'hs-s')).join('')}${pad('<td class="hs-s"></td>')}${td(pc(sum[c]), pc(csum[c]), 0, 'hs-all')}<td class="r mn muted">${sum[c].t}</td></tr>`).join('') : '';
   return `<section class="v2-block" style="margin-top:34px"><div class="v2-h"><h2>模試成績一覧</h2><span class="v2-note">${who}の正答率　小さい数字＝クラスとの差　赤 50%未満　緑 70%以上</span></div>` +
-    `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr hs-tbl"><thead><tr><th></th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">全部の模試</th><th class="r">問題数</th></tr></thead><tbody>` +
+    `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr hs-tbl"><colgroup><col class="hs-c0">${'<col>'.repeat(SLOTS)}<col class="hs-call"><col class="hs-cn"></colgroup><thead><tr><th></th>${exs.map(e => `<th class="r ex-h hs-s">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}${Array.from({ length: empty }, (_, i) => `<th class="r ex-h hs-s hs-empty">${exs.length + i + 1}回目</th>`).join('')}<th class="r hs-all">全部の模試</th><th class="r">問題数</th></tr></thead><tbody>` +
     srow('午前', i => tot[i]?.am) + srow('午後', i => tot[i]?.pm) + srow('合計', i => tot[i] ? `<b>${tot[i].total}</b>${tot[i].full ? '' : '*'}` : null, 'hs-tot') +
     srow('クラス平均', i => avg[i], 'hs-avg') +
     grp(a, '基礎') + grp(bb, '専門') + '</tbody></table></div><div class="v2-cap">—＝その模試では出ていない分野。セルにマウスを乗せると問題数とクラスの正答率。全部の模試＝受けた模試を合わせた正答率、問題数＝その合計。* は片方の時限だけ提出。</div></section>';
