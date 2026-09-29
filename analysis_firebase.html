@@ -504,6 +504,11 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 .nav-legacy summary span{letter-spacing:.04em;font-weight:400;color:var(--g3);margin-left:auto;margin-right:8px;}
 .nav-legacy .nav-item{font-size:12.5px;padding:6px 10px;}
 .nav-admin{margin-top:14px;border-top:1px solid var(--line);}
+.adm-tg{display:none!important;}
+/* 学生だけ（教員が「学生の立場で見る」ときも出す） */
+.student-only{display:none!important;}
+body.is-student .student-only,body.sv-on .student-only{display:flex!important;}
+a.nav-item{text-decoration:none;}
 /* サイドバーのカテゴリー見出し：項目と見分けがつくように（濃い字・左の色の印・上に区切り線） */
 .sidebar .nav-section-label,.nav-legacy summary{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--g5);padding:9px 10px 6px;margin:12px 0 2px;border-top:1px solid var(--line);display:flex;align-items:center;gap:7px;}
 .sidebar .nav-section-label::before,.nav-legacy summary::before{content:"";width:3px;height:12px;border-radius:1px;background:var(--accent);flex:none;}
@@ -703,9 +708,17 @@ thead th{border-bottom:1px solid var(--g5);}
   .sidebar .nav-section-label,.sidebar .nav-legacy{display:none!important;}
   .sidebar .nav-admin{display:contents;}   /* 管理もスマホから開ける（見出しだけ消して同じ列に並べる） */
   .sidebar .nav-admin .nav-item{color:var(--g4);font-size:12px;padding:5px 10px;}
+  /* 管理はスマホでは「管理 ▾」にたたむ（教員のメニューが画面を埋めないように） */
+  .sidebar .adm-tg{display:inline-flex!important;align-items:center;gap:4px;border:1px dashed var(--g3);border-radius:var(--rs);}
+  body:not(.adm-open) .sidebar .nav-admin .nav-item:not(.adm-tg){display:none;}
+  body.adm-open .adm-ar{display:inline-block;transform:rotate(180deg);}
+  body.adm-open .sidebar .nav-admin{display:flex;flex-wrap:wrap;gap:4px;width:100%;padding:6px 0 0;border-top:1px dotted var(--line);margin-top:2px;}
+  body.adm-open .sidebar .adm-tg{order:-1;}
   .sidebar .top-sel{width:100%!important;margin:0!important;}
   .sidebar #sidebarStudentWrap{width:100%;}
-  .sidebar .nav-item{width:auto;padding:6px 12px;}
+  .sidebar .nav-item{width:auto;padding:6px 8px;}
+  .sidebar .t-lg{display:none;} .sidebar .t-sm{display:inline;}
+  .sidebar .nat-tg{padding:4px 8px;gap:6px;}
   .v2-head{align-items:flex-start;}
   .v2-title{font-size:22px;}
   .v2-ctrl{flex-direction:column;align-items:flex-start;gap:8px;}
@@ -1191,7 +1204,8 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <button class="nav-item teacher-only" data-page="roster" onclick="showPage('roster',this)">全部の模試</button>
     <button class="nav-item" data-page="karte" id="navKarte" onclick="showPage('karte',this)">学生カルテ</button>
     <button class="nav-item" data-page="drill" onclick="showPage('drill',this)">復習</button>
-    <button class="nat-tg teacher-only" id="natBtn" onclick="setNat(!natOn)" title="外部模試の全国版成績（全国平均・問題ごとの全国正答率）を重ねて表示する"><span>全国データ</span><span class="nat-sw" id="natSw">表示しない</span></button>
+    <a class="nav-item student-only" href="marksheet_firebase.html" target="_blank" rel="noopener noreferrer">マークシート ↗</a>
+    <button class="nat-tg teacher-only" id="natBtn" onclick="setNat(!natOn)" title="外部模試の全国版成績（全国平均・問題ごとの全国正答率）を重ねて表示する"><span>全国<span class="t-lg">データ</span></span><span class="nat-sw" id="natSw">表示しない</span></button>
     <div class="nav-section-label">読み物</div>
     <button class="nav-item" data-page="scope" onclick="showPage('scope',this)">出題範囲</button>
     <details class="nav-legacy teacher-only">
@@ -1208,6 +1222,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     </details>
     <div class="teacher-only nav-admin">
     <div class="nav-section-label">管理</div>
+    <button class="nav-item adm-tg" id="admTg" onclick="document.body.classList.toggle('adm-open')">管理 <span class="adm-ar">▾</span></button>
     <button class="nav-item" data-page="admin_exam" onclick="showPage('admin_exam',this)">模試一覧・計画</button>
     <button class="nav-item" data-page="data_edit" onclick="showPage('data_edit',this)">模試データ編集</button>
     <button class="nav-item" data-page="admin_student" onclick="showPage('admin_student',this)">学生リスト編集</button>
@@ -1798,6 +1813,7 @@ auth.onAuthStateChanged(async user => {
       document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses, #page-admin_teacher, #page-secclass').forEach(el => el.style.display='none');
       // 学生には教員用のメニュー（学年・全学生印刷・管理・クラスの節別）を出さない。学生のデータは自分の分だけなので学年で絞らない
       document.querySelectorAll('.teacher-only').forEach(el => el.style.display='none');
+      document.body.classList.add('is-student');
       currentGakunenFilter = '全員';
     }
 
@@ -4457,7 +4473,8 @@ function syncNatBtn() {
   const b = document.getElementById('natBtn'), w = document.getElementById('natSw');
   if (!b || !w) return;
   b.classList.toggle('on', natOn);
-  w.textContent = !natOn ? '表示しない' : natState === 'loading' ? '読み込み中' : natState === 'ok' ? '表示する' : natState === 'denied' ? '読めません' : 'データなし';
+  const [lg, sm] = !natOn ? ['表示しない', 'オフ'] : natState === 'loading' ? ['読み込み中', '…'] : natState === 'ok' ? ['表示する', 'オン'] : natState === 'denied' ? ['読めません', '×'] : ['データなし', 'なし'];
+  w.innerHTML = `<span class="t-lg">${lg}</span><span class="t-sm">${sm}</span>`;   // スマホは短い方
 }
 async function setNat(on) {
   natOn = !!on;
