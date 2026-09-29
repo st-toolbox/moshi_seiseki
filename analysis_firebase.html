@@ -852,36 +852,43 @@ thead th{border-bottom:1px solid var(--g5);}
 .sm-cont{margin-top:28px;}
 /* 印刷1枚：測るとき（画面・一瞬）と印刷で同じ形にする */
 body.sm-measuring .student-print-page:has(.sm-fit){display:block!important;position:absolute;left:-99999px;top:0;}
-body.sm-measuring .sm-fit{width:calc(687.9px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
+body.sm-measuring .sm-fit{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
 body.sm-measuring .sm-fit .sm-none{display:none!important;}
 @media print{
   .sm-fit{zoom:var(--smz,1);break-before:page;margin:0!important;}
   .sm-fit .sm-none{display:none!important;}
   .sm-fit .sm-cols{gap:0 24px!important;}
   /* 行を詰める（測るときも同じ） */
-  .sm-fit .sm-row{padding:1px 0;font-size:12px;line-height:1.25;}
-  .sm-fit .sm-row.lv1{padding:2px 6px;margin-top:4px;}
+  .sm-fit .sm-row{padding:0;font-size:12px;line-height:1.12;}
+  .sm-fit .sm-row.lv1{padding:1px 6px;margin-top:3px;}
   .sm-fit .sm-row.lv3{font-size:11px;}
   .sm-fit .sm-hd{padding:2px 0;}
   .sm-fit .sm-cont{margin-top:10px;}
   .sm-fit .sm .cat-g{padding-top:2px;padding-bottom:2px;}
-  .sm-fit .sm-bar{height:6px;}
+  .sm-fit .sm-bar{height:5px;}
+  .sm-fit .v2-cap{display:none;}
   .sm-fit .sm details>summary .sm-name::before{display:none;}
   .sm-fit .sm-row.lv2 .sm-name{padding-left:10px;}
   .sm-fit .sm-row.lv3 .sm-name{padding-left:20px;}
   .sm-fit .sm-x .exw-body{display:none;}
+  .sm-fit .sm-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .sm-fit .sm-row>*{white-space:nowrap;}
 }
-body.sm-measuring .sm-fit .sm-row{padding:1px 0;font-size:12px;line-height:1.25;}
-body.sm-measuring .sm-fit .sm-row.lv1{padding:2px 6px;margin-top:4px;}
+body.sm-measuring .sm-fit .sm-row{padding:0;font-size:12px;line-height:1.12;}
+body.sm-measuring .sm-fit .sm-row.lv1{padding:1px 6px;margin-top:3px;}
 body.sm-measuring .sm-fit .sm-row.lv3{font-size:11px;}
 body.sm-measuring .sm-fit .sm-hd{padding:2px 0;}
 body.sm-measuring .sm-fit .sm-cont{margin-top:10px;}
 body.sm-measuring .sm-fit .sm .cat-g{padding-top:2px;padding-bottom:2px;}
-body.sm-measuring .sm-fit .sm-bar{height:6px;}
+body.sm-measuring .sm-fit .sm-bar{height:5px;}
+body.sm-measuring .sm-fit .v2-cap{display:none;}
+body.sm-measuring .sm-fit .sm-tools{display:none;}
 body.sm-measuring .sm-fit .sm details>summary .sm-name::before{display:none;}
 body.sm-measuring .sm-fit .sm-row.lv2 .sm-name{padding-left:10px;}
 body.sm-measuring .sm-fit .sm-row.lv3 .sm-name{padding-left:20px;}
 body.sm-measuring .sm-fit .sm-x .exw-body{display:none;}
+body.sm-measuring .sm-fit .sm-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 /* 出題マップ：科目・章・節の地も群の色で（基礎＝青・専門＝赤）。科目の行は少し濃く */
 .sm details.sm-s[data-g="0"]{background:rgba(26,124,193,.02);}
 .sm details.sm-s[data-g="1"]{background:rgba(212,36,111,.017);}
@@ -3399,9 +3406,9 @@ async function renderReview() {
 }
 
 // 縦向き印刷（triggerLrPrint と同じやり方）
-function withPortraitPrint(fn) {
+function withPortraitPrint(fn, margin = '12mm 14mm') {
   const st = document.createElement('style');
-  st.textContent = '@media print { @page { size: A4 portrait; margin: 12mm 14mm; } }';
+  st.textContent = `@media print { @page { size: A4 portrait; margin: ${margin}; } }`;
   document.head.appendChild(st);
   try { fn(); } finally { setTimeout(() => st.remove(), 1000); }
 }
@@ -3413,7 +3420,8 @@ function printCurrentPage() {
     shut.forEach(d => d.open = true);
     withPortraitPrint(() => window.print());
     setTimeout(() => shut.forEach(d => d.open = false), 1000);
-  } else if (['page-review', 'page-sec', 'page-secclass', 'page-roster', 'page-karte', 'page-drill'].includes(id)) withPortraitPrint(() => window.print());
+  } else if (id === 'page-karte') withPortraitPrint(() => window.print(), '6mm 8mm');   // 出題マップを1枚に収めるため余白を狭く（smFitPrint の PRINT_W/H と揃える）
+  else if (['page-review', 'page-sec', 'page-secclass', 'page-roster', 'page-drill'].includes(id)) withPortraitPrint(() => window.print());
   else window.print();
 }
 
@@ -4871,7 +4879,7 @@ async function printAllKarte() {
     container.appendChild(page);
   });
   document.body.classList.add('print-all-students');
-  withPortraitPrint(() => window.print());
+  withPortraitPrint(() => window.print(), '6mm 8mm');
   setTimeout(() => { document.body.classList.remove('print-all-students'); document.querySelectorAll('.student-print-page').forEach(el => el.remove()); }, 1000);
 }
 // ---------- 統合（旧画面の機能） ----------
@@ -5089,25 +5097,20 @@ function smBalance(box) {
   conts[big].hidden = true;
 }
 // 印刷：カルテの「この模試の出題マップ」を1ページに収める。出ていない科目・章は省き、印刷幅で2列を釣り合わせてから縮小率を決める
-const PRINT_W = 182 * 96 / 25.4, PRINT_H = 273 * 96 / 25.4;   // A4縦・余白 12mm/14mm の中身
+const PRINT_W = 194 * 96 / 25.4, PRINT_H = 285 * 96 / 25.4;   // A4縦・カルテ印刷の余白 6mm/8mm の中身
 function smFitPrint() {
   const secs = [...document.querySelectorAll('.sm-fit')];
   if (!secs.length) return;
   document.body.classList.add('sm-measuring');
   try {
+    // 縮めると列が広がって段組みが変わるので、比例計算でなく二分探索で「収まる最大」を探す
     secs.forEach(sec => {
-      let z = 1;
-      for (let i = 0; i < 4; i++) {
-        sec.style.setProperty('--smz', z);
-        sec.querySelectorAll('.sm-cols').forEach(smBalance);
-        const h = sec.getBoundingClientRect().height;
-        if (!h) break;
-        const nz = Math.min(1, z * PRINT_H * 0.96 / h);
-        if (Math.abs(nz - z) < 0.01) { z = nz; break; }
-        z = nz;
-      }
-      sec.style.setProperty('--smz', z.toFixed(3));
-      sec.querySelectorAll('.sm-cols').forEach(smBalance);
+      const fits = z => { sec.style.setProperty('--smz', z); sec.querySelectorAll('.sm-cols').forEach(smBalance); return sec.getBoundingClientRect().height <= PRINT_H * 0.97; };
+      let lo = 0.2, hi = 1;
+      if (fits(1)) lo = 1;
+      else for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
+      fits(lo);
+      sec.style.setProperty('--smz', lo.toFixed(3));
     });
   } finally { document.body.classList.remove('sm-measuring'); }
 }
