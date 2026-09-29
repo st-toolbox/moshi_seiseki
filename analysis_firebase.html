@@ -667,7 +667,7 @@ thead th{border-bottom:1px solid var(--g5);}
   #page-exam,#page-roster,#page-karte,#page-drill{padding:24px 16px 48px;}
   .figs{grid-template-columns:repeat(2,minmax(0,1fr));}
   .fig+.fig{border-left:none;padding-left:0;}
-  .cats,.ka-top{grid-template-columns:1fr;}
+  .cats,.ka-top,.sm-cols{grid-template-columns:1fr;}
   .ka-gap{border-left:none;border-top:1px solid var(--line);padding-left:0;}
 }
 /* スマホ：サイドバーを上に畳む（学生はスマホで開く） */
@@ -722,7 +722,7 @@ thead th{border-bottom:1px solid var(--g5);}
   .v2-tbl th,.v2-tbl td{padding:1.3mm 2mm!important;}
   .v2-tbl tr{break-inside:avoid;}
   .cat-row{font-size:8.5pt!important;padding:1mm 0!important;}
-  .cats{gap:0 8mm!important;}
+  .cats,.sm-cols{gap:0 8mm!important;}
   .exw summary{padding:2mm 0!important;}
   .qd-q,.qd-opt{font-size:8.5pt!important;}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
@@ -824,10 +824,11 @@ thead th{border-bottom:1px solid var(--g5);}
 .qg-c.st{background:var(--ng-bg);}
 .qg-c.st b,.qg-c.st i{color:var(--ng);}
 .qg-c.na{background:var(--g1);}
-.sm{border-top:1px solid var(--g5);}
-.sm-hd,.sm-row{display:grid;grid-template-columns:minmax(0,1fr) 4.5em minmax(90px,200px) 3.4em 5.5em;gap:0 14px;align-items:center;}
-.sm-u .sm-hd,.sm-u .sm-row{grid-template-columns:minmax(0,1fr) 4.5em 4em minmax(90px,200px) 3.4em 5.5em;}
-.sm-hd{white-space:nowrap;font-size:11px;letter-spacing:.08em;color:var(--g4);padding:8px 0;border-bottom:1px solid var(--line);}
+.sm-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start;}
+.sm .cat-g{border-bottom:none;padding-bottom:4px;}
+.sm-hd,.sm-row{display:grid;grid-template-columns:minmax(0,1fr) 3.4em minmax(40px,110px) 3em 3.6em;gap:0 10px;align-items:center;}
+.sm-u .sm-hd,.sm-u .sm-row{grid-template-columns:minmax(0,1fr) 3.4em 3.2em minmax(40px,90px) 3em 3.6em;}
+.sm-hd{white-space:nowrap;font-size:11px;letter-spacing:.04em;color:var(--g4);padding:8px 0;border-top:1px solid var(--g5);border-bottom:1px solid var(--line);}
 .sm-hd span:nth-last-child(2){grid-column:span 2;}
 .sm-hd .r{text-align:right;}
 .sm summary{list-style:none;cursor:pointer;}
@@ -4425,12 +4426,6 @@ function renderExamView() {
   if (t.length) h += `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">10点刻み　赤線＝120点</span></div>${histSvg(t)}</section>`;
   h += examStudentsHtml(ex);
 
-  const cc = classCatStats(ex, st);
-  const [a, b] = splitCats(Object.keys(cc).filter(c => cc[c].t));
-  const row = c => { const p = Math.round(cc[c].c / cc[c].t * 100);
-    return `<div class="cat-row"><span class="cat-name">${esc(c)}<span class="cat-n">${cc[c].qn}問</span></span><span class="bar"><i class="${pctCls(p)}" style="width:${p}%"></i></span><span class="cat-p mn">${p}%</span></div>`; };
-  h += `<section class="v2-block"><div class="v2-h"><h2>分野別の正答率</h2><span class="v2-note">緑 70%以上　黄 50〜69%　赤 50%未満</span></div><div class="cats">${catRowsHtml(a, row, '基礎')}${catRowsHtml(b, row, '専門')}</div></section>`;
-
   h += exLowHtml(ex, st);
   box.innerHTML = h;
   roBindSort(box, 'exam', renderExamView);
@@ -4975,10 +4970,15 @@ function secMapHtml(ex, st, uid) {
     : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
-  let h = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>` +
-    `<div class="sm${uid ? ' sm-u' : ''}"><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試の出題</span></div>`;
+  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
+  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
+  const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
+  const cols = ['', ''];
+  let h = '';
   [...subs.entries()].sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || firstQ(a[1]) - firstQ(b[1]) || a[0].localeCompare(b[0])).forEach(([sid, S]) => {
+    const col = gIdx(sid) < split ? 0 : 1;
+    h = '';
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
     const skq = chs.reduce((a, C) => a + kqSum(C), 0);
     h += `<details class="sm-s${as.q ? '' : ' sm-none'}"${as.q ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
@@ -4996,8 +4996,9 @@ function secMapHtml(ex, st, uid) {
       h += '</details>';
     });
     h += '</details>';
+    cols[col] += h;
   });
-  return h + '</div>' + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝この模試で出ていない科目・章・節。国試の出題＝その科目・章・節に紐づく過去の国試の問題数。</div>` : '<div class="v2-cap">灰色＝この模試で出ていない科目・章・節。国試の出題＝その科目・章・節に紐づく過去の国試の問題数。</div>');
+  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}</div>${hd('専門')}${cols[1]}</div></div>` + (none ? `<div class="v2-cap">節の紐づけなし ${none}問は入っていません。灰色＝この模試で出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : '<div class="v2-cap">灰色＝この模試で出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>');
 }
 
 // カルテ：問題ごとの正誤（旧：弱点抽出）。クラス正答率は stats から取るので学生本人の画面でも出る
