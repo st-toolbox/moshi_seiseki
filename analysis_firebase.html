@@ -593,6 +593,13 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-tbl tr.click:hover td{background:var(--g1);}
 .v2-tbl .dn{color:var(--ng);}
 .v2-tbl .up{color:var(--ok);}
+.v2-tbl td.nw{white-space:nowrap;}
+.hc-v{font-family:'DM Mono',monospace;font-size:12px;color:var(--g4);font-variant-numeric:tabular-nums;}
+.hc-v.cur{color:var(--g5);font-weight:600;}
+.hc-v.pass{color:var(--ok);}
+.hc-v.part{opacity:.55;}
+.hc-a{display:inline-block;margin:0 3px;font-size:12px;font-weight:700;}
+.hc-a.up{color:var(--ok);} .hc-a.dn{color:var(--ng);} .hc-a.eq{color:var(--g4);}
 .v2-tbl .rk{font-family:'DM Mono',monospace;color:var(--g4);width:2.5em;}
 .tag-reach{font-size:11px;color:var(--ok);font-weight:600;letter-spacing:.06em;}
 .pbar{display:block;height:6px;background:var(--g2);border-radius:3px;min-width:80px;}
@@ -4340,6 +4347,15 @@ function trendSvg(pts) {  // pts: [{label, me, avg}] 古い順
   });
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の推移">${g}</svg>`;
 }
+// 直近の点を古い順に並べ、間を矢印（上がった＝緑↑・下がった＝赤↓・同じ＝灰→）でつなぐ
+function histChips(hist) {
+  if (!hist.length) return '—';
+  return hist.map((h, i) => {
+    const v = h.t.total, pv = i ? hist[i - 1].t.total : null, d = pv == null ? null : v - pv;
+    const a = d == null ? '' : `<span class="hc-a ${d > 0 ? 'up' : d < 0 ? 'dn' : 'eq'}" title="${signed(d)}点">${d > 0 ? '↑' : d < 0 ? '↓' : '→'}</span>`;
+    return a + `<span class="hc-v${v >= PASS_LINE ? ' pass' : ''}${i === hist.length - 1 ? ' cur' : ''}${h.t.full ? '' : ' part'}" title="${esc(shortExam(h.ex.name))}">${v}</span>`;
+  }).join('');
+}
 function sparkSvg(vals) {
   if (!vals.length) return '';
   const W = 84, H = 22, P = 3;
@@ -4445,9 +4461,9 @@ function examStudentsHtml(ex) {
   const rows = list.map(s => {
     const t = examTotal(ex, s.uid);
     const prev = examList.slice(idx + 1).find(e => examTotal(e.name, s.uid));
-    const taken = examsTakenBy(s.uid);
     return { s, t, pt: prev ? examTotal(prev.name, s.uid) : null, weak: t ? weakestCat(ex, s.uid) : null,
-             n: taken.length, spark: taken.slice().reverse().map(e => examTotal(e.name, s.uid).total) };
+             hist: examList.slice(idx).filter(e => examTotal(e.name, s.uid)).slice(0, 5).reverse()
+               .map(e => ({ ex: e, t: examTotal(e.name, s.uid) })) };  // この模試まで・直近5回（古い順）
   });
   roSort(rows, 'exam', (r, k) => {
     const t = r.t;
@@ -4465,7 +4481,7 @@ function examStudentsHtml(ex) {
   const took = rows.filter(r => r.t).length;
   if (!list.length) return '';
   return `<section class="v2-block"><div class="v2-h"><h2>学生ごとの点</h2><span class="v2-note">受験 ${took} / ${list.length}人</span></div><div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
-      ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', 'クラスとの差が大きい分野')}<th>推移</th>
+      ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', 'クラスとの差が大きい分野')}<th>推移（直近5回）</th>
     </tr></thead><tbody>${rows.map(r => {
       const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
       return `<tr class="click" data-uid="${esc(r.s.uid)}">
@@ -4475,7 +4491,7 @@ function examStudentsHtml(ex) {
         <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
         <td class="r mn">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
         <td>${r.weak ? `${esc(r.weak.c)} <span class="mn muted">${r.weak.my}/${r.weak.t}・−${r.weak.lost.toFixed(1)}問</span>` : '—'}</td>
-        <td>${sparkSvg(r.spark)}</td></tr>`;
+        <td class="nw">${histChips(r.hist)}</td></tr>`;
     }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。「クラスとの差が大きい分野」＝クラス平均と比べて落とした問題数がいちばん多い分野（−2.0問＝平均より2問多く落とした）。</div></section>`;
 }
 function openKarte(uid) {
