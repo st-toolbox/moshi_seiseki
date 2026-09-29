@@ -4546,9 +4546,8 @@ function karteHtml(uid, rows, showAll) {
     }
   }
 
-  // 分野別：出題マップ（科目の段）と同じ内容なので、マップが出せるときは出さない（この模試と同じ）
+  // 分野別は出題マップ（科目の段）と同じ内容なので出さない（この模試と同じ）。全模試に節が付く前提
   const hasMap = me && allData[ex]?.master?.sections;
-  if (!hasMap) h += karteCatHtml([ex], uid, me ? studentCatStats(ex, uid) : {}, '');
 
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
