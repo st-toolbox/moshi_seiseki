@@ -752,6 +752,29 @@ thead th{border-bottom:1px solid var(--g5);}
   .student-print-page .v2-head{border-bottom:1px solid #000;}
 }
 /* 統合：推移・落としたところ・問題ごとの正誤 */
+/* 全国データ（表示するときだけ出る） */
+:root{--nat:#6d5a9e;}
+.nat-tg{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:4px;background:transparent;font:inherit;font-size:12.5px;color:var(--g4);cursor:pointer;}
+.nat-tg:hover{background:var(--g1);}
+.nat-tg .nat-sw{font-size:11px;padding:1px 7px;border-radius:9px;background:var(--g1);color:var(--g4);white-space:nowrap;}
+.nat-tg.on{border-style:solid;border-color:var(--nat);color:var(--nat);}
+.nat-tg.on .nat-sw{background:var(--nat);color:#fff;}
+.nat-t,.nat-t b{color:var(--nat)!important;}
+.nat-warn{color:var(--ng);}
+.nat-none{font-size:12px;color:var(--g4);border-left:3px solid var(--nat);padding:6px 10px;margin-bottom:14px;}
+.figs.n6 .fig:last-child .fig-l,.figs.n6 .fig:last-child .fig-v{color:var(--nat);}
+.qd-bar{position:relative;}
+.qd-nm{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--nat);}
+.qd-np{display:block;font-size:10px;color:var(--nat);line-height:1.1;}
+.nat-gap{display:block;color:var(--nat);font-size:10.5px;font-weight:400;white-space:nowrap;}
+.nat-cats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--g4);margin-bottom:10px;}
+.nat-cats b{color:var(--g5);}
+.trend-all .ln-nat{stroke:var(--nat);stroke-width:2.5;stroke-dasharray:4 3;}
+.trend-all .nat-v{font-size:11px;fill:var(--nat);font-family:'DM Mono',monospace;}
+.legend i.nat{border-top:2.5px dashed var(--nat);}
+.v2-tbl tr.nat-row td{color:var(--nat);}
+@media screen and (max-width:760px){ .sidebar .nat-tg{width:auto;margin-top:0;} }
+@media print{ .nat-tg{display:none!important;} .qd-nm,.trend-all .ln-nat{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
 .trend-all .hl-v,.trend-all .hl-n{display:none;}
 .trend-all.hl .stu-g{opacity:.25;}
 .trend-all.hl .stu-g.on{opacity:1;}
@@ -1094,6 +1117,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <button class="nav-item teacher-only" data-page="roster" onclick="showPage('roster',this)">全部の模試</button>
     <button class="nav-item" data-page="karte" id="navKarte" onclick="showPage('karte',this)">学生カルテ</button>
     <button class="nav-item" data-page="drill" onclick="showPage('drill',this)">復習</button>
+    <button class="nat-tg teacher-only" id="natBtn" onclick="setNat(!natOn)" title="外部模試の全国版成績（全国平均・問題ごとの全国正答率）を重ねて表示する"><span>全国データ</span><span class="nat-sw" id="natSw">表示しない</span></button>
     <div class="nav-section-label nav-print">印刷</div>
     <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
     <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
@@ -1711,6 +1735,8 @@ auth.onAuthStateChanged(async user => {
 async function loadAllData() {
   showLoading('データを読み込み中...');
   const refP = loadRef();  // 節の名前と国試の問題（読めなくても他の画面は動く）
+  if (natOn && isTeacher) loadNat().then(() => { syncNatBtn(); renderV2(); });   // 全国データ（前回表示にしていたら）
+  syncNatBtn();
   try {
     // 模試マスタ + 学生リストを並行取得（学生リストは教員のみ全件取得）
     const [examSnap, stuSnap] = await Promise.all([
@@ -4333,6 +4359,43 @@ let exLowMode    = 'map';    // この模試：'map'（出題マップ 科目→
 let exLowTh      = 50;       // 科目別の問題：正答率がこれ以下
 let karteStarTh  = 70;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
 let ctxMemo      = {};
+// 全国データ：ref/national/{模試名} = {n, mean, sd, date, q:{問:%}, ch:{問:{選択肢:%}}, diff:{問:主催の正答}}
+// 表示するのは教員だけ（学生の画面・「学生の立場で見る」には出さない）。ONにした時だけ読み込む
+let natOn = false; try { natOn = localStorage.getItem('moshiNat') === '1'; } catch (e) {}
+let natData = null, natState = 'idle';   // idle | loading | ok | none | denied
+let natGapTh = 20;                       // この模試「全国との差」：全国正答率がクラスよりこれ以上高い問題
+async function loadNat() {
+  if (natState !== 'idle') return;
+  natState = 'loading';
+  try { const v = (await db.ref('ref/national').once('value')).val() || {}; natData = v; natState = Object.keys(v).length ? 'ok' : 'none'; }
+  catch (e) { natData = {}; natState = 'denied'; }
+}
+function syncNatBtn() {
+  const b = document.getElementById('natBtn'), w = document.getElementById('natSw');
+  if (!b || !w) return;
+  b.classList.toggle('on', natOn);
+  w.textContent = !natOn ? '表示しない' : natState === 'loading' ? '読み込み中' : natState === 'ok' ? '表示する' : natState === 'denied' ? '読めません' : 'データなし';
+}
+async function setNat(on) {
+  natOn = !!on;
+  try { localStorage.setItem('moshiNat', natOn ? '1' : '0'); } catch (e) {}
+  syncNatBtn();
+  if (natOn) await loadNat();
+  syncNatBtn();
+  renderV2();
+}
+function natOf(ex) { return isTeacher && natOn && natState === 'ok' ? (natData?.[ex] || null) : null; }
+function natQ(ex, n) { const v = natOf(ex)?.q?.[n]; return v == null ? null : Number(v); }
+function natCh(ex, n) { return natOf(ex)?.ch?.[n] || null; }
+function natDiff(ex, n) { const v = natOf(ex)?.diff?.[n]; return v == null ? null : String(v); }
+// 全国の中の目安：全国平均と標準偏差から正規分布で近似した「上位何%」（分布そのものは主催が出していない）
+function natTop(ex, total) {
+  const d = natOf(ex); if (!d || d.mean == null || !d.sd || total == null) return null;
+  const z = (total - d.mean) / d.sd, t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const p = 0.3989423 * Math.exp(-z * z / 2) * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  const up = z >= 0 ? p : 1 - p;   // 上側確率＝上位の割合
+  return Math.min(99, Math.max(1, Math.round(up * 100)));
+}
 
 if (window.Chart) {
   Chart.defaults.font.family = "'IBM Plex Sans JP', sans-serif";
@@ -4568,12 +4631,16 @@ function qDistHtml(ex, n, st) {
   const rate = qs.t ? Math.round(qs.c / qs.t * 100) : null;
   const oc = st?.opt?.[n] || {};
   const isC = k => correct.includes(',') ? correct.split(',').map(s => s.trim()).includes(k) : k === correct;
+  const nq = natQ(ex, n), nch = natCh(ex, n), nd = natDiff(ex, n);
   const row = (k, text, withBar) => {
     const p = qs.t ? Math.round((oc[k] || 0) / qs.t * 100) : 0;
+    const np = nch && nch[k] != null ? Math.round(Number(nch[k])) : null;
+    const mk = np != null ? `<b class="qd-nm" style="left:${np}%" title="全国 ${np}%"></b>` : '';
     return `<div class="qd-opt${withBar && isC(k) ? ' ok' : ''}"><span class="qd-k">${esc(k)}</span><span>${esc(text)}</span>` +
-      (withBar ? `<span class="qd-bar"><i style="width:${p}%"></i></span><span class="qd-p mn">${p}%</span>` : '<span></span><span></span>') + '</div>';
+      (withBar ? `<span class="qd-bar"><i style="width:${p}%"></i>${mk}</span><span class="qd-p mn">${p}%${np != null ? `<span class="qd-np">全国${np}</span>` : ''}</span>` : '<span></span><span></span>') + '</div>';
   };
-  let h = `<div class="qd"><div class="qd-hd"><span class="mn">${n <= 100 ? '午前' : '午後'} 問${n <= 100 ? n : n - 100}</span><span>正答 <b>${esc(correct)}</b></span><span>クラス正答率 <b class="mn">${rate ?? '—'}%</b></span><span>${qs.t}人</span></div>`;
+  let h = `<div class="qd"><div class="qd-hd"><span class="mn">${n <= 100 ? '午前' : '午後'} 問${n <= 100 ? n : n - 100}</span><span>正答 <b>${esc(correct)}</b></span><span>クラス正答率 <b class="mn">${rate ?? '—'}%</b></span><span>${qs.t}人</span>` +
+    (nq != null ? `<span class="nat-t">全国正答率 <b class="mn">${Math.round(nq)}%</b>${rate != null ? `（クラスは ${signed(rate - Math.round(nq))}）` : ''}</span>` : '') + '</div>';
   if (!qq?.question) return h + '<div class="qd-q muted">（問題文が登録されていません）</div></div>';
   h += `<div class="qd-q">${esc(qq.question)}</div>`;
   const opts = Object.entries(qq.options || {}).filter(([, v]) => v != null).sort((a, b) => a[0].localeCompare(b[0], 'ja', { numeric: true }));
@@ -4585,6 +4652,8 @@ function qDistHtml(ex, n, st) {
     h += `<div class="qd-opts">${opts.map(([k, v]) => row(k, String(v), true)).join('')}</div>`;
   }
   if (oc['']) h += `<div class="qd-foot">無回答 ${oc['']}人</div>`;
+  if (nch) h += `<div class="qd-foot nat-t">縦線・「全国」＝全国でその選択肢を選んだ人の割合${nch['0'] != null ? `（全国の無回答 ${Math.round(Number(nch['0']))}%）` : ''}</div>`;
+  if (nd) h += `<div class="qd-foot nat-warn">主催の正答は「${esc(nd)}」（このアプリの正答と違う）。全国正答率は主催の正答で数えた率。</div>`;
   return h + '</div>';
 }
 function renderExamView() {
@@ -4600,12 +4669,15 @@ function renderExamView() {
   const enrolled = getActiveStudents().length, t = st.totals;
   const reach = t.filter(v => v >= PASS_LINE).length;
   const fig = (l, v, s) => `<div class="fig"><div class="fig-l">${l}</div><div class="fig-v">${v}</div>${s ? `<div class="fig-s">${s}</div>` : ''}</div>`;
-  let h = `<div class="ex-top"><div class="figs">` +
+  const nat = natOf(ex);
+  let h = (isTeacher && natOn && natState === 'ok' && !nat ? '<div class="nat-none">この模試は全国データがありません（主催の全国版成績が手元に無い回）。</div>' : '') +
+    `<div class="ex-top"><div class="figs${nat && nat.mean != null ? ' n6' : ''}">` +
     fig('受験', `${st.n}<small>人</small>`, [st.partial ? `片方の時限のみ ${st.partial}人` : '', `未受験 ${Math.max(0, enrolled - st.n - st.partial)}人`].filter(Boolean).join('　')) +
     fig('平均', st.avg ?? '—', '200点満点') +
     fig('中央値', st.med ?? '—', '') +
     fig('最高 / 最低', t.length ? `${t[t.length - 1]}<small>/ ${t[0]}</small>` : '—', '') +
-    fig('120点以上', `${reach}<small>/ ${st.n}</small>`, '合格ラインの目安') + `</div>`;
+    fig('120点以上', `${reach}<small>/ ${st.n}</small>`, '合格ラインの目安') +
+    (nat && nat.mean != null ? fig('全国平均', nat.mean, [nat.n ? `全国 ${nat.n}人` : '', st.avg != null ? `クラスは ${signed(Math.round((st.avg - nat.mean) * 10) / 10)}` : ''].filter(Boolean).join('　')) : '') + `</div>`;
   // 数字は左に縦並び、分布はその横（上下に積むと縦が長すぎる）
   h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">10点刻み　赤線＝120点</span></div>${histSvg(t, 230)}</section></div>` : '</div>';
   h += examStudentsHtml(ex);
@@ -4714,11 +4786,16 @@ function karteGapHtml(uid, me) {
     (acc >= gap ? `<li>優先度の上位 <b>${k}</b>節を取り切れば届く</li>` : `<li>節の付いた問題を全部取り切っても <b>+${acc}</b>点</li>`) + '</ul>';
 }
 function karteReviewIds(rows) { return karteKqN ? rows.flatMap(r => r.kq.slice(0, karteKqN)) : []; }
+function natKaParts(ex, me) {
+  const d = natOf(ex); if (!d || d.mean == null) return '';
+  const top = me.full ? natTop(ex, me.total) : null;
+  return `<span class="nat-t">全国平均<b>${d.mean}</b></span>` + (top != null ? `<span class="nat-t" title="全国平均${d.mean}・標準偏差${d.sd}から正規分布で近似した目安（主催は点数の分布を出していない）">全国の目安<b>上位 約${top}%</b></span>` : '');
+}
 function karteHtml(uid, rows, showAll) {
   if (karteScope === 'all') return karteAllHtml(uid, rows, showAll);
   const ex = currentExam, me = examTotal(ex, uid), st = ctx(ex);
   let h = `<div class="kp1"><section class="ka-top"><div class="ka-score"><div class="v2-lab">${esc(shortExam(ex))} の合計</div>` +
-    (me ? `<div class="big">${me.total}<small>/ 200</small></div><div class="ka-parts"><span>午前<b>${me.am ?? '—'}</b></span><span>午後<b>${me.pm ?? '—'}</b></span>${st?.avg != null ? `<span>クラス平均<b>${st.avg}</b></span>` : ''}</div>${me.full ? '' : '<div class="ka-warn">片方の時限が未提出です</div>'}`
+    (me ? `<div class="big">${me.total}<small>/ 200</small></div><div class="ka-parts"><span>午前<b>${me.am ?? '—'}</b></span><span>午後<b>${me.pm ?? '—'}</b></span>${st?.avg != null ? `<span>クラス平均<b>${st.avg}</b></span>` : ''}${natKaParts(ex, me)}</div>${me.full ? '' : '<div class="ka-warn">片方の時限が未提出です</div>'}`
         : '<div class="big muted">—</div><div class="ka-parts">この模試は未受験</div>') +
     `</div><div class="ka-gap">${karteGapHtml(uid, me)}</div></section>`;
 
@@ -5002,12 +5079,33 @@ function fillStuSel(id) {
 }
 function setExLow(v)   { exLowMode = v; renderExamView(); }
 function setExLowTh(v) { exLowTh = Number(v); renderExamView(); }
+function setNatGap(v)  { natGapTh = Number(v); renderExamView(); }
+// この模試：全国正答率がクラス正答率より natGapTh ポイント以上高い問題（差の大きい順）。科目ごとの件数も
+function exNatHtml(ex, st) {
+  const m = allData[ex]?.master || {}, out = [];
+  let both = 0, sumGap = 0;
+  for (let n = 1; n <= 200; n++) {
+    if (!ansScorable(String(m.answers?.[n] || ''))) continue;
+    const r = qRate(st, n), nq = natQ(ex, n);
+    if (r == null || nq == null) continue;
+    both++; sumGap += nq - r * 100;
+    if (nq - r * 100 >= natGapTh) out.push({ n, r, gap: nq - r * 100 });
+  }
+  const nat = natOf(ex);
+  let h = `<div class="v2-note" style="margin-bottom:10px">全国は取れているのにクラスが落とした問題＝クラスの弱いところ。全国より${natGapTh}ポイント以上低い <b class="mn">${out.length}</b>問（全${both}問の平均の差は クラス ${signed(Math.round(-sumGap / (both || 1)))}ポイント）。` +
+    `全国＝${esc(ex)} の全国版成績${nat?.n ? `（${nat.n}人）` : ''}。開くと問題と選択肢の分布</div>`;
+  if (!out.length) return h + `<div class="v2-empty">全国より${natGapTh}ポイント以上低い問題はありません。</div>`;
+  const by = {};
+  out.forEach(o => (by[catOf(ex, o.n) || '（分野なし）'] ||= []).push(o));
+  h += `<div class="nat-cats">${Object.entries(by).sort((a, b) => b[1].length - a[1].length).map(([c, v]) => `<span>${esc(c)} <b class="mn">${v.length}</b></span>`).join('')}</div>`;
+  return h + out.sort((a, b) => b.gap - a.gap || a.n - b.n).map(o => exQHtml(ex, o.n, o.r, st).replace(/(<span class="exw-p [^"]*">[^<]*)/, `$1<span class="nat-gap mn" title="全国正答率 − クラス正答率">全国より−${Math.round(o.gap)}</span>`)).join('');
+}
 function setKarteStar(v) { karteStarTh = Number(v); renderKarte(); }
 
 // 全模試の推移（旧：成績推移）
-function trendAllSvg(exs, lines, avg, who) {
+function trendAllSvg(exs, lines, avg, who, navg) {
   const W = 960, H = 300, L = 38, R = 24, T = 24, B = 40;
-  const vals = lines.flat().concat(avg).filter(v => v != null).concat(PASS_LINE);
+  const vals = lines.flat().concat(avg).concat(navg || []).filter(v => v != null).concat(PASS_LINE);
   const lo = Math.max(0, Math.floor((Math.min(...vals) - 10) / 20) * 20);
   const hi = Math.min(200, Math.ceil((Math.max(...vals) + 10) / 20) * 20);
   const x = i => exs.length === 1 ? (L + W - R) / 2 : L + 30 + i / (exs.length - 1) * (W - L - R - 60);
@@ -5024,6 +5122,9 @@ function trendAllSvg(exs, lines, avg, who) {
     if (w && pv.length) { const q = pv[pv.length - 1]; g += `<text class="hl-n jp" x="${q[0]}" y="${q[1] - 10}" text-anchor="end">${esc(w.label)}</text>`; }
     g += '</g>';
   });
+  if (navg) {   // 全国平均（破線）：回ごとに主催が違うので線でつながず点と短い横線で
+    navg.forEach((v, i) => { if (v != null) g += `<line class="ln-nat" x1="${x(i) - 14}" x2="${x(i) + 14}" y1="${y(v)}" y2="${y(v)}"><title>全国平均 ${v}</title></line><text class="nat-v" x="${i === navg.length - 1 && i ? x(i) - 18 : x(i) + 18}" y="${y(v) + 4}" text-anchor="${i === navg.length - 1 && i ? 'end' : 'start'}">${v}</text>`; });
+  }
   const pa = avg.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
   if (pa.length > 1) g += `<polyline class="ln-cls" points="${pa.map(q => q.join(',')).join(' ')}"/>`;
   avg.forEach((v, i) => { if (v != null) g += `<circle class="dt-cls" cx="${x(i)}" cy="${y(v)}" r="4"/><text class="hn" x="${x(i)}" y="${y(v) - 10}" text-anchor="middle">${v}</text>`; });
@@ -5052,6 +5153,7 @@ function renderRosterTrend(box) {
   document.getElementById('roSub').textContent = `対象 ${currentGakunenFilter}　·　模試 ${exs.length}回　·　学生 ${list.length}人`;
   if (!list.length || !exs.length) { box.innerHTML = '<div class="v2-empty">表示できる模試がありません。</div>'; return; }
   const avg = exs.map(e => ctx(e.name)?.avg ?? null);
+  const navg = exs.some(e => natOf(e.name)?.mean != null) ? exs.map(e => natOf(e.name)?.mean ?? null) : null;
   const rows = list.map(s => {
     const ts = exs.map(e => examTotal(e.name, s.uid));
     const got = ts.filter(t => t && t.full);
@@ -5068,11 +5170,12 @@ function renderRosterTrend(box) {
   // 色は「この模試」の表と同じ：緑＝120点以上・赤＝その回のクラス平均より下
   const sc = (v, i) => v >= PASS_LINE ? ' hi' : avg[i] != null && v < avg[i] ? ' lo' : '';
   const cell = (t, i) => !t ? '<td class="r mn muted">—</td>' : `<td class="r mn${t.full ? sc(t.total, i) : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
-  let h = `<section class="v2-block">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg, rows.map(r => ({ uid: r.s.uid, label: r.s.name || stuNo(r.s) })))}` +
-    '<div class="legend"><span><i class="cls"></i>クラス平均</span><span><i class="stu"></i>学生1人ずつ</span><span><i class="hl"></i>強調した学生</span><span><i class="pl"></i>120点</span><button class="linkbtn" id="hlClear" hidden onclick="trendHl.clear();applyTrendHl(document.getElementById(\'roBody\'))"></button></div>' +
+  let h = `<section class="v2-block">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg, rows.map(r => ({ uid: r.s.uid, label: r.s.name || stuNo(r.s) })), navg)}` +
+    '<div class="legend"><span><i class="cls"></i>クラス平均</span>' + (navg ? '<span class="nat-t"><i class="nat"></i>全国平均</span>' : '') + '<span><i class="stu"></i>学生1人ずつ</span><span><i class="hl"></i>強調した学生</span><span><i class="pl"></i>120点</span><button class="linkbtn" id="hlClear" hidden onclick="trendHl.clear();applyTrendHl(document.getElementById(\'roBody\'))"></button></div>' +
     '<div class="v2-cap">下の表で学生の行をクリックすると、その学生の線がグラフで強調され、各回の点数と名前が出ます。別の学生を押すとその学生に切り替わり、同じ学生をもう一度押すと解除。カルテを開くときは行の右端の「カルテ」から。</div></section>';
   h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h')).join('')}${roTh('trend', 'last', '最新', 'r')}${roTh('trend', 'gain', '初回から', 'r')}<th></th></tr></thead><tbody>` +
     `<tr class="avg-row"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td class="r mn">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td><td></td></tr>` +
+    (navg ? `<tr class="avg-row nat-row"><td></td><td>全国平均</td>${navg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td></td><td></td><td></td></tr>` : '') +
     rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}<td class="r mn${r.last == null ? '' : sc(r.last, r.li)}">${r.last ?? '—'}</td>` +
       `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td><td class="r"><button class="ka-go" data-go="${esc(r.s.uid)}">カルテ</button></td></tr>`).join('') +
     '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（押すたびに切り替え・同じ行でもう一度押すと解除）。右端の「カルテ」でその学生のカルテへ。赤＝その回のクラス平均より下、緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
@@ -5097,18 +5200,21 @@ function exQHtml(ex, n, r, st) {
   return `<details class="exq"><summary><span class="exq-no mn">${n <= 100 ? '午前' : '午後'} ${n <= 100 ? n : n - 100}</span>` +
     `<span class="exw-name">${key ? secPathHtml(key) : '<span class="muted">節の紐づけなし</span>'}</span>` +
     `<span class="exw-p ${pctCls(p)}">${p}%</span>` +
-    `<span class="exw-meta">正答 ${esc(c)}${wrong ? `　·　いちばん多い誤答 ${esc(wrong[0])}（${wrong[1]}人）` : ''}</span></summary>` +
+    `<span class="exw-meta">正答 ${esc(c)}${wrong ? `　·　いちばん多い誤答 ${esc(wrong[0])}（${wrong[1]}人）` : ''}${natQ(ex, n) != null ? `<span class="nat-t">　·　全国 ${Math.round(natQ(ex, n))}%</span>` : ''}</span></summary>` +
     `<div class="exw-body">${qDistHtml(ex, n, st)}</div></details>`;
 }
 function exLowHtml(ex, st) {
   const m = allData[ex]?.master || {};
-  let h = `<section class="v2-block"><div class="v2-h"><h2>出題されたところ・落としたところ</h2><div class="v2-ctrl">${segHtml([['map', '出題マップ'], ['cat', '科目別の問題'], ['sec', '節ワースト10']], exLowMode, 'setExLow')}` +
-    (exLowMode === 'cat' ? `<label>正答率 ${segHtml([[30, '30%'], [40, '40%'], [50, '50%'], [60, '60%']], exLowTh, 'setExLowTh')} 以下</label>` : '') + '</div></div>';
-  if (exLowMode === 'map') {
+  const nat = natOf(ex), mode = exLowMode === 'nat' && !nat?.q ? 'map' : exLowMode;
+  let h = `<section class="v2-block"><div class="v2-h"><h2>出題されたところ・落としたところ</h2><div class="v2-ctrl">${segHtml([['map', '出題マップ'], ['cat', '科目別の問題'], ['sec', '節ワースト10']].concat(nat?.q ? [['nat', '全国との差']] : []), mode, 'setExLow')}` +
+    (mode === 'cat' ? `<label>正答率 ${segHtml([[30, '30%'], [40, '40%'], [50, '50%'], [60, '60%']], exLowTh, 'setExLowTh')} 以下</label>` : '') +
+    (mode === 'nat' ? `<label>全国より ${segHtml([[10, '10'], [20, '20'], [30, '30']], natGapTh, 'setNatGap')} ポイント以上低い</label>` : '') + '</div></div>';
+  if (mode === 'nat') return h + exNatHtml(ex, st) + '</section>';
+  if (mode === 'map') {
     if (!m.sections) return h + '<div class="v2-empty">この模試には節の紐づけがありません。</div></section>';
     return h + refNotice() + '<div class="v2-note" style="margin-bottom:10px">この模試で出た範囲を 科目 ▸ 章 ▸ 節 で。バー＝クラス正答率（赤 50%未満）。章を開くと節、節を開くと問題と選択肢の分布</div>' + secMapHtml(ex, st, null) + '</section>';
   }
-  if (exLowMode === 'sec') {
+  if (mode === 'sec') {
     if (!m.sections) return h + '<div class="v2-empty">この模試には節の紐づけがありません。</div></section>';
     const cs = classSecStats([ex]);
     const rows = Object.entries(cs).map(([k, v]) => ({ k, v, p: v.ok / v.n, kq: secKqIds(k).length }))
@@ -5303,7 +5409,8 @@ function karteStarHtml(ex, uid, st) {
       const cls = !sub || !sc ? 'na' : ok ? 'ok' : star ? 'st' : 'x';
       if (cls === 'x') nx++;
       if (star) stars.push({ n, c, my, cr });
-      cells += `<span class="qg-c ${cls}" title="問${n <= 100 ? n : n - 100}　正答 ${esc(c || '—')}　${who} ${esc(my || '無回答')}　クラス ${cr != null ? Math.round(cr * 100) + '%' : '—'}"><i>${n <= 100 ? n : n - 100}</i><b>${cls === 'st' ? '★' : cls === 'x' ? '×' : ''}</b></span>`;
+      const nq = natQ(ex, n);
+      cells += `<span class="qg-c ${cls}" title="問${n <= 100 ? n : n - 100}　正答 ${esc(c || '—')}　${who} ${esc(my || '無回答')}　クラス ${cr != null ? Math.round(cr * 100) + '%' : '—'}${nq != null ? `　全国 ${Math.round(nq)}%` : ''}"><i>${n <= 100 ? n : n - 100}</i><b>${cls === 'st' ? '★' : cls === 'x' ? '×' : ''}</b></span>`;
     }
     grids.push(`<div class="qg"><div class="qg-lab">${part === 'AM' ? '午前' : '午後'}${sub ? '' : '<br><span class="muted">未提出</span>'}</div><div class="qg-grid">${cells}</div></div>`);
   });
@@ -5311,10 +5418,10 @@ function karteStarHtml(ex, uid, st) {
     `<div class="v2-note" style="margin-bottom:12px"><span class="star">★</span> クラスの${karteStarTh}%以上が正解したのに落とした <b class="mn">${stars.length}</b>問　·　× それ以外で落とした <b class="mn">${nx}</b>問</div>` + grids.join('');
   if (stars.length) {
     stars.sort((a, b) => b.cr - a.cr || a.n - b.n);
-    h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>科目 ▸ 章 ▸ 節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス正答率</th></tr></thead><tbody>` +
+    h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>科目 ▸ 章 ▸ 節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス正答率</th>${natOf(ex)?.q ? '<th class="r nat-t">全国正答率</th>' : ''}</tr></thead><tbody>` +
       stars.map(o => { const key = secKeyOf(ex, o.n);
         return `<tr><td class="mn">${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td class="sec-cell">${key ? `<div class="sp-line">${secPathHtml(key)}</div>` : esc(catOf(ex, o.n) || '—')}</td>` +
-          `<td class="r mn">${esc(o.c)}</td><td class="r mn dn">${esc(o.my || '無回答')}</td><td class="r mn">${Math.round(o.cr * 100)}%</td></tr>`; }).join('') +
+          `<td class="r mn">${esc(o.c)}</td><td class="r mn dn">${esc(o.my || '無回答')}</td><td class="r mn">${Math.round(o.cr * 100)}%</td>${natOf(ex)?.q ? `<td class="r mn nat-t">${natQ(ex, o.n) != null ? Math.round(natQ(ex, o.n)) + '%' : '—'}</td>` : ''}</tr>`; }).join('') +
       '</tbody></table></div><div class="v2-cap">★はみんなが取れている問題＝本番で差がつく。まずここから。</div>';
   }
   return h + '</section>';
