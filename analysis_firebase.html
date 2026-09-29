@@ -4551,7 +4551,7 @@ function karteHtml(uid, rows, showAll) {
 
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
-  if (hasMap) h += `<section class="v2-block"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。半分以上落とした章は開いてある</div>${secMapHtml(ex, st, uid)}</section>`;
+  if (hasMap) h += `<section class="v2-block"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。科目を開くと章（半分以上落とした章は節まで開く）</div>${secMapHtml(ex, st, uid)}</section>`;
   return h + karteSecHtml(rows, showAll);
 }
 // 分野別：本人のバー・黒い縦線がクラス（exs の模試を足し合わせる）
@@ -4972,7 +4972,7 @@ function secMapHtml(ex, st, uid) {
     : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
-  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
+  const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${uid ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
   const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="cat-g">${g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
@@ -4983,7 +4983,7 @@ function secMapHtml(ex, st, uid) {
     h = '';
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
     const skq = chs.reduce((a, C) => a + kqSum(C), 0);
-    h += `<details class="sm-s${as.q ? '' : ' sm-none'}"${as.q ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
+    h += `<details class="sm-s${as.q ? '' : ' sm-none'}"${as.q && !uid ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
     [...S.ch.entries()].sort((a, b) => byNum(a[0], b[0])).forEach(([cn, C]) => {
       const ac = agg(allQs(C)), kq = kqSum(C);
       const weak = ac.t && ac.c / ac.t < 0.5 || (uid && ac.mt && ac.mc / ac.mt < 0.5);
