@@ -5118,10 +5118,10 @@ function secMapHtml(exArg, st0, uid) {
     h = '';
     const as = agg(allQs(S)), chs = [...S.ch.values()], nHit = chs.filter(C => allQs(C).length).length;
     const skq = chs.reduce((a, C) => a + kqSum(C), 0);
-    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}"${as.q && !uid ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
+    h += `<details class="sm-s${as.q ? '' : ' sm-none'}" data-g="${col}"${!uid ? ' open' : ''}><summary class="sm-row lv1">${row(1, `${esc(S.name)} <span class="muted">${nHit} / ${S.ch.size}章</span>`, as, skq ? skq + '問' : '')}</summary>`;
     [...S.ch.entries()].sort((a, b) => byNum(a[0], b[0])).forEach(([cn, C]) => {
       const ac = agg(allQs(C)), kq = kqSum(C);
-      const weak = ac.t && ac.c / ac.t < 0.5 || (uid && ac.mt && ac.mc / ac.mt < 0.5);
+      const weak = uid && (ac.t && ac.c / ac.t < 0.5 || ac.mt && ac.mc / ac.mt < 0.5);   // カルテだけ落とした章を開く（この模試は「章」の状態で始める）
       h += `<details class="sm-c${ac.q ? '' : ' sm-none'}"${weak ? ' open' : ''}><summary class="sm-row lv2">${row(2, esc(C.name), ac, kq ? kq + '問' : '')}</summary>`;
       [...C.sec.values()].sort((a, b) => byNum(a.key.split('|')[2], b.key.split('|')[2])).forEach(X => {
         if (!X.qs.length) { h += `<div class="sm-row lv3 sm-none">${row(3, esc(X.name), agg(X.qs), X.kq ? X.kq + '問' : '')}</div>`; return; }
