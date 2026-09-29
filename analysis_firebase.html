@@ -511,7 +511,7 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 thead th{border-bottom:1px solid var(--g5);}
 
 /* ===== 新ページ共通 ===== */
-#page-exam,#page-roster,#page-karte,#page-drill{padding:36px 44px 64px;max-width:1120px;}
+#page-exam,#page-roster,#page-karte,#page-drill{padding:36px 44px 64px;max-width:1400px;}
 .v2-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--g5);margin-bottom:30px;}
 .v2-kicker{font-size:11px;letter-spacing:.18em;color:var(--g4);font-weight:600;margin-bottom:8px;}
 .v2-title{font-size:26px;font-weight:600;letter-spacing:.02em;line-height:1.25;text-wrap:balance;}
@@ -532,6 +532,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-empty{font-size:13px;color:var(--g4);padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
 .linkbtn{border:none;background:none;font:inherit;font-size:12px;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;}
 .v2-svg{width:100%;height:auto;display:block;overflow:visible;}
+@media screen{ .v2-svg{max-width:1040px;} }   /* 画面を広げても図は拡大しすぎない */
 .v2-svg text{font-family:'DM Mono',monospace;font-size:11px;fill:var(--g4);}
 .v2-svg .jp{font-family:'IBM Plex Sans JP',sans-serif;}
 .v2-svg .ax{stroke:var(--g5);stroke-width:1;}
