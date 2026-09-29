@@ -774,6 +774,10 @@ thead th{border-bottom:1px solid var(--g5);}
 .sc-tbl td.sc-d,.sc-tbl th.sc-d{width:22px;padding-left:0;padding-right:0;text-align:center;color:var(--g4);}
 .sc-tbl tr.sc-top td{background:color-mix(in srgb,var(--accent) 7%,transparent);}
 .sc-tbl tr.sc-top td.sc-t{font-weight:600;}
+.sc-grp{font-size:11px;letter-spacing:.14em;font-weight:700;padding:4px 8px;margin:6px 0 0;border-bottom:1px solid;}
+.sc-grp.kg-kiso{color:var(--kiso);border-color:var(--kiso);background:rgba(26,124,193,.07);}
+.sc-grp.kg-senmon{color:var(--senmon);border-color:var(--senmon);background:rgba(212,36,111,.06);}
+.sc-grp2{margin-top:22px;border-top:3px solid var(--senmon);}
 .sc-guide{font-size:12.5px;line-height:1.8;color:var(--g4);margin:0 0 14px;}
 .sc-guide b{color:var(--g5);}
 .sc-mark{display:none;}
@@ -818,6 +822,8 @@ thead th{border-bottom:1px solid var(--g5);}
   .sc-tbl tr.sc-sec td.sc-t{padding-left:0.4mm!important;}
   .sc-tbl tr.sc-top td{background:#e6e6e6!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .sc-tl{display:none;} .sc-ts{display:inline!important;}
+  .sc-grp{font-size:6pt;letter-spacing:.1em;padding:0.2mm 0.8mm;margin:0;border-bottom:0.3mm solid;break-after:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .sc-grp2{margin-top:1mm;border-top:0.8mm solid var(--senmon);}
   .sc-mark{display:inline-block;width:1.6mm;height:1.6mm;margin-top:0.1mm;border:0.2mm solid #333;border-radius:0.3mm;vertical-align:middle;font-size:5pt;line-height:2.3mm;text-align:center;}
 }
 
@@ -5626,7 +5632,8 @@ async function renderScope() {
   const q = scFilter.trim();
   const keep = x => (scShow === 'all' || (scShow === 'kq' ? x.n > 0 : topSet.has(x.k))) && (!q || (x.t + ' ' + x.c + ' ' + x.s).includes(q));
   // 科目→章→節（章・節はノートの並び順）
-  const subj = new Map();
+  const subj = new Map(), sG = {}, sO = {};
+  secs.forEach(x => { sG[x.s] ??= refSections[x.k]?.g || ''; sO[x.s] = Math.min(sO[x.s] ?? 1e9, x.o); });
   secs.sort((a, b) => a.o - b.o || a.k.localeCompare(b.k)).forEach(x => {
     if (!subj.has(x.s)) subj.set(x.s, new Map());
     const chs = subj.get(x.s);
@@ -5645,8 +5652,11 @@ async function renderScope() {
     `<td class="r mn sc-n5">${zero(a.n5)}</td><td class="r sc-r">${scPct(a.r, a.rn ? `国試${a.rn}問の平均` : '')}</td>`;
   const head = `<tr><th class="sc-cb"></th><th class="sc-d"></th><th>章・節</th><th class="r">国試の出題数</th><th class="r sc-n5">直近5回</th><th class="r">国試の正答率</th></tr>`;
   let h = '', shown = 0;
-  // 科目は国試に多い順
-  [...subj.entries()].map(([sName, chs]) => [sName, chs, agg([...chs.values()].flatMap(c => c.rows))]).sort((a, b) => b[2].n - a[2].n).forEach(([sName, chs, sa]) => {
+  // 科目は出題マップ（出題されたところ・落としたところ）と同じ並び：分野の順・失語症から専門
+  const gIdx = sName => { const i = CATEGORY_ORDER.indexOf(sG[sName]); return i < 0 ? 999 : i; };
+  const split = CATEGORY_ORDER.indexOf('失語症');
+  let lastGrp = -1;
+  [...subj.entries()].map(([sName, chs]) => [sName, chs, agg([...chs.values()].flatMap(c => c.rows))]).sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || sO[a[0]] - sO[b[0]] || a[0].localeCompare(b[0])).forEach(([sName, chs, sa]) => {
     let body = '', nTop = 0;
     [...chs.entries()].sort((a, b) => a[0] - b[0]).forEach(([, c]) => {
       nTop += c.rows.filter(x => topSet.has(x.k)).length;
@@ -5661,6 +5671,8 @@ async function renderScope() {
       }).join('');
     });
     if (!body) return;
+    const grp = gIdx(sName) < split ? 0 : 1;
+    if (grp !== lastGrp) { h += `<div class="sc-grp${grp ? ' sc-grp2 kg-senmon' : ' kg-kiso'}">${grp ? '専門' : '基礎'}</div>`; lastGrp = grp; }
     const open = q || scOpen.has(sName);
     h += `<details class="sc-subj" data-s="${esc(sName)}"${open ? ' open' : ''}><summary><span class="sc-sn">${esc(sName)}</span>` +
       `<span class="sc-sm">国試 <b class="mn">${sa.n}</b>問（${kqTotal ? Math.round(sa.n / kqTotal * 1000) / 10 : 0}%）　直近5回 <b class="mn">${sa.n5}</b>　正答率 ${scPct(sa.r)}　得点源 <b class="mn">${nTop}</b>節</span>` +
@@ -5668,7 +5680,7 @@ async function renderScope() {
       `<div class="tbl-wrap"><table class="v2-tbl sc-tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
   });
   box.innerHTML = (h ? `<div class="sc-list">${h}</div>` : '<div class="v2-empty">該当する節がありません。</div>') +
-    `<div class="v2-cap">国試の出題数＝国試 第${yMin}〜${yMax}回でその節から出た問題数（直近5回＝第${yMax - 4}〜${yMax}回）。国試の正答率＝過去問を初めて解いたときの正答率（30人以上が解いた問題だけの平均）。科目は国試に多い順、章・節は教科書の並び。${shown}節を表示。</div>`;
+    `<div class="v2-cap">国試の出題数＝国試 第${yMin}〜${yMax}回でその節から出た問題数（直近5回＝第${yMax - 4}〜${yMax}回）。国試の正答率＝過去問を初めて解いたときの正答率（30人以上が解いた問題だけの平均）。科目は出題マップと同じ並び（基礎→専門）、章・節は教科書の並び。${shown}節を表示。</div>`;
   box.querySelectorAll('details.sc-subj').forEach(d => d.addEventListener('toggle', () => {
     if (q) return;
     if (d.open) scOpen.add(d.dataset.s); else scOpen.delete(d.dataset.s);
