@@ -1859,6 +1859,7 @@ document.addEventListener('click', e => { const w = document.getElementById('svW
 
 // ===== NAV =====
 function showPage(id, btn) {
+  window.scrollTo(0, 0);   // 画面を切り替えたら一番上から
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const pg = document.getElementById('page-' + id);
