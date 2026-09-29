@@ -850,6 +850,38 @@ thead th{border-bottom:1px solid var(--g5);}
 .cat-g.kg-senmon,.cat-tr tr.grp-row.kg-senmon td{background:rgba(212,36,111,.06);}
 .cat-g.kg-kiso,.cat-g.kg-senmon{padding-left:8px;padding-right:8px;}
 .sm-cont{margin-top:28px;}
+/* 印刷1枚：測るとき（画面・一瞬）と印刷で同じ形にする */
+body.sm-measuring .student-print-page:has(.sm-fit){display:block!important;position:absolute;left:-99999px;top:0;}
+body.sm-measuring .sm-fit{width:calc(687.9px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
+body.sm-measuring .sm-fit .sm-none{display:none!important;}
+@media print{
+  .sm-fit{zoom:var(--smz,1);break-before:page;margin:0!important;}
+  .sm-fit .sm-none{display:none!important;}
+  .sm-fit .sm-cols{gap:0 24px!important;}
+  /* 行を詰める（測るときも同じ） */
+  .sm-fit .sm-row{padding:1px 0;font-size:12px;line-height:1.25;}
+  .sm-fit .sm-row.lv1{padding:2px 6px;margin-top:4px;}
+  .sm-fit .sm-row.lv3{font-size:11px;}
+  .sm-fit .sm-hd{padding:2px 0;}
+  .sm-fit .sm-cont{margin-top:10px;}
+  .sm-fit .sm .cat-g{padding-top:2px;padding-bottom:2px;}
+  .sm-fit .sm-bar{height:6px;}
+  .sm-fit .sm details>summary .sm-name::before{display:none;}
+  .sm-fit .sm-row.lv2 .sm-name{padding-left:10px;}
+  .sm-fit .sm-row.lv3 .sm-name{padding-left:20px;}
+  .sm-fit .sm-x .exw-body{display:none;}
+}
+body.sm-measuring .sm-fit .sm-row{padding:1px 0;font-size:12px;line-height:1.25;}
+body.sm-measuring .sm-fit .sm-row.lv1{padding:2px 6px;margin-top:4px;}
+body.sm-measuring .sm-fit .sm-row.lv3{font-size:11px;}
+body.sm-measuring .sm-fit .sm-hd{padding:2px 0;}
+body.sm-measuring .sm-fit .sm-cont{margin-top:10px;}
+body.sm-measuring .sm-fit .sm .cat-g{padding-top:2px;padding-bottom:2px;}
+body.sm-measuring .sm-fit .sm-bar{height:6px;}
+body.sm-measuring .sm-fit .sm details>summary .sm-name::before{display:none;}
+body.sm-measuring .sm-fit .sm-row.lv2 .sm-name{padding-left:10px;}
+body.sm-measuring .sm-fit .sm-row.lv3 .sm-name{padding-left:20px;}
+body.sm-measuring .sm-fit .sm-x .exw-body{display:none;}
 /* 出題マップ：科目・章・節の地も群の色で（基礎＝青・専門＝赤）。科目の行は少し濃く */
 .sm details.sm-s[data-g="0"]{background:rgba(26,124,193,.02);}
 .sm details.sm-s[data-g="1"]{background:rgba(212,36,111,.017);}
@@ -4622,7 +4654,7 @@ function karteHtml(uid, rows, showAll) {
 
   // 問題ごとの正誤（旧：弱点抽出）
   if (me) h += karteStarHtml(ex, uid, st);
-  if (hasMap) h += `<section class="v2-block"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。最初は章まで開いている（章を開くと節）</div>${secMapHtml(ex, st, uid)}</section>`;
+  if (hasMap) h += `<section class="v2-block sm-fit"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率を並べた。最初は章まで開いている（章を開くと節）</div>${secMapHtml(ex, st, uid)}</section>`;
   return h;
 }
 // 分野別：本人のバー・黒い縦線がクラス（exs の模試を足し合わせる）
@@ -5056,6 +5088,30 @@ function smBalance(box) {
   conts[1 - big].hidden = k >= blk[big].length;
   conts[big].hidden = true;
 }
+// 印刷：カルテの「この模試の出題マップ」を1ページに収める。出ていない科目・章は省き、印刷幅で2列を釣り合わせてから縮小率を決める
+const PRINT_W = 182 * 96 / 25.4, PRINT_H = 273 * 96 / 25.4;   // A4縦・余白 12mm/14mm の中身
+function smFitPrint() {
+  const secs = [...document.querySelectorAll('.sm-fit')];
+  if (!secs.length) return;
+  document.body.classList.add('sm-measuring');
+  try {
+    secs.forEach(sec => {
+      let z = 1;
+      for (let i = 0; i < 4; i++) {
+        sec.style.setProperty('--smz', z);
+        sec.querySelectorAll('.sm-cols').forEach(smBalance);
+        const h = sec.getBoundingClientRect().height;
+        if (!h) break;
+        const nz = Math.min(1, z * PRINT_H * 0.96 / h);
+        if (Math.abs(nz - z) < 0.01) { z = nz; break; }
+        z = nz;
+      }
+      sec.style.setProperty('--smz', z.toFixed(3));
+      sec.querySelectorAll('.sm-cols').forEach(smBalance);
+    });
+  } finally { document.body.classList.remove('sm-measuring'); }
+}
+window.addEventListener('beforeprint', smFitPrint);
 const smRO = typeof ResizeObserver === 'function' ? new ResizeObserver(es => requestAnimationFrame(() => es.forEach(e => e.target.isConnected && smBalance(e.target)))) : null;
 if (smRO) new MutationObserver(() => document.querySelectorAll('.sm-cols:not([data-bal])').forEach(b => { b.dataset.bal = '1'; smRO.observe(b); })).observe(document.documentElement, { childList: true, subtree: true });
 function smOpen(btn, lv) {
