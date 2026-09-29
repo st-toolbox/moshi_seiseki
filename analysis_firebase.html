@@ -4975,7 +4975,7 @@ function secMapHtml(ex, st, uid) {
     : `<span class="sm-name">${name}</span><span class="sm-q mn">${a.q}問</span>${mine(a)}${bar(a)}<span class="sm-kq mn">${extra}</span>`;
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
-  let h = `<div class="sm-tools">まとめて開く<button onclick="smOpen(this,1)" title="全科目を開いて章を並べる">科目</button><button onclick="smOpen(this,2)" title="全部の章を開いて節を並べる">章</button>${uid ? '' : '<button onclick="smOpen(this,3)" title="全部の節を開いて問題と選択肢の分布まで出す">節</button>'}<button onclick="smOpen(this,0)">たたむ</button></div>` +
+  let h = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>` +
     `<div class="sm${uid ? ' sm-u' : ''}"><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">この模試</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試の出題</span></div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   [...subs.entries()].sort((a, b) => gIdx(a[0]) - gIdx(b[0]) || firstQ(a[1]) - firstQ(b[1]) || a[0].localeCompare(b[0])).forEach(([sid, S]) => {
