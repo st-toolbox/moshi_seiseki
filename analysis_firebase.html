@@ -508,6 +508,7 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 .nav-legacy summary span{letter-spacing:.04em;font-weight:400;color:var(--g3);margin-left:auto;margin-right:8px;}
 .nav-legacy .nav-item{font-size:12.5px;padding:6px 10px;}
 .nav-admin{margin-top:14px;border-top:1px solid var(--line);}
+.nav-print{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
 
 /* 旧画面の部品も同じ色味に */
 .card{border:1px solid var(--line);border-radius:var(--r);}
@@ -765,7 +766,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
 @media print{ .ka-review{page-break-before:auto!important;} }
 .pg-sel{font:inherit;font-size:12.5px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--g5);max-width:280px;}
-.pg-v2 #examSel,.pg-v2 #sidebarStudentWrap,.pg-v2.is-stu .nav-target{display:none!important;}
+.pg-nosel #examSel,.pg-nosel #sidebarStudentWrap,.pg-v2.is-stu .nav-target{display:none!important;}
 .ka-parts b.up{color:var(--ok);}
 .ka-parts b.dn{color:var(--ng);}
 .sm-tools{display:flex;justify-content:flex-end;align-items:center;gap:4px;font-size:11px;color:var(--g4);margin:-4px 0 6px;}
@@ -1071,7 +1072,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <button class="nav-item teacher-only" data-page="roster" onclick="showPage('roster',this)">全部の模試</button>
     <button class="nav-item" data-page="karte" id="navKarte" onclick="showPage('karte',this)">学生カルテ</button>
     <button class="nav-item" data-page="drill" onclick="showPage('drill',this)">復習</button>
-    <div class="nav-section-label">印刷</div>
+    <div class="nav-section-label nav-print">印刷</div>
     <button class="print-btn nav-item" onclick="printCurrentPage()">このページ</button>
     <button class="print-btn nav-item teacher-only" onclick="printAllStudents()">全学生を印刷</button>
     <div class="print-note">印刷時は「詳細設定 → 倍率」を<b>デフォルト</b>に（Chromeは前回の倍率を覚えています）。</div>
@@ -1266,7 +1267,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
         <div class="v2-ctrl">
           <label class="teacher-only">学生 <select class="pg-sel" id="kaStuSel" onchange="pickStudent(this.value)"></select></label>
           <label id="kaExamLbl">模試 <select class="pg-sel" id="kaExamSel" onchange="pickExam(this.value)"></select></label>
-          <label>範囲 <span class="seg" id="kaScopeBtns"><button data-val="exam" class="active" onclick="setKarteScope('exam')">この模試</button><button data-val="all" onclick="setKarteScope('all')">通算</button></span></label>
+          <label>範囲 <span class="seg" id="kaScopeBtns"><button data-val="exam" class="active" onclick="setKarteScope('exam')">この模試</button><button data-val="all" onclick="setKarteScope('all')">全部の模試</button></span></label>
         </div>
       </header>
       <div id="kaBody"></div>
@@ -1279,7 +1280,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
         <div class="v2-ctrl">
           <label class="teacher-only">学生 <select class="pg-sel" id="drStuSel" onchange="pickStudent(this.value)"></select></label>
           <label id="drExamLbl">模試 <select class="pg-sel" id="drExamSel" onchange="pickExam(this.value)"></select></label>
-          <label>範囲 <span class="seg" id="drScopeBtns"><button data-val="exam" class="active" onclick="setDrillScope('exam')">この模試</button><button data-val="all" onclick="setDrillScope('all')">通算</button></span></label>
+          <label>範囲 <span class="seg" id="drScopeBtns"><button data-val="exam" class="active" onclick="setDrillScope('exam')">この模試</button><button data-val="all" onclick="setDrillScope('all')">全部の模試</button></span></label>
           <label>国試の類題 <span class="seg" id="drKqBtns"><button data-val="0" onclick="setDrillKq(0)">なし</button><button data-val="1" onclick="setDrillKq(1)">1問</button><button data-val="3" class="active" onclick="setDrillKq(3)">3問</button></span></label>
         </div>
       </header>
@@ -1864,6 +1865,8 @@ function showPage(id, btn) {
   if (!pg) return;
   pg.classList.add('active');
   document.body.classList.toggle('pg-v2', ['exam', 'roster', 'karte', 'drill'].includes(id));
+  // サイドバーの模試・学生の選択は旧画面だけで使う（新画面・管理では出さない＝どのボタンでもサイドバーの形を変えない）
+  document.body.classList.toggle('pg-nosel', !['trend', 'summary', 'category', 'lowrate', 'secclass', 'weakness', 'sec', 'review', 'hist'].includes(id));
   const b = btn || document.querySelector('.nav-item[data-page="' + id + '"]');
   if (b) { b.classList.add('active'); const lg = b.closest('details.nav-legacy'); if (lg) lg.open = true; }
   if (id === 'exam') renderExamView();
@@ -3471,7 +3474,8 @@ function printCurrentPage() {
     withPortraitPrint(() => window.print());
     setTimeout(() => shut.forEach(d => d.open = false), 1000);
   } else if (id === 'page-karte') withPortraitPrint(() => window.print(), '6mm 8mm');   // 出題マップを1枚に収めるため余白を狭く（smFitPrint の PRINT_W/H と揃える）
-  else if (['page-review', 'page-sec', 'page-secclass', 'page-roster', 'page-drill'].includes(id)) withPortraitPrint(() => window.print());
+  else if (id === 'page-roster') withPortraitPrint(() => window.print(), '6mm 8mm');
+  else if (['page-review', 'page-sec', 'page-secclass', 'page-drill'].includes(id)) withPortraitPrint(() => window.print());
   else window.print();
 }
 
@@ -4730,7 +4734,7 @@ function karteCatHtml(exs, uid, own, note) {
   };
   return `<section class="v2-block"><div class="v2-h"><h2>分野別の正答率</h2><span class="v2-note">${note}バー＝本人　黒線と右端の数字＝クラス　赤字＝クラスより10点以上低い</span></div><div class="cats">${catRowsHtml(a, row, '基礎')}${catRowsHtml(b, row, '専門')}</div></section>`;
 }
-// 通算：これまでの模試・模試成績一覧（優先して取り返す節はややこしいので出さない）
+// 全部の模試：これまでの模試・模試成績一覧（優先して取り返す節はややこしいので出さない）
 function karteAllHtml(uid, rows, showAll) {
   const taken = examsTakenBy(uid);                       // 新しい順
   if (!taken.length) return '<div class="v2-empty">まだ受けた模試がありません。</div>';
@@ -4739,7 +4743,7 @@ function karteAllHtml(uid, rows, showAll) {
   const lt = last ? examTotal(last.name, uid) : null, ft = first ? examTotal(first.name, uid) : null;
   const gain = lt && ft && full.length > 1 ? lt.total - ft.total : null;
   const gap = lt ? PASS_LINE - lt.total : null;
-  let h = `<section class="ka-top"><div class="ka-score"><div class="v2-lab">最新の合計${last ? `（${esc(shortExam(last.name))}）` : ''}</div>` +
+  let h = `<div class="kp1"><section class="ka-top"><div class="ka-score"><div class="v2-lab">最新の合計${last ? `（${esc(shortExam(last.name))}）` : ''}</div>` +
     (lt ? `<div class="big">${lt.total}<small>/ 200</small></div>` : '<div class="big muted">—</div>') +
     `<div class="ka-parts"><span>受験<b>${taken.length}回</b></span>${ft && full.length > 1 ? `<span>初回<b>${ft.total}</b></span><span>初回から<b class="${gain > 0 ? 'up' : gain < 0 ? 'dn' : ''}">${signed(gain)}</b></span>` : ''}</div></div>` +
     `<div class="ka-gap">${gap == null ? '<div class="v2-lab">120点まで</div><div class="ka-gap-v muted">—</div>'
@@ -4748,10 +4752,11 @@ function karteAllHtml(uid, rows, showAll) {
 
   h += karteTrendHtml(uid, true);
   h += karteHistHtml(uid, [...taken].reverse());
-  h += `<section class="v2-block"><div class="v2-h"><h2>通算の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">受けた模試 ${taken.length}回を合わせて 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率（同じ模試のクラスを合わせたもの）。最初は章まで開いている（章を開くと節）</div>${secMapHtml(taken.map(e => e.name), null, uid)}</section>`;
+  h += '</div>';   // 印刷1ページ目ここまで（kp1）
+  h += `<section class="v2-block sm-fit"><div class="v2-h"><h2>全部の模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">受けた模試 ${taken.length}回を合わせて 科目 ▸ 章 ▸ 節 で。${isTeacher ? '本人' : 'あなた'}の正解数とクラス正答率（同じ模試のクラスを合わせたもの）。最初は章まで開いている（章を開くと節）</div>${secMapHtml(taken.map(e => e.name), null, uid)}</section>`;
   return h;
 }
-// 通算：模試成績一覧（全部の模試の分野別の表と同じ形。セル＝本人の正答率＋クラスとの差）。exs は古い順
+// 全部の模試：模試成績一覧（全部の模試の分野別の表と同じ形。セル＝本人の正答率＋クラスとの差）。exs は古い順
 function karteHistHtml(uid, exs) {
   const own = exs.map(e => studentCatStats(e.name, uid)), cls = exs.map(e => classCatStats(e.name, ctx(e.name)));
   const add = (sum, o) => Object.entries(o).forEach(([c, v]) => { const x = sum[c] || (sum[c] = { c: 0, t: 0 }); x.c += v.c; x.t += v.t; });
@@ -4772,26 +4777,18 @@ function karteHistHtml(uid, exs) {
   const grp = (names, head) => names.length ? `<tr class="grp-row${kgCls(head)}"><td colspan="${exs.length + 3}">${head}</td></tr>` +
     names.map(c => `<tr><td>${esc(c)}</td>${exs.map((e, i) => td(pc(own[i][c]), pc(cls[i][c]), own[i][c]?.t)).join('')}${td(pc(sum[c]), pc(csum[c]))}<td class="r mn muted">${sum[c].t}</td></tr>`).join('') : '';
   return `<section class="v2-block" style="margin-top:34px"><div class="v2-h"><h2>模試成績一覧</h2><span class="v2-note">${who}の正答率　小さい数字＝クラスとの差　赤 50%未満　緑 70%以上</span></div>` +
-    `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr hs-tbl"><thead><tr><th></th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">通算</th><th class="r">問題数</th></tr></thead><tbody>` +
+    `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr hs-tbl"><thead><tr><th></th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">全部の模試</th><th class="r">問題数</th></tr></thead><tbody>` +
     srow('午前', i => tot[i]?.am) + srow('午後', i => tot[i]?.pm) + srow('合計', i => tot[i] ? `<b>${tot[i].total}</b>${tot[i].full ? '' : '*'}` : null, 'hs-tot') +
     srow('クラス平均', i => avg[i], 'hs-avg') +
-    grp(a, '基礎') + grp(bb, '専門') + '</tbody></table></div><div class="v2-cap">—＝その模試では出ていない分野。セルにマウスを乗せると問題数とクラスの正答率。通算＝受けた模試を合わせた正答率、問題数＝その合計。* は片方の時限だけ提出。</div></section>';
+    grp(a, '基礎') + grp(bb, '専門') + '</tbody></table></div><div class="v2-cap">—＝その模試では出ていない分野。セルにマウスを乗せると問題数とクラスの正答率。全部の模試＝受けた模試を合わせた正答率、問題数＝その合計。* は片方の時限だけ提出。</div></section>';
 }
-// 全部の模試：クラスの分野別正答率を模試ごとに（右端＝通算）
-function catTrendHtml(exs) {
-  const per = exs.map(e => classCatStats(e.name, ctx(e.name)));
-  const sum = {};
-  per.forEach(cc => Object.entries(cc).forEach(([c, v]) => { const o = sum[c] || (sum[c] = { c: 0, t: 0, qn: 0 }); o.c += v.c; o.t += v.t; o.qn += v.qn; }));
-  const cats = Object.keys(sum).filter(c => sum[c].t);
-  if (!cats.length) return '';
-  const pc = v => v && v.t ? Math.round(v.c / v.t * 100) : null;
-  const td = p => `<td class="r mn${p == null ? ' muted' : p < 50 ? ' lo' : p >= 70 ? ' hi' : ''}">${p == null ? '—' : p + '%'}</td>`;
-  const [a, b] = splitCats(cats);
-  const grp = (names, head) => names.length ? `<tr class="grp-row${kgCls(head)}"><td colspan="${exs.length + 3}">${head}</td></tr>` +
-    names.map(c => `<tr><td>${esc(c)}</td>${per.map(cc => td(pc(cc[c]))).join('')}${td(pc(sum[c]))}<td class="r mn muted">${sum[c].qn}</td></tr>`).join('') : '';
-  return `<section class="v2-block" style="margin-top:34px"><div class="v2-h"><h2>分野別の正答率（クラス）</h2><span class="v2-note">模試ごと・右端は全部の模試を合わせた通算　赤 50%未満　緑 70%以上</span></div>` +
-    `<div class="tbl-wrap"><table class="v2-tbl trend-tbl cat-tr"><thead><tr><th>分野</th>${exs.map(e => `<th class="r ex-h">${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}</th>`).join('')}<th class="r">通算</th><th class="r">問題数</th></tr></thead><tbody>` +
-    grp(a, '基礎') + grp(b, '専門') + '</tbody></table></div><div class="v2-cap">—＝その模試では出ていない分野。問題数＝全部の模試でその分野から出た数。</div></section>';
+// 全部の模試：出題マップ（今年度の模試を全部合わせる。この模試の出題マップと同じ形）
+function allMapHtml(exs) {
+  const names = exs.map(e => e.name).filter(n => allData[n]?.master?.sections);
+  const h = '<section class="v2-block sm-fit" style="margin-top:34px"><div class="v2-h"><h2>全部の模試の出題マップ</h2></div>';
+  if (!names.length) return h + '<div class="v2-empty">節の紐づけがある模試がありません。</div></section>';
+  const skip = exs.length - names.length;
+  return h + refNotice() + `<div class="v2-note" style="margin-bottom:10px">今年度の模試 ${names.length}回で出た範囲を 科目 ▸ 章 ▸ 節 で。問題数は全部の模試の合計、バー＝クラス正答率（赤 50%未満）。${skip ? `節の紐づけがない ${skip}回は入っていません。` : ''}最初は章まで開いている（章を開くと節）</div>` + secMapHtml(names, null, null) + '</section>';
 }
 // ---------- 復習（優先して取り返す節の順に、落とした問題と国試の類題） ----------
 let drillScope = 'exam', drillKqN = 3, drillShowAll = false, drillSeq = 0;
@@ -4830,7 +4827,7 @@ async function renderDrill() {
   fillStuSel('drStuSel'); fillExamSel('drExamSel');
   document.getElementById('drExamLbl').style.display = drillScope === 'all' ? 'none' : '';
   document.getElementById('drTitle').textContent = isTeacher ? (studentLabel(uid) || '学生を選んでください') : 'あなたの復習';
-  document.getElementById('drSub').textContent = drillScope === 'all' ? `通算　·　受けた模試 ${uid ? examsTakenBy(uid).length : 0}回` : shortExam(currentExam);
+  document.getElementById('drSub').textContent = drillScope === 'all' ? `全部の模試　·　受けた模試 ${uid ? examsTakenBy(uid).length : 0}回` : shortExam(currentExam);
   if (!uid) { box.innerHTML = '<div class="v2-empty">上の欄で学生を選んでください。</div>'; return; }
   const rows = karteRows(uid, drillScope);
   const ids = drillKqIds(drillShowAll ? rows : rows.slice(0, 10));
@@ -4853,7 +4850,7 @@ async function printAllDrill() {
     const page = document.createElement('div');
     page.className = 'student-print-page';
     page.style.display = 'none';
-    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">復習</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(drillScope === 'all' ? '通算' : shortExam(currentExam))}</div></div></header>` + drillHtml(s.uid, rows, false);
+    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">復習</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(drillScope === 'all' ? '全部の模試' : shortExam(currentExam))}</div></div></header>` + drillHtml(s.uid, rows, false);
     container.appendChild(page);
   });
   document.body.classList.add('print-all-students');
@@ -4880,7 +4877,7 @@ function karteSecHtml(rows, showAll) {
   let h = '';
   const ns = noSectionsMsg(karteScope);
   const shown = showAll ? rows : rows.slice(0, 10);
-  h += `<section class="v2-block"><div class="v2-h"><h2>優先して取り返す節</h2><span class="v2-note">優先度＝国試でその節から出た問題数 × その節で落とした割合　${esc(karteScope === 'all' ? '通算' : 'この模試')}</span></div>`;
+  h += `<section class="v2-block"><div class="v2-h"><h2>優先して取り返す節</h2><span class="v2-note">優先度＝国試でその節から出た問題数 × その節で落とした割合　${esc(karteScope === 'all' ? '全部の模試' : 'この模試')}</span></div>`;
   if (ns) h += ns;
   else if (!rows.length) h += '<div class="v2-empty">落とした問題はありません（または回答がありません）。</div>';
   else {
@@ -4905,7 +4902,7 @@ async function renderKarte() {
   document.getElementById('kaTitle').textContent = isTeacher ? (studentLabel(uid) || '学生を選んでください') : 'あなたの成績';
   fillStuSel('kaStuSel'); fillExamSel('kaExamSel');
   document.getElementById('kaExamLbl').style.display = karteScope === 'all' ? 'none' : '';
-  document.getElementById('kaSub').textContent = karteScope === 'all' ? `通算　·　受けた模試 ${uid ? examsTakenBy(uid).length : 0}回`
+  document.getElementById('kaSub').textContent = karteScope === 'all' ? `全部の模試　·　受けた模試 ${uid ? examsTakenBy(uid).length : 0}回`
     : currentExam ? [shortExam(currentExam), examList.find(e => e.name === currentExam)?.date ? formatDate(examList.find(e => e.name === currentExam).date) + ' 実施' : ''].filter(Boolean).join('　·　') : '';
   if (!uid) { box.innerHTML = '<div class="v2-empty">上の欄で学生を選んでください。</div>'; return; }
   const rows = karteRows(uid, karteScope);
@@ -4926,7 +4923,7 @@ async function printAllKarte() {
     const page = document.createElement('div');
     page.className = 'student-print-page';
     page.style.display = 'none';
-    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">学生カルテ</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(karteScope === 'all' ? '通算' : shortExam(currentExam))}</div></div></header>` + karteHtml(s.uid, rows, false);
+    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">学生カルテ</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(karteScope === 'all' ? '全部の模試' : shortExam(currentExam))}</div></div></header>` + karteHtml(s.uid, rows, false);
     container.appendChild(page);
   });
   document.body.classList.add('print-all-students');
@@ -5053,7 +5050,7 @@ function renderRosterTrend(box) {
     rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}<td class="r mn${r.last == null ? '' : sc(r.last, r.li)}">${r.last ?? '—'}</td>` +
       `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td><td class="r"><button class="ka-go" data-go="${esc(r.s.uid)}">カルテ</button></td></tr>`).join('') +
     '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（押すたびに切り替え・同じ行でもう一度押すと解除）。右端の「カルテ」でその学生のカルテへ。赤＝その回のクラス平均より下、緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
-  h += catTrendHtml(exs);
+  h += allMapHtml(exs);
   box.innerHTML = h;
   roBindSort(box, 'trend');
   box.querySelectorAll('tr[data-uid]').forEach(tr => tr.addEventListener('click', () => {
@@ -5181,7 +5178,7 @@ function smOpen(btn, lv) {
   btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
 }
 // 出題マップ（科目 ▸ 章 ▸ 節）。クラス正答率は stats から。uid があれば本人の正誤も並べる
-// ex に模試名の配列を渡すと通算（その模試を全部足す。クラス正答率も各模試のクラスを足す）
+// ex に模試名の配列を渡すと全部の模試（その模試を全部足す。クラス正答率も各模試のクラスを足す）
 function secMapHtml(exArg, st0, uid) {
   const multi = Array.isArray(exArg), ex = multi ? exArg[0] : exArg;
   const subs = new Map(); let none = 0;
@@ -5225,7 +5222,7 @@ function secMapHtml(exArg, st0, uid) {
   const kqSum = C => [...C.sec.values()].reduce((a, x) => a + x.kq, 0);
   const byNum = (x, y) => Number(x) - Number(y) || String(x).localeCompare(String(y));
   const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる">科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる" class="on">章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
-  const hdIn = (g, lb) => `<div class="cat-g${kgCls(g)}">${lb || g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '通算' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
+  const hdIn = (g, lb) => `<div class="cat-g${kgCls(g)}">${lb || g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '全部' : 'この模試'}</span>${uid ? `<span class="r">${isTeacher ? '本人' : 'あなた'}</span>` : ''}<span>クラス正答率</span><span class="r">国試</span></div>`;
   const hd = g => `<div class="sm${uid ? ' sm-u' : ''}">${hdIn(g)}`;
   const cont = g => `<div class="sm-cont" hidden>${hdIn(g, g + '（続き）')}</div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
@@ -5246,7 +5243,7 @@ function secMapHtml(exArg, st0, uid) {
         const ax = agg(X.qs), marks = uid ? ' <span class="sm-marks">' + X.qs.map(o => o.my == null ? '' : o.my ? '<b class="ok">○</b>' : o.star ? '<b class="ng">★</b>' : '<b class="ng">×</b>').join('') + '</span>' : '';
         const body = uid ? '' : `<div class="exw-body">${X.qs.map(o => qDistHtml(ex, o.n, st0)).join('')}</div>`;
         const inner = row(3, `${starOf(X.qs)}${esc(X.name)} <span class="muted mn">${multi ? '' : X.qs.map(o => o.n <= 100 ? '午前' + o.n : '午後' + (o.n - 100)).join('・')}</span>${marks}`, ax, X.kq ? X.kq + '問' : '');
-        h += uid ? `<div class="sm-row lv3">${inner}</div>` : `<details class="sm-x"><summary class="sm-row lv3">${inner}</summary>${body}</details>`;
+        h += uid || multi ? `<div class="sm-row lv3">${inner}</div>` : `<details class="sm-x"><summary class="sm-row lv3">${inner}</summary>${body}</details>`;
       });
       h += '</details>';
     });
