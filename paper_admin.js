@@ -140,7 +140,8 @@
       <div class="page-header-row"><div><div class="page-title">マークシート印刷</div><div class="page-sub">スマホを忘れた学生に配る紙のマークシート</div></div></div>
       <div class="ps-pgrid">
         <div class="ps-card">
-          <div class="ps-lb">模試名（空欄なら手書き）</div>
+          <div class="ps-lb">模試名（選ぶか入力・空欄なら手書き）</div>
+          <select id="psPExamSel" style="margin-bottom:6px"><option value="">登録済みの模試から選ぶ…</option></select>
           <input type="text" id="psPExam" placeholder="例：第2回 校内模試">
           <div class="ps-lb" style="margin-top:14px">時間帯</div>
           <div class="ps-seg" id="psPPart" style="--n:3">
@@ -180,7 +181,8 @@
     <div id="psPrintArea"></div>`);
 
     // 印刷ページ
-    $('psPExam').addEventListener('input', drawPrint);
+    $('psPExam').addEventListener('input', () => { $('psPExamSel').value = ''; drawPrint(); });
+    $('psPExamSel').addEventListener('change', e => { if (e.target.value) { $('psPExam').value = e.target.value; drawPrint(); } });
     $('psPCopies').addEventListener('input', drawPrint);
     $('psPPart').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
@@ -704,13 +706,32 @@
     else go();
   }
 
+  // 印刷ページ：登録済みの模試を選択肢に（受付中→日付の新しい順。選ぶと模試名の欄に入る）
+  let printExamsLoaded = false;
+  async function loadPrintExams() {
+    if (printExamsLoaded) return;
+    try {
+      const es = (await db.ref('exams').once('value')).val() || {};
+      const names = Object.keys(es).sort((a, b) => {
+        const A = es[a], B = es[b];
+        if (!!A.active !== !!B.active) return A.active ? -1 : 1;
+        return String(B.date || '').localeCompare(String(A.date || ''));
+      });
+      $('psPExamSel').innerHTML = '<option value="">登録済みの模試から選ぶ…</option>' +
+        names.map(n => `<option value="${esc(n)}">${esc(n)}${es[n].date ? '（' + esc(es[n].date) + '）' : ''}${es[n].active ? '' : '　［受付終了］'}</option>`).join('');
+      const cur = $('psPExam').value.trim();
+      if (cur && names.includes(cur)) $('psPExamSel').value = cur;
+      printExamsLoaded = true;
+    } catch (e) { /* 読めなくても手入力はできる */ }
+  }
+
   // ===== 分析アプリの画面切り替えにつなぐ =====
   mount();
   const baseShowPage = window.showPage;
   window.showPage = function (id, btn) {
     if ((id === 'paper_print' || id === 'paper_scan') && !isTeacher) id = 'exam';
     baseShowPage(id, btn);
-    if (id === 'paper_print') drawPrint();
+    if (id === 'paper_print') { drawPrint(); loadPrintExams(); }
     if (id === 'paper_scan') openScan();
   };
 })();
