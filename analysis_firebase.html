@@ -401,6 +401,7 @@ body{background:var(--g1);color:var(--g5);-webkit-font-smoothing:antialiased;}
 /* 上の帯 */
 .topbar{background:var(--paper);border-bottom:1px solid var(--line);}
 .app-title{font-size:14px;font-weight:600;letter-spacing:.06em;display:flex;align-items:center;gap:10px;}
+.topbar .app-title{cursor:pointer;user-select:none;}
 .app-title::before{content:"";width:10px;height:10px;background:var(--accent);display:inline-block;}
 .marksheet-btn{background:transparent;color:var(--g5);border:1px solid var(--g3);font-weight:500;padding:6px 12px;}
 .marksheet-btn:hover{border-color:var(--g5);}
@@ -1170,7 +1171,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 
 <!-- TOPBAR -->
 <div class="topbar" id="mainApp" style="display:none;">
-  <span class="app-title"><span>模試<span class="t-lg">結果</span>分析<span class="t-lg">アプリ</span></span></span>
+  <span class="app-title" onclick="goHome()" title="ホームに戻る"><span>模試<span class="t-lg">結果</span>分析<span class="t-lg">アプリ</span></span></span>
   <div class="spacer"></div>
   <div class="user-chip" onclick="signOut()" title="クリックでログアウト">
     <div class="av" id="userAv">—</div>
@@ -1871,6 +1872,8 @@ function svExit() {
 document.addEventListener('click', e => { const w = document.getElementById('svWrap'); if (w && !w.contains(e.target)) document.getElementById('svPop').hidden = true; });
 
 // ===== NAV =====
+// 左上のアプリ名＝ホーム（ログイン直後と同じ画面：教員＝この模試、学生＝学生カルテ）
+function goHome() { showPage(isTeacher ? 'exam' : 'karte'); }
 function showPage(id, btn) {
   window.scrollTo(0, 0);   // 画面を切り替えたら一番上から
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
