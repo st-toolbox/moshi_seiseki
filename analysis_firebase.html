@@ -559,10 +559,12 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-svg .med{fill:var(--g5);}
 .v2-svg text.met{fill:var(--g5);font-weight:600;}
 .v2-svg .avt{fill:var(--g4);}
-/* この模試の分布（点1つが1人）：教員は点から引き出し線で苗字 */
-.v2-svg .ld{fill:none;stroke:var(--g3);stroke-width:.8;}
+/* この模試の分布（点1つが1人）：教員は点の代わりに苗字の札 */
+.v2-svg .chip rect{fill:color-mix(in srgb,var(--accent) 14%,#fff);stroke:color-mix(in srgb,var(--accent) 45%,#fff);stroke-width:.8;}
+.v2-svg .chip.ok rect{fill:color-mix(in srgb,var(--g5) 14%,#fff);}
+.v2-svg .chip:hover rect{fill:var(--accent);}
+.v2-svg .chip:hover text.snm{fill:#fff;}
 .v2-svg text.snm{font-size:12px;fill:var(--ink,#222);font-family:'IBM Plex Sans JP',sans-serif;}
-.v2-svg text.snm tspan.sc{fill:var(--g4);font-family:'DM Mono',monospace;font-size:10.5px;}
 .v2-svg text.avl{fill:var(--g5);font-weight:500;}
 .v2-svg .ln-me{fill:none;stroke:var(--g5);stroke-width:2;}
 .v2-svg .ln-avg{fill:none;stroke:var(--g3);stroke-width:1.5;stroke-dasharray:5 4;}
@@ -4725,39 +4727,39 @@ function histSvg(totals, H = 150, people = null) {   // people＝[{t, nm}]（教
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の分布">${g}</svg>`;
 }
 // この模試：クラスの分布（学生カルテの点グラフと同じ形・横軸は点のある範囲に寄せる）
-// people＝[{t, nm}]（教員だけ）→ 点から引き出し線を上へ伸ばし、斜めに苗字と点数
+// people＝[{t, nm}]（教員だけ）→ 点の代わりに苗字の札を置く。重なる札は空いている段へ積む（整列させない）
 function examStripSvg(totals, avg, people) {
   const W = 960, L = 16, R = 16;
   const named = !!(people && people.length);
-  const H = named ? 215 : 110, base = H - 40;
   const lo = Math.max(0, Math.floor((Math.min(...totals, PASS_LINE) - 5) / 10) * 10);
   const hi = Math.min(200, Math.ceil((Math.max(...totals, PASS_LINE) + 5) / 10) * 10);
   const x = v => L + (v - lo) / (hi - lo) * (W - L - R);
-  let g = `<line class="ax" x1="${L}" x2="${W - R}" y1="${base}" y2="${base}"/>`;
-  for (let v = lo; v <= hi; v += 10) if (v !== PASS_LINE) g += `<line class="ax" x1="${x(v)}" x2="${x(v)}" y1="${base}" y2="${base + 4}"/><text x="${x(v)}" y="${base + 18}" text-anchor="middle">${v}</text>`;
-  g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="14" y2="${base + 4}"/><text class="plt" x="${x(PASS_LINE)}" y="${base + 18}" text-anchor="middle">120</text>`;
-  // 点：近い点は上に積む（学生カルテと同じ）
-  const pts = (named ? people.slice() : totals.map(t => ({ t }))).sort((a, b) => a.t - b.t || String(a.nm).localeCompare(String(b.nm), 'ja'));
-  const stack = [];
-  pts.forEach(p => {
-    p.x = x(p.t);
-    let k = 0; while (stack.some(q => Math.abs(q.x - p.x) < 7 && q.k === k)) k++;
-    p.k = k; p.y = base - 7 - k * 8; stack.push(p);
-  });
+  // 札の段組み：点数順に、横に重ならない一番下の段へ
+  const RH = 21, chips = [];
   if (named) {
-    // 名前の足場：点数順に左から並べ、最低gapずつ離す（はみ出したら右端から詰め戻す）
-    const gap = Math.min(20, (W - L - R - 60) / Math.max(1, pts.length - 1)), yl = 62;
-    pts.forEach((p, i) => { p.lx = i ? Math.max(p.x, pts[i - 1].lx + gap) : p.x; });
-    for (let i = pts.length - 1; i >= 0; i--) p_min(i);
-    function p_min(i) { const lim = i === pts.length - 1 ? W - R - 6 : pts[i + 1].lx - gap; if (pts[i].lx > lim) pts[i].lx = lim; }
-    const top = Math.min(...pts.map(p => p.y)) - 10;
-    pts.forEach(p => {
-      const knee = Math.max(yl + 16, top);
-      g += `<polyline class="ld" points="${p.x},${p.y - 4} ${p.x},${knee} ${p.lx},${yl + 6}"/>` +
-           `<text class="snm" transform="translate(${p.lx + 2} ${yl}) rotate(-45)"><title>${esc(p.nm)} ${p.t}点</title>${esc(p.nm)}<tspan class="sc" dx="4">${p.t}</tspan></text>`;
+    const cw = t => [...t].reduce((a, ch) => a + (/[\x20-\x7e]/.test(ch) ? 7 : 12.5), 0) + 12;
+    people.slice().sort((a, b) => a.t - b.t).forEach(p => {
+      const w = cw(p.nm), cx = Math.min(W - R - w / 2, Math.max(L + w / 2, x(p.t)));
+      let r = 0; while (chips.some(c => c.r === r && Math.abs(c.cx - cx) < (c.w + w) / 2 + 3)) r++;
+      chips.push({ ...p, w, cx, r });
     });
   }
-  pts.forEach(p => { g += `<circle class="sd" cx="${p.x}" cy="${p.y}" r="3.4"/>`; });
+  const rows = chips.length ? Math.max(...chips.map(c => c.r)) + 1 : 0;
+  const base = named ? 22 + rows * RH + 8 : 70, H = base + 40;
+  let g = `<line class="ax" x1="${L}" x2="${W - R}" y1="${base}" y2="${base}"/>`;
+  for (let v = lo; v <= hi; v += 10) if (v !== PASS_LINE) g += `<line class="ax" x1="${x(v)}" x2="${x(v)}" y1="${base}" y2="${base + 4}"/><text x="${x(v)}" y="${base + 18}" text-anchor="middle">${v}</text>`;
+  g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="10" y2="${base + 4}"/><text class="plt" x="${x(PASS_LINE)}" y="${base + 18}" text-anchor="middle">120</text>`;
+  if (named) {
+    chips.forEach(c => {
+      const y = base - 8 - (c.r + 1) * RH + 3;
+      g += `<circle class="sd" cx="${x(c.t)}" cy="${base}" r="2.2"/>` +
+           `<g class="chip${c.t >= PASS_LINE ? ' ok' : ''}"><title>${esc(c.nm)} ${c.t}点</title><rect x="${c.cx - c.w / 2}" y="${y}" width="${c.w}" height="${RH - 4}" rx="${(RH - 4) / 2}"/>` +
+           `<text class="snm" x="${c.cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">${esc(c.nm)}</text></g>`;
+    });
+  } else {
+    const seen = {};
+    totals.forEach(t => { const k = seen[t] = (seen[t] || 0) + 1; g += `<circle class="sd" cx="${x(t)}" cy="${base - 7 - (k - 1) * 8}" r="3.4"/>`; });
+  }
   if (avg != null) g += `<path class="avt" d="M${x(avg)} ${base + 3} l-4 7 h8 z"/><text class="avl" x="${x(avg) + 7}" y="${base + 30}" text-anchor="middle">平均 ${avg}</text>`;
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の分布">${g}</svg>`;
 }
