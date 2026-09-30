@@ -659,6 +659,16 @@ thead th{border-bottom:1px solid var(--g5);}
 .ka-star tr.st-q.open .st-ar{transform:rotate(90deg);}
 .ka-star tr.st-qd>td{padding:10px 12px!important;white-space:normal!important;}
 .ka-star tr.st-qd .qd{position:sticky;left:12px;}
+.ka-star .st-qn{display:none;}
+/* スマホ：★の表を画面幅に収める（問は節の上に出し、見出しを短く）＝横スクロールを出さない */
+@media (max-width:640px){
+  .ka-star .v2-tbl th:first-child,.ka-star tr.st-q>td:first-child{display:none;}
+  .ka-star .st-qn{display:block;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink,#222);margin-bottom:2px;white-space:nowrap;}
+  .ka-star .st-long{display:none;}
+  .ka-star .v2-tbl td.sec-cell{min-width:0!important;white-space:normal;width:100%;font-size:12px;}
+  .ka-star .v2-tbl th,.ka-star .v2-tbl td{padding-left:5px;padding-right:5px;letter-spacing:0;}
+  .ka-star tr.st-qd .qd{position:static;}
+}
 @media print{ .ka-star tr.st-qd{display:none!important;} .st-ar{display:none;} }
 .qd-opt.ok .qd-k::after{content:"正";font-size:9px;color:var(--ok);margin-left:2px;vertical-align:top;}
 .qd-k{font-family:'DM Mono',monospace;color:var(--g4);}
@@ -5574,10 +5584,10 @@ function karteStarHtml(ex, uid, st) {
     `<div class="v2-note" style="margin-bottom:12px"><span class="star">★</span> クラスの${karteStarTh}%以上が正解したのに落とした <b class="mn">${stars.length}</b>問　·　× それ以外で落とした <b class="mn">${nx}</b>問</div>` + grids.join('');
   if (stars.length) {
     stars.sort((a, b) => b.cr - a.cr || a.n - b.n);
-    h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>科目 ▸ 章 ▸ 節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス正答率</th>${natOf(ex)?.q ? '<th class="r nat-t">全国正答率</th>' : ''}</tr></thead><tbody>` +
+    h += `<div class="tbl-wrap" style="margin-top:18px"><table class="v2-tbl"><thead><tr><th>問</th><th>科目 ▸ 章 ▸ 節</th><th class="r">正答</th><th class="r">${who}</th><th class="r">クラス<span class="st-long">正答率</span></th>${natOf(ex)?.q ? '<th class="r nat-t">全国<span class="st-long">正答率</span></th>' : ''}</tr></thead><tbody>` +
       stars.map(o => { const key = secKeyOf(ex, o.n);
         const nc = natOf(ex)?.q ? 6 : 5;
-        return `<tr class="st-q" tabindex="0" title="タップで問題を開く"><td class="mn"><span class="st-ar">▸</span>${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td class="sec-cell">${key ? `<div class="sp-line">${secPathHtml(key)}</div>` : esc(catOf(ex, o.n) || '—')}</td>` +
+        return `<tr class="st-q" tabindex="0" title="タップで問題を開く"><td class="mn"><span class="st-ar">▸</span>${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</td><td class="sec-cell"><span class="st-qn"><span class="st-ar">▸</span>${o.n <= 100 ? '午前' : '午後'} ${o.n <= 100 ? o.n : o.n - 100}</span>${key ? `<div class="sp-line">${secPathHtml(key)}</div>` : esc(catOf(ex, o.n) || '—')}</td>` +
           `<td class="r mn">${esc(o.c)}</td><td class="r mn dn">${esc(o.my || '無回答')}</td><td class="r mn">${Math.round(o.cr * 100)}%</td>${natOf(ex)?.q ? `<td class="r mn nat-t">${natQ(ex, o.n) != null ? Math.round(natQ(ex, o.n)) + '%' : '—'}</td>` : ''}</tr>` +
           `<tr class="st-qd" hidden><td colspan="${nc}">${qDistHtml(ex, o.n, st, { my: o.my, bars: !!st?.opt && (st?.n || 0) >= 5 })}</td></tr>`; }).join('') +
       '</tbody></table></div><div class="v2-cap">★はみんなが取れている問題＝本番で差がつく。まずここから。行をタップすると問題が開きます。</div>';
