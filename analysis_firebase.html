@@ -3871,7 +3871,7 @@ function karteTrendHtml(uid, noTable) {
     const pts = taken.map(e => ({ label: shortExam(e.name), date: e.date, t: examTotal(e.name, uid), avg: ctx(e.name)?.avg ?? null }));
     h += `<section class="v2-block"><div class="v2-h"><h2>これまでの模試</h2><span class="v2-note">${taken.length}回</span></div>` +
       // 1回だけでも出す（左から積む。模試成績一覧と同じく10回分の枠）
-      (pts.length ? trendSvg(pts.map(p => ({ label: p.label, me: p.t.total, avg: p.avg })), 10) + '<div class="legend"><span><i></i>本人</span><span><i class="avg"></i>クラス平均</span><span><i class="pl"></i>120点</span></div>' : '') +
+      (pts.length ? '<div class="trend-scroll">' + trendSvg(pts.map(p => ({ label: p.label, me: p.t.total, avg: p.avg })), 10) + '</div><div class="legend"><span><i></i>本人</span><span><i class="avg"></i>クラス平均</span><span><i class="pl"></i>120点</span></div>' : '') +
       (noTable ? '</section>' : `<div class="tbl-wrap" style="margin-top:14px"><table class="v2-tbl"><thead><tr><th>模試</th><th>実施日</th><th class="r">午前</th><th class="r">午後</th><th class="r">合計</th><th class="r">クラス平均</th><th class="r">平均との差</th></tr></thead><tbody>` +
       pts.slice().reverse().map(p => { const d = p.avg != null ? Math.round((p.t.total - p.avg) * 10) / 10 : null;
         return `<tr><td>${esc(p.label)}</td><td>${esc(formatDate(p.date)) || '—'}</td><td class="r mn">${p.t.am ?? '—'}</td><td class="r mn">${p.t.pm ?? '—'}</td><td class="r mn"><b>${p.t.total}</b></td><td class="r mn">${p.avg ?? '—'}</td><td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td></tr>`; }).join('') +
