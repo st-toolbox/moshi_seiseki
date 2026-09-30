@@ -858,7 +858,7 @@ body.sm-measuring .hs-tbl{min-width:0;} body.sm-measuring .hs-tbl col.hs-c0{widt
 @media print{ .ro-tbl col.ro-cno{width:6em;} .ro-tbl col.ro-cnm{width:6.5em;} .ro-tbl col.ro-cl,.ro-tbl col.ro-cg{width:4em;} .ro-tbl col.ro-cb{width:0;} }
 .ka-histp{display:none;}
 @media print{
-  .ka-histp{display:block;break-before:page;} .ka-histp>.v2-block{margin-top:0!important;margin-bottom:0!important;}
+  .ka-histp{display:block;break-before:page;zoom:var(--smz,1);} .ka-histp>.v2-block{margin-top:0!important;margin-bottom:0!important;}
   /* 1枚に収める：分野40行＋点の4行。クラスとの差は同じ行の右に小さく */
   .ka-histp .hs-tbl{font-size:8pt!important;}
   .ka-histp .hs-tbl th,.ka-histp .hs-tbl td{padding:.6mm 1mm!important;line-height:1.2!important;}
@@ -869,6 +869,21 @@ body.sm-measuring .hs-tbl{min-width:0;} body.sm-measuring .hs-tbl col.hs-c0{widt
   .ka-histp .hs-tbl th.ex-h{font-size:6.5pt;}
   .ka-histp .v2-cap{font-size:7pt;margin-top:1.5mm;}
 }
+/* 推移＋成績一覧を1枚に：測るときも印刷と同じ指定（smFitPrint が --smz を決める） */
+body.sm-measuring .ka-histp{display:block!important;width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}
+body.sm-measuring .student-print-page:has(.ka-histp){display:block!important;position:absolute;left:-99999px;top:0;}
+body.sm-measuring .ka-histp>.v2-block{margin-top:0!important;margin-bottom:0!important;}
+body.sm-measuring .ka-histp .hs-tbl{font-size:8pt!important;}
+body.sm-measuring .ka-histp .hs-tbl th,body.sm-measuring .ka-histp .hs-tbl td{padding:.6mm 1mm!important;line-height:1.2!important;}
+body.sm-measuring .ka-histp .hs-tbl td:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.sm-measuring .ka-histp .hs-tbl col.hs-c0{width:12.5em;}
+body.sm-measuring .ka-histp .hs-tbl col.hs-call{width:6.5em;}
+body.sm-measuring .ka-histp .hs-tbl col.hs-cn{width:3.6em;}
+body.sm-measuring .ka-histp .hs-tbl .hs-s .hs-d,body.sm-measuring .ka-histp .hs-tbl .hs-d{display:inline;margin-left:2px;font-size:6pt;min-width:0;}
+body.sm-measuring .ka-histp .hs-tbl td.hs-s,body.sm-measuring .ka-histp .hs-tbl td.hs-all{white-space:nowrap;}
+body.sm-measuring .ka-histp .hs-tbl th{white-space:normal!important;}
+body.sm-measuring .ka-histp .hs-tbl th.ex-h{font-size:6.5pt;}
+body.sm-measuring .ka-histp .v2-cap{font-size:7pt;margin-top:1.5mm;}
 .hs-tbl .hs-d.dn{color:var(--ng);} .hs-tbl .hs-d.up{color:var(--ok);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
 @media print{ .ka-review{page-break-before:auto!important;} }
@@ -2540,6 +2555,13 @@ function withPortraitPrint(fn, margin = '12mm 14mm') {
   try { fn(); } finally { setTimeout(() => st.remove(), 1000); }
 }
 
+// カルテの印刷は「この模試」でも「全部の模試」でも同じ物（1枚目・この模試の出題マップ・全部の模試の推移と成績一覧）
+function karteAsExam(fn) {
+  const s = karteScope;
+  if (s === 'exam') return fn();
+  karteScope = 'exam'; renderKarte();
+  try { return fn(); } finally { karteScope = s; renderKarte(); }
+}
 function printCurrentPage() {
   const id = document.querySelector('.page.active')?.id;
   if (id === 'page-exam') {
@@ -2547,7 +2569,7 @@ function printCurrentPage() {
     shut.forEach(d => d.open = true);
     withPortraitPrint(() => window.print());
     setTimeout(() => shut.forEach(d => d.open = false), 1000);
-  } else if (id === 'page-karte') withPortraitPrint(() => window.print(), '6mm 8mm');   // 出題マップを1枚に収めるため余白を狭く（smFitPrint の PRINT_W/H と揃える）
+  } else if (id === 'page-karte') karteAsExam(() => withPortraitPrint(() => window.print(), '6mm 8mm'));   // 出題マップを1枚に収めるため余白を狭く（smFitPrint の PRINT_W/H と揃える）
   else if (id === 'page-roster') withPortraitPrint(() => window.print(), '6mm 8mm');
   else if (id === 'page-scope') scPrint();
   else if (id === 'page-drill') withPortraitPrint(() => window.print());
@@ -3664,7 +3686,7 @@ function karteHtml(uid, rows, showAll) {
   h += '</div>';   // 印刷1ページ目ここまで（kp1）
   // 印刷だけ：最後に「全部の模試」の模試成績一覧を1枚足す（画面には出さない）
   const takenAll = examsTakenBy(uid);
-  const histP = takenAll.length ? `<div class="ka-histp">${karteHistHtml(uid, [...takenAll].reverse())}</div>` : '';
+  const histP = takenAll.length ? `<div class="ka-histp">${karteTrendHtml(uid, true)}${karteHistHtml(uid, [...takenAll].reverse())}</div>` : '';
   if (hasMap) h += `<section class="v2-block sm-fit"><div class="v2-h"><h2>この模試の出題マップ</h2></div><div class="v2-note" style="margin-bottom:10px">出た範囲を 科目 ▸ 章 ▸ 節 で。バーと%は${isTeacher ? '本人' : 'あなた'}の正答率（赤 50%未満）、バーの上の縦線がクラス正答率。最初は章まで開いている（章を開くと節）。<b class="sm-star">★</b>＝上の「問題ごとの正誤・弱点」の★がある所（数字は問題数）</div>${secMapHtml(ex, st, uid)}</section>`;
   return h + histP;
 }
@@ -3893,6 +3915,10 @@ async function renderKarte() {
   box.innerHTML = karteHtml(uid, rows, karteShowAll);
 }
 async function printAllKarte() {
+  const keep = karteScope; karteScope = 'exam';   // 全員分も「この模試」の形で刷る
+  try { await printAllKarte0(); } finally { karteScope = keep; }
+}
+async function printAllKarte0() {
   document.querySelectorAll('.student-print-page').forEach(el => el.remove());
   const container = document.querySelector('.main');
   const exams = scopeExams(karteScope);
@@ -4187,7 +4213,7 @@ function kpUnsplit() {
 window.addEventListener('afterprint', kpUnsplit);
 function smFitPrint() {
   kpUnsplit();
-  const secs = [...document.querySelectorAll('.sm-fit, .kp1')];
+  const secs = [...document.querySelectorAll('.sm-fit, .kp1, .ka-histp')];
   if (!secs.length) return;
   // 測る間はスマホ幅のCSS（screen and max-width）を止め、印刷で効く (max-width:900px) は効かせる＝スマホで開いても印刷と同じ形で測る
   const mq = [];
