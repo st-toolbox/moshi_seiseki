@@ -553,6 +553,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-svg .hb{fill:var(--accent);}
 .v2-svg .hb.ok{fill:var(--g5);}
 .v2-svg text.hn{fill:var(--g5);font-weight:500;}
+.v2-svg text.hnm{fill:#fff;font-weight:500;}  /* 棒の中の苗字（教員だけ） */
 .v2-svg .sd{fill:var(--accent);opacity:.55;}
 .v2-svg .me{stroke:var(--g5);stroke-width:1.5;}
 .v2-svg .med{fill:var(--g5);}
@@ -4686,7 +4687,7 @@ function splitCats(names) {
 }
 
 // ---------- 図（SVG・印刷でもそのまま出る） ----------
-function histSvg(totals, H = 150) {
+function histSvg(totals, H = 150, people = null) {   // people＝[{t, nm}]（教員だけ・棒の中に苗字）
   const W = 960, L = 34, R = 12, T = 18, B = 26;   // 高さは控えめに（件数は棒の上の数字で読める）
   const lo = Math.max(0, Math.floor(Math.min(...totals, PASS_LINE) / 10) * 10 - 10);
   const hi = Math.min(200, Math.floor(Math.max(...totals, PASS_LINE) / 10) * 10 + 20);
@@ -4702,6 +4703,12 @@ function histSvg(totals, H = 150) {
   bins.forEach(({ b, n }) => {
     if (n) g += `<rect class="hb${b >= PASS_LINE ? ' ok' : ''}" x="${x(b) + 2}" y="${y(n)}" width="${x(b + 10) - x(b) - 4}" height="${y(0) - y(n)}"/>` +
                 `<text class="hn" x="${(x(b) + x(b + 10)) / 2}" y="${y(n) - 5}" text-anchor="middle">${n}</text>`;
+    // 苗字：1人1段・上ほど高得点
+    const ps = people ? people.filter(p => p.t >= b && (p.t < b + 10 || (b + 10 === 200 && p.t === 200))).sort((a, c) => c.t - a.t) : [];
+    if (ps.length) {
+      const unit = (y(0) - y(ps.length)) / ps.length, fs = Math.max(7, Math.min(13, unit * 0.72));
+      ps.forEach((p, i) => g += `<text class="hnm" x="${(x(b) + x(b + 10)) / 2}" y="${y(ps.length) + unit * (i + 0.5) + fs * 0.35}" font-size="${fs.toFixed(1)}" text-anchor="middle">${esc(p.nm)}</text>`);
+    }
   });
   for (let v = lo; v <= hi; v += lab) if (v !== PASS_LINE) g += `<text x="${x(v)}" y="${H - 8}" text-anchor="middle">${v}</text>`;
   g += `<line class="ax" x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}"/>`;
@@ -4830,7 +4837,7 @@ function renderExamView() {
     fig('120点以上', `${reach}<small>/ ${st.n}</small>`, '合格ラインの目安') +
     (nat && nat.mean != null ? fig('全国平均', nat.mean, [nat.n ? `全国 ${nat.n}人` : '', st.avg != null ? `クラスは ${signed(Math.round((st.avg - nat.mean) * 10) / 10)}` : ''].filter(Boolean).join('　')) : '') + `</div>`;
   // 数字は左に縦並び、分布はその横（上下に積むと縦が長すぎる）
-  h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">10点刻み　赤線＝120点</span></div>${histSvg(t, 230)}</section></div>` : '</div>';
+  h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">10点刻み　赤線＝120点</span></div>${histSvg(t, 230, isTeacher ? histPeople(ex) : null)}</section></div>` : '</div>';
   h += examStudentsHtml(ex);
 
   h += exLowHtml(ex, st);
@@ -4859,6 +4866,11 @@ function renderRoster() {
   renderRosterTrend(box);
 }
 // この模試：学生ごとの点（旧：学生一覧の「この模試」）
+// 分布の棒に載せる苗字（午前午後とも出した学生＝分布と同じ母集団）
+function histPeople(ex) {
+  return getActiveStudents().map(s => ({ s, t: examTotal(ex, s.uid) })).filter(r => r.t && r.t.full)
+    .map(r => ({ t: r.t.total, nm: String(r.s.name || stuNo(r.s)).trim().split(/[\s　]+/)[0] }));
+}
 function examStudentsHtml(ex) {
   const yl = yearExams().some(e => e.name === ex) ? yearExams() : examList;   // 前回・推移は今年度の模試の中で
   const list = getActiveStudents(), idx = yl.findIndex(e => e.name === ex);
