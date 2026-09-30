@@ -254,14 +254,13 @@
     const n = Math.max(1, Math.min(200, parseInt($('psPCopies').value) || 1));
     const parts = pPart === 'BOTH' ? ['AM', 'PM'] : [pPart];
     $('psPPrev').innerHTML = parts.map(p => `<div>${OMR_LAYOUT.svg({ part: p, exam })}</div>`).join('');
-    $('psPTotal').textContent = `${n * parts.length} 枚`;
+    $('psPTotal').textContent = parts.length > 1 ? `午前 ${n}枚 → 午後 ${n}枚の順（計 ${n * 2} 枚）` : `${n} 枚`;
     return { exam, n, parts };
   }
   function doPrint() {
     const { exam, n, parts } = drawPrint();
-    // 1人分＝午前→午後の順（両面印刷なら表午前・裏午後）
-    const one = parts.map(p => `<div class="ps-sheet">${OMR_LAYOUT.svg({ part: p, exam })}</div>`).join('');
-    $('psPrintArea').innerHTML = one.repeat(n);
+    // 午前をn枚まとめて→午後をn枚（配るとき時間帯ごとに束で渡せる）
+    $('psPrintArea').innerHTML = parts.map(p => `<div class="ps-sheet">${OMR_LAYOUT.svg({ part: p, exam })}</div>`.repeat(n)).join('');
     document.body.classList.add('ps-printing');
     window.print();
     setTimeout(() => document.body.classList.remove('ps-printing'), 1000);
