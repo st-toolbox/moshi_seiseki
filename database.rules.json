@@ -21,12 +21,21 @@
       ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
       ".write": "auth != null && root.child('teachers').child(auth.uid).exists()"
     },
+    "secret": {
+      ".read": "auth != null && root.child('teachers').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('teachers').child(auth.uid).exists()",
+      "$examId": {
+        "$part": {
+          ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && ($part === 'AM' || $part === 'PM') && root.child('responses').child($examId).child(auth.uid).child($part).child('status').val() === 'submitted'"
+        }
+      }
+    },
     "students": {
       ".read": "root.child('teachers').child(auth.uid).exists()",
       ".write": "root.child('teachers').child(auth.uid).exists()",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('teachers').child(auth.uid).exists())",
-        ".write": "root.child('teachers').child(auth.uid).exists() || (auth != null && auth.uid === $uid && !data.exists() && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/))"
+        ".write": "root.child('teachers').child(auth.uid).exists() || (auth != null && auth.uid === $uid && !data.exists() && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && newData.child('email').val() === auth.token.email && newData.child('name').isString() && auth.token.email.beginsWith(newData.child('name').val() + '@') && !newData.child('active').exists() && !newData.child('gakunen').exists() && !newData.child('nendo').exists())"
       }
     },
     "responses": {
@@ -36,14 +45,26 @@
           ".read": "auth != null && auth.uid === $uid",
           ".write": "auth != null && root.child('teachers').child(auth.uid).exists()",
           "$part": {
-            ".write": "auth != null && auth.uid === $uid && newData.exists() && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)"
+            ".write": "auth != null && auth.uid === $uid && newData.exists() && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && ($part === 'AM' || $part === 'PM') && (!data.exists() || data.child('status').val() === 'draft' || (data.child('status').val() === 'paper_pending' && !data.child('scannedBy').exists())) && (newData.child('status').val() === 'draft' || newData.child('status').val() === 'submitted' || newData.child('status').val() === 'paper_pending') && !newData.child('score').exists() && !newData.child('scannedBy').exists() && !newData.child('approvedBy').exists() && !(newData.child('status').val() === 'submitted' && newData.child('source').exists()) && newData.child('email').val() === auth.token.email"
           }
         }
       }
     },
     "ref": {
-      ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())",
-      ".write": "auth != null && root.child('teachers').child(auth.uid).exists()"
+      ".read": "auth != null && root.child('teachers').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('teachers').child(auth.uid).exists()",
+      "sections": {
+        ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())"
+      },
+      "secstat": {
+        ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())"
+      },
+      "kq": {
+        ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())"
+      },
+      "meta": {
+        ".read": "auth != null && ((auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/)) || root.child('teachers').child(auth.uid).exists())"
+      }
     }
   }
 }
