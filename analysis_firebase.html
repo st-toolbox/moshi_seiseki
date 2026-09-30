@@ -559,6 +559,11 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-svg .med{fill:var(--g5);}
 .v2-svg text.met{fill:var(--g5);font-weight:600;}
 .v2-svg .avt{fill:var(--g4);}
+/* この模試の分布（点1つが1人）：教員は点から引き出し線で苗字 */
+.v2-svg .ld{fill:none;stroke:var(--g3);stroke-width:.8;}
+.v2-svg text.snm{font-size:12px;fill:var(--ink,#222);font-family:'IBM Plex Sans JP',sans-serif;}
+.v2-svg text.snm tspan.sc{fill:var(--g4);font-family:'DM Mono',monospace;font-size:10.5px;}
+.v2-svg text.avl{fill:var(--g5);font-weight:500;}
 .v2-svg .ln-me{fill:none;stroke:var(--g5);stroke-width:2;}
 .v2-svg .ln-avg{fill:none;stroke:var(--g3);stroke-width:1.5;stroke-dasharray:5 4;}
 .v2-svg .dt-me{fill:var(--paper);stroke:var(--g5);stroke-width:2;}
@@ -4719,6 +4724,43 @@ function histSvg(totals, H = 150, people = null) {   // people＝[{t, nm}]（教
   g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="${T - 8}" y2="${y(0)}"/><text class="plt" x="${x(PASS_LINE)}" y="${H - 8}" text-anchor="middle">120</text>`;
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の分布">${g}</svg>`;
 }
+// この模試：クラスの分布（学生カルテの点グラフと同じ形・横軸は点のある範囲に寄せる）
+// people＝[{t, nm}]（教員だけ）→ 点から引き出し線を上へ伸ばし、斜めに苗字と点数
+function examStripSvg(totals, avg, people) {
+  const W = 960, L = 16, R = 16;
+  const named = !!(people && people.length);
+  const H = named ? 215 : 110, base = H - 40;
+  const lo = Math.max(0, Math.floor((Math.min(...totals, PASS_LINE) - 5) / 10) * 10);
+  const hi = Math.min(200, Math.ceil((Math.max(...totals, PASS_LINE) + 5) / 10) * 10);
+  const x = v => L + (v - lo) / (hi - lo) * (W - L - R);
+  let g = `<line class="ax" x1="${L}" x2="${W - R}" y1="${base}" y2="${base}"/>`;
+  for (let v = lo; v <= hi; v += 10) if (v !== PASS_LINE) g += `<line class="ax" x1="${x(v)}" x2="${x(v)}" y1="${base}" y2="${base + 4}"/><text x="${x(v)}" y="${base + 18}" text-anchor="middle">${v}</text>`;
+  g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="14" y2="${base + 4}"/><text class="plt" x="${x(PASS_LINE)}" y="${base + 18}" text-anchor="middle">120</text>`;
+  // 点：近い点は上に積む（学生カルテと同じ）
+  const pts = (named ? people.slice() : totals.map(t => ({ t }))).sort((a, b) => a.t - b.t || String(a.nm).localeCompare(String(b.nm), 'ja'));
+  const stack = [];
+  pts.forEach(p => {
+    p.x = x(p.t);
+    let k = 0; while (stack.some(q => Math.abs(q.x - p.x) < 7 && q.k === k)) k++;
+    p.k = k; p.y = base - 7 - k * 8; stack.push(p);
+  });
+  if (named) {
+    // 名前の足場：点数順に左から並べ、最低gapずつ離す（はみ出したら右端から詰め戻す）
+    const gap = Math.min(20, (W - L - R - 60) / Math.max(1, pts.length - 1)), yl = 62;
+    pts.forEach((p, i) => { p.lx = i ? Math.max(p.x, pts[i - 1].lx + gap) : p.x; });
+    for (let i = pts.length - 1; i >= 0; i--) p_min(i);
+    function p_min(i) { const lim = i === pts.length - 1 ? W - R - 6 : pts[i + 1].lx - gap; if (pts[i].lx > lim) pts[i].lx = lim; }
+    const top = Math.min(...pts.map(p => p.y)) - 10;
+    pts.forEach(p => {
+      const knee = Math.max(yl + 16, top);
+      g += `<polyline class="ld" points="${p.x},${p.y - 4} ${p.x},${knee} ${p.lx},${yl + 6}"/>` +
+           `<text class="snm" transform="translate(${p.lx + 2} ${yl}) rotate(-45)"><title>${esc(p.nm)} ${p.t}点</title>${esc(p.nm)}<tspan class="sc" dx="4">${p.t}</tspan></text>`;
+    });
+  }
+  pts.forEach(p => { g += `<circle class="sd" cx="${p.x}" cy="${p.y}" r="3.4"/>`; });
+  if (avg != null) g += `<path class="avt" d="M${x(avg)} ${base + 3} l-4 7 h8 z"/><text class="avl" x="${x(avg) + 7}" y="${base + 30}" text-anchor="middle">平均 ${avg}</text>`;
+  return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の分布">${g}</svg>`;
+}
 function stripSvg(totals, mine, avg) {
   const W = 960, H = 96, L = 14, R = 14, base = 62;
   const x = v => L + v / 200 * (W - L - R);
@@ -4841,7 +4883,7 @@ function renderExamView() {
     fig('120点以上', `${reach}<small>/ ${st.n}</small>`, '合格ラインの目安') +
     (nat && nat.mean != null ? fig('全国平均', nat.mean, [nat.n ? `全国 ${nat.n}人` : '', st.avg != null ? `クラスは ${signed(Math.round((st.avg - nat.mean) * 10) / 10)}` : ''].filter(Boolean).join('　')) : '') + `</div>`;
   // 数字は左に縦並び、分布はその横（上下に積むと縦が長すぎる）
-  h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">10点刻み　赤線＝120点</span></div>${histSvg(t, 230, isTeacher ? histPeople(ex) : null)}</section></div>` : '</div>';
+  h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">点1つが1人　▲＝クラス平均　赤線＝120点</span></div><div class="trend-scroll">${examStripSvg(t, st.avg, isTeacher ? histPeople(ex) : null)}</div></section></div>` : '</div>';
   h += examStudentsHtml(ex);
 
   h += exLowHtml(ex, st);
@@ -5270,6 +5312,15 @@ function exNatHtml(ex, st) {
 function setKarteStar(v) { karteStarTh = Number(v); renderKarte(); }
 
 // 全模試の推移（旧：成績推移）
+// 「国試塾 2023年度 第1回」→ ['2023', '国試塾①']・「ネクサス 2022年度 総合」→ ['2022', 'ネクサ総合']
+function examAbbr(name) {
+  const n = String(name || '').replace(/_/g, ' ').trim();
+  const m = n.match(/^(\S+)\s+(\d{4})年度?\s*(.*)$/);
+  if (!m) return [n.length > 7 ? n.slice(0, 6) + '…' : n];
+  const circ = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+  const k = m[3].replace(/^第(\d+)回$/, (_, d) => circ[d - 1] || d).replace(/\s+/g, '');
+  return [m[2], [...m[1]].slice(0, 3).join('') + (k.length > 4 ? k.slice(0, 3) + '…' : k)];
+}
 function trendAllSvg(exs, lines, avg, who, navg) {
   const W = 960, H = 380, L = 38, R = 24, T = 24, B = 44;
   const vals = lines.flat().concat(avg).concat(navg || []).filter(v => v != null).concat(PASS_LINE);
@@ -5297,11 +5348,9 @@ function trendAllSvg(exs, lines, avg, who, navg) {
   const pa = avg.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
   if (pa.length > 1) g += `<polyline class="ln-cls" points="${pa.map(q => q.join(',')).join(' ')}"/>`;
   avg.forEach((v, i) => { if (v != null) g += `<circle class="dt-cls" cx="${x(i)}" cy="${y(v)}" r="4"/><text class="hn" x="${x(i)}" y="${y(v) - 10}" text-anchor="middle">${v}</text>`; });
-  // 模試名は短く2行：今年度の回（第N回）＋主催名（先頭の語）。全文はマウスを当てると出る
+  // 模試名は短く2行：年度／主催名の頭3字＋回（①②・総合・基礎…）。全文はマウスを当てると出る
   exs.forEach((e, i) => {
-    const lb = shortExam(e.name), no = yearNo(e.name);
-    const org = String(e.name || '').replace(/_/g, ' ').trim().split(/\s+/)[0] || '';
-    const ln = no ? [`第${no}回`, org.length > 8 ? org.slice(0, 7) + '…' : org] : [org.length > 8 ? org.slice(0, 7) + '…' : org];
+    const lb = shortExam(e.name), ln = examAbbr(e.name);
     g += `<text class="jp xl" x="${x(i)}" y="${H - 24}" text-anchor="middle"><title>${esc(lb)}</title>${ln.map((t, k) => `<tspan x="${x(i)}" dy="${k ? '1.2em' : 0}">${esc(t.trim())}</tspan>`).join('')}</text>`;
   });
   return `<svg class="v2-svg trend-all" viewBox="0 0 ${W} ${H}" role="img" aria-label="全模試の推移">${g}</svg>`;
