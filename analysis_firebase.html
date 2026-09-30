@@ -1016,6 +1016,7 @@ body.sm-measuring .sm-fit .sm-none{display:none!important;}
 @media print{
   .kp1{zoom:var(--smz,1);}
   .kp1-more{break-before:page;}
+  .kp-blank{break-before:page;height:1px;visibility:hidden;}
   .kp1 .ka-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)!important;}
   .kp1 .ka-gap{border-left:1px solid var(--line)!important;border-top:none!important;padding-left:6mm!important;}
   .kp1 .ka-score{padding-right:6mm!important;}
@@ -3843,6 +3844,7 @@ function karteTrendHtml(uid, noTable) {
   if (taken.length) {
     const pts = taken.map(e => ({ label: shortExam(e.name), date: e.date, t: examTotal(e.name, uid), avg: ctx(e.name)?.avg ?? null }));
     h += `<section class="v2-block"><div class="v2-h"><h2>これまでの模試</h2><span class="v2-note">${taken.length}回</span></div>` +
+      (pts.length < 2 ? '<div class="v2-empty">推移のグラフは2回目の模試から出ます。</div>' : '') +
       (pts.length >= 2 ? trendSvg(pts.map(p => ({ label: p.label, me: p.t.total, avg: p.avg }))) + '<div class="legend"><span><i></i>本人</span><span><i class="avg"></i>クラス平均</span><span><i class="pl"></i>120点</span></div>' : '') +
       (noTable ? '</section>' : `<div class="tbl-wrap" style="margin-top:14px"><table class="v2-tbl"><thead><tr><th>模試</th><th>実施日</th><th class="r">午前</th><th class="r">午後</th><th class="r">合計</th><th class="r">クラス平均</th><th class="r">平均との差</th></tr></thead><tbody>` +
       pts.slice().reverse().map(p => { const d = p.avg != null ? Math.round((p.t.total - p.avg) * 10) / 10 : null;
@@ -4176,6 +4178,7 @@ const PRINT_W = 194 * 96 / 25.4, PRINT_H = 285 * 96 / 25.4;   // A4縦・カル�
 // ★の表が長いと1枚目ごと縮んで読めなくなる＝この倍率を下回るなら、表の後ろを「続き」のページへ送る
 const KP1_MINZ = 0.85;
 function kpUnsplit() {
+  document.querySelectorAll('.kp-blank').forEach(m => m.remove());
   document.querySelectorAll('.kp1-more').forEach(m => { const tb = m._src; if (tb?.isConnected) m.querySelectorAll('tbody>tr').forEach(tr => tb.appendChild(tr)); m.remove(); });
 }
 window.addEventListener('afterprint', kpUnsplit);
@@ -4221,6 +4224,13 @@ function smFitPrint() {
       fits(lo);
       sec.style.setProperty('--smz', lo.toFixed(3));
     }
+    // 全員分を両面で刷る＝1人の枚数が奇数なら白紙を1枚足して、次の人が必ず新しい紙の表から始まるようにする
+    // 枚数＝1ページずつに収めたブロックの数（1枚目・続き・出題マップ・模試成績一覧）
+    if (document.body.classList.contains('print-all-students'))
+      document.querySelectorAll('.student-print-page').forEach(pg => {
+        const n = pg.querySelectorAll('.kp1, .sm-fit, .ka-histp').length;
+        if (n && n % 2) pg.insertAdjacentHTML('beforeend', '<div class="kp-blank"></div>');
+      });
   } finally { document.body.classList.remove('sm-measuring'); mq.forEach(([r, t]) => { r.media.mediaText = t; }); }
 }
 window.addEventListener('beforeprint', smFitPrint);
