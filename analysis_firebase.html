@@ -915,6 +915,13 @@ thead th{border-bottom:1px solid var(--g5);}
 @media print{ .hs-tbl{min-width:0;} .hs-tbl col.hs-c0{width:8em;} .hs-tbl col.hs-call{width:5em;} .hs-tbl col.hs-cn{width:3em;} .hs-tbl .hs-s .hs-d{display:block;margin:0;font-size:6.5pt;line-height:1;} .hs-tbl th.ex-h{font-size:6.5pt;} }
 /* 印刷前の測定（smFitPrint）も同じ形で測る */
 body.sm-measuring .hs-tbl{min-width:0;} body.sm-measuring .hs-tbl col.hs-c0{width:8em;} body.sm-measuring .hs-tbl col.hs-call{width:5em;} body.sm-measuring .hs-tbl col.hs-cn{width:3em;} body.sm-measuring .hs-tbl .hs-s .hs-d{display:block;margin:0;font-size:6.5pt;line-height:1;} body.sm-measuring .hs-tbl th.ex-h{font-size:6.5pt;}
+/* 全部の模試の学生表：カルテの模試成績一覧と同じ線と間（10回分の枠を左から・縦の細線・最新の前に太線） */
+.ro-tbl col.ro-cno{width:7.5em;} .ro-tbl col.ro-cnm{width:8.5em;} .ro-tbl col.ro-cl{width:5.5em;} .ro-tbl col.ro-cg{width:5.5em;} .ro-tbl col.ro-cb{width:5.5em;}
+.ro-tbl td,.ro-tbl th{padding-top:3px!important;padding-bottom:3px!important;line-height:1.3;}
+.ro-tbl thead th{padding-top:6px!important;padding-bottom:6px!important;}
+.ro-tbl .ka-go{padding:0 8px;line-height:1.5;}
+.ro-tbl td.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@media print{ .ro-tbl col.ro-cno{width:6em;} .ro-tbl col.ro-cnm{width:6.5em;} .ro-tbl col.ro-cl,.ro-tbl col.ro-cg{width:4em;} .ro-tbl col.ro-cb{width:0;} }
 .hs-tbl .hs-d.dn{color:var(--ng);} .hs-tbl .hs-d.up{color:var(--ok);}
 .cat-tr tr.grp-row td{font-size:10.5px;letter-spacing:.14em;color:var(--g4);padding-top:14px;border-bottom:1px solid var(--g5);}
 @media print{ .ka-review{page-break-before:auto!important;} }
@@ -5433,14 +5440,16 @@ function renderRosterTrend(box) {
   });
   // 色は「この模試」の表と同じ：緑＝120点以上・赤＝その回のクラス平均より下
   const sc = (v, i) => v >= PASS_LINE ? ' hi' : avg[i] != null && v < avg[i] ? ' lo' : '';
-  const cell = (t, i) => !t ? '<td class="r mn muted">—</td>' : `<td class="r mn${t.full ? sc(t.total, i) : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
+  const cell = (t, i) => !t ? '<td class="r mn muted hs-s">—</td>' : `<td class="r mn hs-s${t.full ? sc(t.total, i) : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
   let h = `<section class="v2-block"><div class="trend-scroll">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg, rows.map(r => ({ uid: r.s.uid, label: r.s.name || stuNo(r.s) })), navg)}</div>` +
     '<div class="legend"><span><i class="cls"></i>クラス平均</span>' + (navg ? '<span class="nat-t"><i class="nat"></i>全国平均</span>' : '') + '<span><i class="stu"></i>学生1人ずつ</span><span><i class="hl"></i>強調した学生</span><span><i class="pl"></i>120点</span><button class="linkbtn" id="hlClear" hidden onclick="trendHl.clear();applyTrendHl(document.getElementById(\'roBody\'))"></button></div>' +
     '<div class="v2-cap">下の表で学生の行をクリックすると、その学生の線がグラフで強調され、各回の点数と名前が出ます。別の学生を押すとその学生に切り替わり、同じ学生をもう一度押すと解除。カルテを開くときは行の右端の「カルテ」から。</div></section>';
-  h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl"><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h')).join('')}${roTh('trend', 'last', '最新', 'r')}${roTh('trend', 'gain', '初回から', 'r')}<th></th></tr></thead><tbody>` +
-    `<tr class="avg-row"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td class="r mn">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td><td></td></tr>` +
-    (navg ? `<tr class="avg-row nat-row"><td></td><td>全国平均</td>${navg.map(v => `<td class="r mn">${v ?? '—'}</td>`).join('')}<td></td><td></td><td></td></tr>` : '') +
-    rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}<td class="r mn${r.last == null ? '' : sc(r.last, r.li)}">${r.last ?? '—'}</td>` +
+  // 模試は左から積む。最初から10回分の枠を取っておく（カルテの模試成績一覧と同じ）
+  const SLOTS = Math.max(10, exs.length), pad = '<td class="hs-s"></td>'.repeat(SLOTS - exs.length);
+  h += `<div class="tbl-wrap"><table class="v2-tbl trend-tbl hs-tbl ro-tbl"><colgroup><col class="ro-cno"><col class="ro-cnm">${'<col>'.repeat(SLOTS)}<col class="ro-cl"><col class="ro-cg"><col class="ro-cb"></colgroup><thead><tr>${roTh('trend', 'num', '学生番号')}${roTh('trend', 'name', '名前')}${exs.map((e, i) => roTh('trend', 'e' + i, `${esc(shortExam(e.name))}${e.date ? `<span>${esc(formatDate(e.date))}</span>` : ''}`, 'r ex-h hs-s')).join('')}${Array.from({ length: SLOTS - exs.length }, (_, i) => `<th class="r ex-h hs-s hs-empty">${exs.length + i + 1}回目</th>`).join('')}${roTh('trend', 'last', '最新', 'r hs-all')}${roTh('trend', 'gain', '初回から', 'r')}<th></th></tr></thead><tbody>` +
+    `<tr class="avg-row hs-avg"><td></td><td>クラス平均</td>${avg.map(v => `<td class="r mn hs-s">${v ?? '—'}</td>`).join('')}${pad}<td class="r mn hs-all">${avg.filter(v => v != null).slice(-1)[0] ?? '—'}</td><td></td><td></td></tr>` +
+    (navg ? `<tr class="avg-row nat-row hs-avg"><td></td><td>全国平均</td>${navg.map(v => `<td class="r mn hs-s">${v ?? '—'}</td>`).join('')}${pad}<td class="hs-all"></td><td></td><td></td></tr>` : '') +
+    rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}${pad}<td class="r mn hs-all${r.last == null ? '' : sc(r.last, r.li)}">${r.last ?? '—'}</td>` +
       `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td><td class="r"><button class="ka-go" data-go="${esc(r.s.uid)}">カルテ</button></td></tr>`).join('') +
     '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（押すたびに切り替え・同じ行でもう一度押すと解除）。右端の「カルテ」でその学生のカルテへ。赤＝その回のクラス平均より下、緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
   h += allMapHtml(exs);
