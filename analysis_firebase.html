@@ -868,6 +868,13 @@ thead th{border-bottom:1px solid var(--g5);}
 .ka-go:hover{background:var(--g1);}
 @media print{ .ka-go,#hlClear{display:none!important;} }
 .sv-bar[hidden]{display:none!important;}
+/* 学生：先生から差し戻されたマークシートのお知らせ */
+.ret-note{margin:28px 44px 0;max-width:1312px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--ng) 35%,transparent);background:color-mix(in srgb,var(--ng) 7%,var(--paper));color:var(--ng);border-radius:var(--rs);font-size:13px;line-height:1.6;}
+.ret-note[hidden]{display:none!important;}
+@media screen and (max-width:760px){ .ret-note{margin:16px 16px 0;} }
+.ret-note b{font-weight:700;}
+.ret-note a{display:inline-block;margin:6px 8px 0 0;padding:4px 12px;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none;font-size:12.5px;background:var(--paper);}
+@media print{ .ret-note{display:none!important;} }
 .cat-tr td.lo{color:var(--ng);}
 .hs-tbl .hs-d{display:inline-block;min-width:2.6em;margin-left:6px;font-size:10.5px;color:var(--g3);font-weight:400;}
 .hs-tbl tr.hs-tot td{background:var(--g1);font-weight:600;}
@@ -1247,6 +1254,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
   </nav>
 
   <main class="main">
+    <div class="ret-note" id="retNote" hidden></div>
     <!-- 成績推移 -->
     <div class="page" id="page-trend">
       <div class="page-header-row">
@@ -1922,6 +1930,7 @@ async function loadAllData() {
 
     await refP;
     renderAll();
+    renderRetNote();
     if (isTeacher) publishStats().catch(e => console.warn(e));
     if (!document.querySelector('.page.active')) showPage(isTeacher ? 'exam' : 'karte'); else renderV2();
 
@@ -1930,6 +1939,22 @@ async function loadAllData() {
     alert('データ取得エラー: ' + e.message);
   }
   hideLoading();
+}
+
+// 学生：先生から差し戻されたマークシート（status=draft＋returnedAt）を画面の上で知らせる。マークシートのその模試・時間帯へ飛ぶ
+function renderRetNote() {
+  const box = document.getElementById('retNote');
+  if (!box) return;
+  const uid = currentUser?.uid, list = [];
+  if (!isTeacher && uid) examList.forEach(e => ['AM', 'PM'].forEach(p => {
+    const r = allData[e.name]?.responses?.[uid]?.[p];
+    if (r?.status === 'draft' && r.returnedAt) list.push({ ex: e.name, p, t: r.returnedAt });
+  }));
+  if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
+  const tm = t => new Date(t).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  box.innerHTML = `<b>⚠ 先生からマークシートが差し戻されました（${list.length}件）</b>　まだ提出になっていないので、この模試の成績には入っていません。マークシートで用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。<br>` +
+    list.map(o => `<a href="marksheet_firebase.html?exam=${encodeURIComponent(o.ex)}&part=${o.p}" target="_blank" rel="noopener noreferrer">${esc(shortExam(o.ex))}・${o.p === 'AM' ? '午前' : '午後'}（${tm(o.t)} 差し戻し）を直す ↗</a>`).join('');
+  box.hidden = false;
 }
 
 // 読み込み済みのデータで全画面を描き直す（ログイン直後・学生の立場で見るの出入り）

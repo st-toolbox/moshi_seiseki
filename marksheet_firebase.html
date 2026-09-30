@@ -85,6 +85,10 @@ select:focus{outline:none;border-color:var(--g5);}
 
 .draft-banner{background:var(--warn-bg);border-bottom:1px solid #E9DCBC;padding:8px 18px;font-size:12px;font-weight:500;color:var(--warn);display:none;}
 .draft-banner.show{display:block;}
+.draft-banner.ret{background:#FBEAEA;color:#B3261E;border-bottom-color:#EBC7C7;}
+.ret-box{border:1px solid #EBC7C7;background:#FBEAEA;color:#B3261E;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;line-height:1.6;}
+.ret-box b{font-weight:700;}
+.ret-box .ret-go{display:inline-block;margin:6px 8px 0 0;padding:5px 12px;border:1px solid currentColor;border-radius:999px;background:#fff;color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
 
 .sheet-header{display:grid;gap:4px;padding:8px 16px;background:var(--g1);border-top:1px solid var(--line);border-bottom:1px solid var(--g5);position:sticky;top:52px;z-index:50;}
 .sheet-header-num{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--g4);text-align:center;letter-spacing:.06em;}
@@ -150,7 +154,7 @@ select:focus{outline:none;border-color:var(--g5);}
 /* 印刷：入力した解答の控え */
 @media print{
   body{background:#fff;}
-  .topbar,.footer,.modal-bg,.loading-overlay,.login-screen,.draft-banner,.paper-box{display:none!important;}
+  .topbar,.footer,.modal-bg,.loading-overlay,.login-screen,.draft-banner,.paper-box,.ret-box{display:none!important;}
   .content{max-width:none;padding:0;}
   .card{border:none;}
   .sheet-header{position:static;}
@@ -210,6 +214,7 @@ select:focus{outline:none;border-color:var(--g5);}
     <div class="page-kicker">言語聴覚士国家試験 模試</div>
     <div class="page-title">解答の入力</div>
   </div>
+  <div class="ret-box" id="retBox" hidden></div>
   <div class="card">
     <div class="card-inner">
       <div class="section-label">模試</div>
@@ -291,6 +296,7 @@ let originalAnswers = {};
 let currentStatus   = 'new';
 let examMasterCache = {};
 let paperMode = false;  // 紙から読み込んだ解答＝先生の確認待ちで出す（自分では提出にならない）
+let returnedAt = null;  // 先生から差し戻された時刻（差し戻し中だけ）
 let afterLoad = null;  // 読み込み完了後に1回だけ実行
 let paperFlags = {};   // 紙から読み込んだときの要確認（問題番号→{flag,alt}）
 
@@ -379,8 +385,37 @@ function loadExamList() {
       opt.textContent = e.name + (e.date ? '（' + formatDate(e.date) + '）' : '');
       sel.appendChild(opt);
     });
+    examNames = exams.map(e => e.name);
     hideLoading();
+    loadReturned();
+    // 分析アプリの差し戻しのお知らせから来たとき：?exam=…&part=AM|PM で開く
+    const qp = new URLSearchParams(location.search), qe = qp.get('exam'), qpart = qp.get('part');
+    if (qe && examNames.includes(qe)) openSheet(qe, qpart === 'PM' ? 'PM' : 'AM');
   }).catch(e => { hideLoading(); showAlert('模試リストの取得に失敗しました'); });
+}
+
+// ===== 差し戻されたマークシートの一覧（画面の上に出す） =====
+let examNames = [];
+function fmtTime(t) { return new Date(t).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+function htmlEsc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function openSheet(ex, part) {
+  document.getElementById('examSelect').value = ex;
+  if (currentPart !== part) { currentExam = ''; setPart(part); }
+  checkAndLoad();
+}
+function loadReturned() {
+  const box = document.getElementById('retBox');
+  if (!currentUser || !examNames.length) { box.hidden = true; return; }
+  Promise.all(examNames.map(ex => db.ref(`responses/${ex}/${currentUser.uid}`).once('value').then(v => [ex, v.val()]).catch(() => [ex, null])))
+    .then(rows => {
+      const list = [];
+      rows.forEach(([ex, r]) => ['AM', 'PM'].forEach(p => { const x = r && r[p]; if (x && x.status === 'draft' && x.returnedAt) list.push({ ex, p, t: x.returnedAt }); }));
+      if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
+      box.innerHTML = `<b>⚠ 先生から差し戻されたマークシートがあります（${list.length}件）</b><br>用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。<br>` +
+        list.map(o => `<button class="ret-go" data-ex="${htmlEsc(o.ex)}" data-p="${o.p}">${htmlEsc(o.ex)}・${o.p === 'AM' ? '午前' : '午後'}（${fmtTime(o.t)}）を開く</button>`).join('');
+      box.querySelectorAll('.ret-go').forEach(b => b.addEventListener('click', () => openSheet(b.dataset.ex, b.dataset.p)));
+      box.hidden = false;
+    });
 }
 
 function formatDate(d) {
@@ -422,6 +457,7 @@ function checkAndLoad() {
     originalAnswers = data ? { ...data.answers } : {};
     answers         = data ? { ...data.answers } : {};
     currentStatus   = data ? data.status : 'new';
+    returnedAt      = data && data.status === 'draft' && data.returnedAt ? data.returnedAt : null;
     paperMode       = !!data && (data.status === 'paper_pending' || (data.status === 'draft' && data.source === 'paper'));
     updateStatusUI();
     renderSheet();
@@ -437,6 +473,10 @@ function updateStatusUI() {
   const btn    = document.getElementById('submitBtn');
   const banner = document.getElementById('draftBanner');
   badge.className = 'badge';
+  banner.classList.toggle('ret', currentStatus === 'draft' && !!returnedAt);
+  banner.textContent = currentStatus === 'draft' && returnedAt
+    ? `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。まだ提出になっていません。`
+    : '⚠ 解答はまだ送信されていません（一時保存中）';
   if (currentStatus === 'paper_pending') {
     badge.classList.add('badge-draft'); badge.textContent = '先生の確認待ち';
     btn.textContent = '直して確認に回す'; banner.classList.remove('show');
@@ -444,7 +484,7 @@ function updateStatusUI() {
     badge.classList.add('badge-done'); badge.textContent = '提出済';
     btn.textContent = '修正して再送信'; banner.classList.remove('show');
   } else if (currentStatus === 'draft') {
-    badge.classList.add('badge-draft'); badge.textContent = '一時保存中';
+    badge.classList.add('badge-draft'); badge.textContent = returnedAt ? '差し戻し' : '一時保存中';
     btn.textContent = '解答を送信する'; banner.classList.add('show');
   } else {
     badge.classList.add('badge-new'); badge.textContent = '新規入力';
@@ -533,7 +573,8 @@ function handleSave() {
     answers, status: 'draft',
     email: currentUser.email,
     updatedAt: Date.now(),
-    ...(paperMode ? { source: 'paper' } : {})
+    ...(paperMode ? { source: 'paper' } : {}),
+    ...(paperMode && returnedAt ? { returnedAt } : {})
   }).then(() => {
     hideLoading();
     showAlert('一時保存しました', () => { currentStatus='draft'; updateStatusUI(); });
@@ -554,6 +595,7 @@ function handleSubmit() {
       submittedAt: Date.now()
     }).then(() => {
       hideLoading();
+      returnedAt = null; loadReturned();
       showAlert(`送信完了！\n得点：${score}点`, () => { currentStatus='submitted'; updateStatusUI(); });
     }).catch(e => { hideLoading(); showAlert('送信に失敗しました: '+e.message); });
   });
@@ -571,6 +613,7 @@ function submitPaper() {
       paperAt: Date.now()
     }).then(() => {
       hideLoading();
+      returnedAt = null; loadReturned();
       showAlert('先生の確認に回しました。\n用紙を先生に提出してください。', () => { currentStatus = 'paper_pending'; updateStatusUI(); });
     }).catch(e => { hideLoading(); showAlert('送信に失敗しました: ' + e.message); });
   }, '確認に回す');
