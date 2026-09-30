@@ -1114,6 +1114,15 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 }
 .sm-who{font-style:normal;}
 @media print{ .sm-row{break-inside:avoid;} .sm-bar i{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
+/* 印刷（カルテ以外＝この模試ページ）：A4では1列が約350pxしかない＝数字の列を詰めて科目名に幅を回す（カルテの .sm-fit は縮小率を測って決めるので触らない） */
+@media print{
+  .sm:not(.sm-fit .sm) :is(.sm-hd,.sm-row){grid-template-columns:minmax(0,1fr) 2.6em 48px 2.8em 3em;gap:0 6px;font-size:11px;}
+  .sm-u:not(.sm-fit .sm) :is(.sm-hd,.sm-row){grid-template-columns:minmax(0,1fr) 2.6em 2.8em 40px 2.8em 3em;}
+  .sm:not(.sm-fit .sm) .sm-row{padding:3px 0;line-height:1.25;}
+  .sm:not(.sm-fit .sm) .sm-hd>span{white-space:normal;font-size:9px;line-height:1.15;overflow-wrap:anywhere;}
+  .sm:not(.sm-fit .sm) .sm-row.lv2 .sm-name{padding-left:10px;}
+  .sm:not(.sm-fit .sm) .sm-row.lv3 .sm-name{padding-left:20px;}
+}
 @media screen and (max-width:760px){
   .qg{grid-template-columns:1fr;gap:4px;}
   .qg-grid{grid-template-columns:repeat(10,minmax(0,1fr));}
