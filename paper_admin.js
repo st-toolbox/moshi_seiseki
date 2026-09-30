@@ -98,7 +98,6 @@
 @media (max-width:900px){ .ps .ps-pgrid{grid-template-columns:1fr;} }
 .ps .ps-pbtn{margin-top:16px;width:100%;padding:13px;border:none;border-radius:6px;background:var(--g5);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer;}
 .ps .ps-hint{font-size:12px;color:var(--g4);line-height:1.7;margin-top:8px;}
-.ps .ps-total{font-family:'DM Mono',monospace;font-size:12px;color:var(--g4);margin-top:8px;text-align:right;}
 .ps .ps-howto{margin-top:12px;}
 .ps .ps-howto li{font-size:12.5px;line-height:1.75;color:var(--g5);margin-left:18px;}
 .ps .ps-howto a{color:var(--ps-am);cursor:pointer;text-decoration:underline;}
@@ -144,14 +143,11 @@
           <select id="psPExamSel" style="margin-bottom:6px"><option value="">登録済みの模試から選ぶ…</option></select>
           <input type="text" id="psPExam" placeholder="例：第2回 校内模試">
           <div class="ps-lb" style="margin-top:14px">時間帯</div>
-          <div class="ps-seg" id="psPPart" style="--n:3">
-            <button data-p="AM">午前</button><button data-p="PM">午後</button><button data-p="BOTH" class="on">両方</button>
+          <div class="ps-seg" id="psPPart" style="--n:2">
+            <button data-p="AM" class="on">午前</button><button data-p="PM">午後</button>
           </div>
-          <div class="ps-lb" style="margin-top:14px">部数（人数）</div>
-          <input type="number" id="psPCopies" min="1" max="200" value="5">
-          <div class="ps-total" id="psPTotal"></div>
           <button class="ps-pbtn" id="psPBtn">印刷する</button>
-          <div class="ps-hint">A4・<b>拡大縮小なし（100%）</b>・余白なしで印刷。モノクロでよい。</div>
+          <div class="ps-hint">A4・<b>拡大縮小なし（100%）</b>・余白なしで印刷。モノクロでよい。部数は印刷画面で指定する。</div>
           <ol class="ps-howto">
             <li>学生に配り、HB以上の鉛筆で塗ってもらう</li>
             <li>学生がマークシート画面の「撮って読み込む」で撮影 → 先生の確認待ちになる（まだ提出ではない）</li>
@@ -183,7 +179,6 @@
     // 印刷ページ
     $('psPExam').addEventListener('input', () => { $('psPExamSel').value = ''; drawPrint(); });
     $('psPExamSel').addEventListener('change', e => { if (e.target.value) { $('psPExam').value = e.target.value; drawPrint(); } });
-    $('psPCopies').addEventListener('input', drawPrint);
     $('psPPart').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       pPart = b.dataset.p;
@@ -248,19 +243,16 @@
   const loading = t => window.showLoading(t), unloading = () => window.hideLoading();
 
   // ===== 印刷 =====
-  let pPart = 'BOTH';
+  let pPart = 'AM';
   function drawPrint() {
     const exam = $('psPExam').value.trim();
-    const n = Math.max(1, Math.min(200, parseInt($('psPCopies').value) || 1));
-    const parts = pPart === 'BOTH' ? ['AM', 'PM'] : [pPart];
-    $('psPPrev').innerHTML = parts.map(p => `<div>${OMR_LAYOUT.svg({ part: p, exam })}</div>`).join('');
-    $('psPTotal').textContent = parts.length > 1 ? `午前 ${n}枚 → 午後 ${n}枚の順（計 ${n * 2} 枚）` : `${n} 枚`;
-    return { exam, n, parts };
+    $('psPPrev').innerHTML = `<div>${OMR_LAYOUT.svg({ part: pPart, exam })}</div>`;
+    return exam;
   }
   function doPrint() {
-    const { exam, n, parts } = drawPrint();
-    // 午前をn枚まとめて→午後をn枚（配るとき時間帯ごとに束で渡せる）
-    $('psPrintArea').innerHTML = parts.map(p => `<div class="ps-sheet">${OMR_LAYOUT.svg({ part: p, exam })}</div>`.repeat(n)).join('');
+    const exam = drawPrint();
+    // 1枚だけ刷る（部数はブラウザの印刷画面で指定）
+    $('psPrintArea').innerHTML = `<div class="ps-sheet">${OMR_LAYOUT.svg({ part: pPart, exam })}</div>`;
     document.body.classList.add('ps-printing');
     window.print();
     setTimeout(() => document.body.classList.remove('ps-printing'), 1000);
