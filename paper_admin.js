@@ -16,8 +16,8 @@
 .ps .ps-drop.over{border-color:var(--ps-am);background:var(--ps-am-bg);color:var(--ps-am);}
 .ps .ps-drop b{color:var(--g5);}
 @media (hover:none){ .ps .ps-drop{display:none;} }
-.ps .ps-dock{position:sticky;bottom:0;z-index:5;background:#fff;border:1px solid var(--g5);border-radius:10px;padding:10px;margin-top:6px;display:grid;grid-template-columns:2fr 1fr 1.4fr;gap:8px;box-shadow:0 -4px 14px rgba(23,26,24,.06);}
-@media (max-width:560px){ .ps .ps-dock{grid-template-columns:1.5fr 1fr;} .ps .ps-all{grid-column:1/-1;} }
+.ps .ps-dock{position:sticky;bottom:0;z-index:5;background:#fff;border:1px solid var(--g5);border-radius:10px;padding:10px;margin-top:6px;display:grid;grid-template-columns:2fr 1fr;gap:8px;box-shadow:0 -4px 14px rgba(23,26,24,.06);}
+@media (max-width:560px){ .ps .ps-dock{grid-template-columns:1.5fr 1fr;} }
 .ps .ps-btn{padding:12px 10px;border-radius:6px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;}
 .ps .ps-btn svg{width:19px;height:19px;flex-shrink:0;}
 .ps .ps-cam{background:var(--ps-am);color:#fff;}
@@ -80,6 +80,13 @@
 .ps .ps-pr .ps-btn{padding:6px 14px;font-size:12.5px;}
 .ps .ps-pr .pb{padding:4px 16px 14px 36px;}
 .ps .ps-pr .pb .ps-msgs{color:var(--g4);margin-bottom:6px;}
+.ps .ps-ph{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
+.ps .ps-ph .ps-lb{flex:1;margin:0;}
+.ps .ps-ph .ps-btn{padding:7px 14px;font-size:12.5px;}
+.ps .ps-pr .tg{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--ps-am-bg);color:var(--ps-am);white-space:nowrap;}
+.ps .ps-pr .pbw{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:16px;}
+.ps .ps-pr .pbw .ps-img{min-width:0;}
+@media (max-width:700px){ .ps .ps-pr .pbw{grid-template-columns:1fr;} }
 @media (max-width:700px){ .ps details.ps-pr>summary{display:grid;grid-template-columns:10px 1fr auto auto;grid-template-areas:'tw nm tm tm' '. inf ok ng';row-gap:4px;column-gap:8px;} .ps .ps-pr .tw{grid-area:tw;} .ps .ps-pr .nm{grid-area:nm;} .ps .ps-pr .tm{grid-area:tm;text-align:right;} .ps .ps-pr .inf{grid-area:inf;align-self:center;} .ps .ps-pr .ps-reg{grid-area:ok;} .ps .ps-pr .ps-del{grid-area:ng;} .ps .ps-pr .pb{padding-left:14px;} }
 .ps .ps-sc.done{opacity:.75;} .ps .ps-sc.done .ps-body{display:none;}
 .ps .ps-sc.err .ps-head{background:var(--ng-bg);}
@@ -117,6 +124,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   const partName = p => p === 'PM' ? '午後' : '午前';
+  const EMPTY = '<div class="ps-empty" id="psEmpty">下の<b>撮る</b>で用紙を1枚ずつ撮影する。読み取れた用紙は上の<b>確認待ち</b>にたまる（まだ提出ではない）。<br>学籍番号から学生を自動で選び、午前・午後も用紙から判定する。読み切れない用紙だけがここに残る。</div>';
   const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   // ===== 組み立て（ページ・モーダル・印刷の置き場） =====
@@ -142,25 +150,24 @@
           <ol class="ps-howto">
             <li>スマホを忘れた学生に配り、HB以上の鉛筆で塗ってもらう</li>
             <li>学生がマークシート画面の「撮って読み込む」で撮影 → 先生の確認待ちになる（まだ提出ではない）</li>
-            <li>回収した用紙を <a data-go="paper_scan">マークシート取り込み</a> で見比べて許可すると提出になる。用紙を教員が撮影・スキャンして登録してもよい</li>
+            <li>回収した用紙を <a data-go="paper_scan">マークシート取り込み</a> で見比べて許可すると提出になる。教員が用紙を撮影・スキャンしても、同じ確認待ちにたまる</li>
           </ol>
         </div>
         <div class="ps-card"><div class="ps-lb">見本</div><div class="ps-prev" id="psPPrev"></div></div>
       </div>
     </div>
     <div class="page ps" id="page-paper_scan">
-      <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が撮って送った紙の解答を用紙と見比べて許可する／用紙を撮影・スキャンして登録する</div></div><div class="ps-counts" id="psCounts"></div></div>
+      <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が撮って送った解答・教員が撮った用紙は、まず確認待ちにたまる。用紙と見比べて許可すると提出になる</div></div><div class="ps-counts" id="psCounts"></div></div>
       <div class="ps-card">
         <div class="ps-lb">模試</div>
         <select id="psExam"></select>
         <div class="ps-drop" id="psDrop">スキャンした画像・PDFをここに<b>ドラッグ</b>（複数可）、またはクリックして選ぶ</div>
       </div>
       <div id="psPend"></div>
-      <div id="psList"><div class="ps-empty" id="psEmpty">下の<b>撮る</b>で用紙を1枚ずつ撮影する（撮るたびに読み取ってここに並ぶ）。<br>学籍番号から学生を自動で選び、午前・午後も用紙から判定する。</div></div>
+      <div id="psList">${EMPTY}</div>
       <div class="ps-dock">
         <button class="ps-btn ps-cam" data-pick="psCam">${CAM}撮る</button>
         <button class="ps-btn ps-sub" data-pick="psFile">画像・PDF</button>
-        <button class="ps-btn ps-all" id="psAll" disabled>確認済みをまとめて登録</button>
       </div>
       <input type="file" id="psCam" accept="image/*" capture="environment" hidden>
       <input type="file" id="psFile" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden>
@@ -187,7 +194,6 @@
     document.querySelectorAll('#page-paper_scan [data-pick]').forEach(b => b.addEventListener('click', () => pick(b.dataset.pick)));
     $('psCam').addEventListener('change', e => takeFiles(e.target));
     $('psFile').addEventListener('change', e => takeFiles(e.target));
-    $('psAll').addEventListener('click', registerAll);
     const drop = $('psDrop');
     drop.addEventListener('click', () => pick('psFile'));
     ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
@@ -218,6 +224,8 @@
     if (d.pa) return setPend(d.pa, +d.q, +d.v);
     if (d.approve) return approvePending(d.approve, d.part);
     if (d.ret) return returnPending(d.ret, d.part);
+    if (d.cancel) return cancelScan(d.cancel, d.part);
+    if (d.bulk) return approveScanned();
     if (d.ans) return setAns(+d.ans, +d.q, +d.v);
     if (d.sp) return setSheetPart(+d.sp, d.part);
     if (d.reg) return register(+d.reg);
@@ -311,55 +319,118 @@
     }
     return out.sort((a, b) => (a.r.paperAt || 0) - (b.r.paperAt || 0));
   }
+  const pendSheet = {};  // uid|part → 教員が撮った用紙（この画面を開いている間だけ写真を出す）
+  // 教員が撮って回した分のうち、学生の送信と食い違いがなく直してもいないもの＝まとめて許可してよい
+  function bulkable() {
+    return pendingList().filter(({ uid, part, r }) => r.scannedBy && !pendDiff(uid, part, r).fixed
+      && !(r.prev && r.prev.answers && r.prev.status !== 'submitted' && ansDiff(r.prev.answers, r.answers, part).length));
+  }
+  function ansDiff(a, b, part) {
+    const start = part === 'PM' ? 101 : 1, out = [];
+    for (let q = start; q < start + 100; q++) if (String((a || {})[q] ?? '') !== String((b || {})[q] ?? '')) out.push(q);
+    return out;
+  }
+  function pendDiff(uid, part, r) {
+    const k = uid + '|' + part;
+    const a = pend[k] ||= Object.fromEntries(Object.entries(r.answers || {}).filter(([, v]) => v != null).map(([q, v]) => [q, +v]));
+    return { a, fixed: ansDiff(a, r.answers, part).length };
+  }
   function renderPending() {
     const box = $('psPend'), list = pendingList();
     if (!list.length) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="ps-lb" style="margin:6px 0 10px">学生から届いた確認待ち（${list.length}件）— 用紙と見比べて許可すると提出になる</div><div class="ps-pl">` +
+    const nb = bulkable().length;
+    box.innerHTML = `<div class="ps-ph"><div class="ps-lb">確認待ち（${list.length}件）— 用紙と見比べて許可すると提出になる</div>${nb ? `<button class="ps-btn ps-reg" data-bulk="1">教員が撮った分をまとめて許可（${nb}件）</button>` : ''}</div><div class="ps-pl">` +
       list.map(({ uid, part, r }) => {
-        const k = uid + '|' + part;
-        const a = pend[k] ||= Object.fromEntries(Object.entries(r.answers || {}).filter(([, v]) => v != null).map(([q, v]) => [q, +v]));
+        const k = uid + '|' + part, { a, fixed } = pendDiff(uid, part, r);
         const start = part === 'PM' ? 101 : 1, n = Object.keys(a).length;
         let grid = '';
         for (let q = start; q < start + 100; q++) grid += `<div class="ps-ar"><span class="q">${q}</span>${[1, 2, 3, 4, 5].map(v =>
           `<button class="bb${a[q] === v ? ' on' : ''}" data-pa="${esc(k)}" data-q="${q}" data-v="${v}">${v}</button>`).join('')}</div>`;
         const who = studs[uid] ? studentLabel(uid) : (r.email || uid);
         const t = r.paperAt ? new Date(r.paperAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-        const fixed = Object.keys(a).filter(q => a[q] !== (r.answers && r.answers[q] != null ? +r.answers[q] : undefined)).length
-          + Object.keys(r.answers || {}).filter(q => r.answers[q] != null && a[q] === undefined).length;
+        const byT = !!r.scannedBy, notes = [];
+        if (fixed) notes.push(`<b>${fixed}問直した</b>`);
+        if (byT && r.prev && r.prev.status === 'submitted') notes.push(`<b>提出済み（${r.prev.score ?? '-'}点）を置き換え</b>`);
+        else if (byT && r.prev && r.prev.answers) {
+          const d = ansDiff(r.prev.answers, r.answers, part).length;
+          notes.push(d ? `<b>学生の送信と${d}問違う</b>` : '学生の送信と一致');
+        }
+        const sh = pendSheet[k];
+        const note = byT
+          ? '教員が撮った用紙。違う所は押して直してから許可する。「取り消し」で撮る前の状態に戻る。' + (r.prev && r.prev.answers && r.prev.status !== 'submitted' ? `学生が送った内容と違う問：${(d => d.length ? d.slice(0, 20).join('・') + (d.length > 20 ? '…' : '') : 'なし')(ansDiff(r.prev.answers, r.answers, part))}` : '')
+          : '用紙と違う所は押して直してから許可する。用紙を撮ると、この内容との違いを自動で出す。';
         return `<details class="ps-pr" data-pend="${esc(k)}"${pendOpen[k] ? ' open' : ''}>
           <summary><svg class="tw" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-            <span class="nm">${esc(who)}・${partName(part)}</span>
-            <span class="inf">${n}問解答・空欄${100 - n}${fixed ? `・<b>${fixed}問直した</b>` : ''}</span>
+            <span class="nm">${esc(who)}・${partName(part)}</span>${byT ? '<span class="tg">教員撮影</span>' : ''}
+            <span class="inf">${n}問解答・空欄${100 - n}${notes.length ? '・' + notes.join('・') : ''}</span>
             <span class="tm">${esc(t)}</span>
             <button class="ps-btn ps-reg" data-approve="${esc(uid)}" data-part="${part}">許可</button>
-            <button class="ps-btn ps-del" data-ret="${esc(uid)}" data-part="${part}">差し戻し</button>
+            ${byT ? `<button class="ps-btn ps-del" data-cancel="${esc(uid)}" data-part="${part}">取り消し</button>`
+                  : `<button class="ps-btn ps-del" data-ret="${esc(uid)}" data-part="${part}">差し戻し</button>`}
           </summary>
-          <div class="pb">
-            <div class="ps-msgs">用紙と違う所は押して直してから許可する。用紙を撮ると、この内容との違いを自動で出す。</div>
-            <div class="ps-agrid">${grid}</div>
+          <div class="pb"><div class="ps-msgs">${esc(note)}</div>
+            ${sh ? `<div class="pbw"><div class="ps-img" data-pimg="${esc(k)}"></div><div class="ps-agrid">${grid}</div></div>` : `<div class="ps-agrid">${grid}</div>`}
           </div></details>`;
       }).join('') + '</div>';
+    box.querySelectorAll('[data-pimg]').forEach(el => {
+      const sh = pendSheet[el.dataset.pimg]; if (!sh) return;
+      sh.ovl ||= OMR_UI.overlay(sh.canvas, sh.res, 1000);
+      el.appendChild(sh.ovl);
+    });
   }
   function setPend(k, q, v) { const a = pend[k]; if (a[q] === v) delete a[q]; else a[q] = v; renderPending(); }
+  async function doApprove(ex, uid, part) {
+    const k = uid + '|' + part, answers = pend[k];
+    const { score, categoryScores, wrongAnswers } = calcScore(answers, ex, part);
+    const prev = resp[uid][part];
+    const data = { answers, status: 'submitted', score, categoryScores, wrongAnswers,
+      email: prev.email || (studs[uid] && studs[uid].email) || '', submittedAt: Date.now(), source: 'paper',
+      paperAt: prev.paperAt || null, scannedBy: prev.scannedBy || null, approvedBy: (currentUser && currentUser.email) || '',
+      ...(prev.prev ? { prev: prev.prev } : {}) };  // 教員撮影で置き換えた前の解答（学生の送信など）は残す
+    await db.ref(`responses/${ex}/${uid}/${part}`).set(data);
+    resp[uid][part] = data; delete pend[k]; delete pendSheet[k];
+    syncApp(ex, uid, part, data);
+    return score;
+  }
   function approvePending(uid, part) {
     const ex = currentExamName();
     if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
-    const k = uid + '|' + part, answers = pend[k];
     confirmBox(`${studentLabel(uid) || uid}・${partName(part)}\n\n用紙と見比べた内容で提出にします。`, async () => {
       loading('登録中...');
       try {
-        const { score, categoryScores, wrongAnswers } = calcScore(answers, ex, part);
-        const prev = resp[uid][part];
-        const data = { answers, status: 'submitted', score, categoryScores, wrongAnswers,
-          email: prev.email || (studs[uid] && studs[uid].email) || '', submittedAt: Date.now(), source: 'paper',
-          paperAt: prev.paperAt || null, approvedBy: (currentUser && currentUser.email) || '' };
-        await db.ref(`responses/${ex}/${uid}/${part}`).set(data);
-        resp[uid][part] = data; delete pend[k];
-        unloading(); renderPending(); updateCounts(); syncApp(ex, uid, part, data);
-        sheets.forEach(o => !o.done && o.res && o.res.ok && renderSheet(o));
+        const score = await doApprove(ex, uid, part);
+        unloading(); renderPending(); updateCounts();
+        sheets.forEach(o => o.res && o.res.ok && renderSheet(o));
         alertBox(`提出にしました（${score}点）`);
       } catch (e) { unloading(); alertBox('登録に失敗しました: ' + e.message); }
     }, '許可する');
+  }
+  function approveScanned() {
+    const ex = currentExamName();
+    if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
+    const list = bulkable(); if (!list.length) return;
+    confirmBox(`教員が撮った ${list.length} 件を、読み取った内容のまま提出にします。\n（直した行・学生の送信と違う行は含まない。1件ずつ許可する）`, async () => {
+      let ok = 0; const ng = [];
+      for (const { uid, part } of list) {
+        loading(`登録中...（${ok + ng.length + 1}/${list.length}）`);
+        try { await doApprove(ex, uid, part); ok++; } catch (e) { ng.push(studentLabel(uid) + '：' + e.message); }
+      }
+      unloading(); renderPending(); updateCounts();
+      alertBox(`${ok} 件を提出にしました。` + (ng.length ? '\n\n失敗：\n' + ng.join('\n') : ''));
+    }, 'まとめて許可');
+  }
+  // 教員が撮って回した分を外す＝撮る前の状態（学生の送信・提出済み・なし）に戻す
+  function cancelScan(uid, part) {
+    confirmBox(`${studentLabel(uid) || uid}・${partName(part)}\n\n教員が撮った用紙を確認待ちから外します（撮る前の状態に戻る）。`, async () => {
+      const ex = currentExamName(), cur = resp[uid][part], k = uid + '|' + part;
+      try {
+        const ref = db.ref(`responses/${ex}/${uid}/${part}`);
+        if (cur.prev) await ref.set(cur.prev); else await ref.remove();
+        if (cur.prev) resp[uid][part] = cur.prev; else delete resp[uid][part];
+        delete pend[k]; delete pendSheet[k];
+        renderPending(); updateCounts(); syncApp(ex, uid, part, cur.prev || null);
+      } catch (e) { alertBox('取り消しに失敗しました: ' + e.message); }
+    }, '取り消す');
   }
   function returnPending(uid, part) {
     confirmBox(`${studentLabel(uid) || uid}・${partName(part)}\n\n学生に差し戻します（一時保存に戻り、学生が直して出し直せる）。`, async () => {
@@ -376,7 +447,7 @@
   function syncApp(ex, uid, part, data) {
     try {
       const d = typeof allData === 'object' && allData[ex];
-      if (d) { d.responses ||= {}; (d.responses[uid] ||= {})[part] = data; }
+      if (d) { d.responses ||= {}; if (data) (d.responses[uid] ||= {})[part] = data; else if (d.responses[uid]) delete d.responses[uid][part]; }
     } catch (e) {}
   }
 
@@ -389,9 +460,6 @@
       const np = pendingList().length;
       $('psCounts').textContent = (np ? `確認待ち ${np}件　` : '') + `提出済み　午前 ${am}人・午後 ${pm}人`;
     }
-    const ready = sheets.filter(s => !s.done && s.res && s.res.ok && isClean(s)).length;
-    $('psAll').disabled = !ready;
-    $('psAll').textContent = ready ? `確認済みをまとめて登録（${ready}枚）` : '確認済みをまとめて登録';
   }
 
   // ===== 画像を受け取る =====
@@ -416,7 +484,8 @@
         await new Promise(r => setTimeout(r, 20));
         let res;
         try { res = OMR_UI.readCanvas(pg.canvas); } catch (e) { res = { ok: false, reason: e.message, tip: OMR_UI.TIPS }; }
-        addSheet({ label: pg.label, canvas: pg.canvas, res });
+        const sh = addSheet({ label: pg.label, canvas: pg.canvas, res });
+        if (isClean(sh)) { try { await queue(sh); } catch (e) { alertBox('確認待ちに回せませんでした: ' + e.message); } }
       }
     }
     unloading();
@@ -446,6 +515,7 @@
     list.insertBefore(el, list.firstChild);
     renderSheet(s);
     updateCounts();
+    return s;
   }
 
   // 要確認がなく、学生が決まり、上書きでないもの
@@ -455,6 +525,7 @@
     if (Object.keys(s.res.flags).some(q => !s.resolved || !s.resolved[q])) return false;
     const ex = resp[s.uid] && resp[s.uid][s.part];
     if (ex && ex.status === 'submitted') return false;
+    if (ex && ex.status === 'paper_pending' && ex.scannedBy) return false;
     if (dupOf(s)) return false;
     return true;
   }
@@ -487,8 +558,7 @@
     const n = Object.keys(s.answers).length;
     const ex = s.uid && resp[s.uid] && resp[s.uid][s.part];
     let badge;
-    if (s.done) badge = `<span class="ps-badge b-ok">登録済 ${s.doneScore}点</span>`;
-    else if (isClean(s)) badge = '<span class="ps-badge b-ok">登録できる</span>';
+    if (isClean(s)) badge = '<span class="ps-badge b-ok">回せる</span>';
     else badge = '<span class="ps-badge b-warn">要確認</span>';
 
     const msgs = [];
@@ -497,16 +567,17 @@
     else if (OMR_UI.idOfEmail(studs[s.uid].email) !== id) msgs.push(`<div class="m-warn">用紙の学籍番号は OE${esc(id)}（手で選んだ学生と違う）</div>`);
     else msgs.push(`<div class="m-ok">学籍番号 OE${esc(id)} → 一致</div>`);
     if (!s.raw.part) msgs.push('<div class="m-warn">午前・午後が用紙から読めない。どちらか確かめてください。</div>');
-    if (ex && ex.status === 'submitted') msgs.push(`<div class="m-ng">この学生の${partName(s.part)}は提出済み（${ex.score ?? '-'}点${ex.source === 'paper' ? '・紙' : ''}）。登録すると上書き。</div>`);
+    if (ex && ex.status === 'submitted') msgs.push(`<div class="m-ng">この学生の${partName(s.part)}は提出済み（${ex.score ?? '-'}点${ex.source === 'paper' ? '・紙' : ''}）。確認待ちに回すと、許可したときにこの用紙で置き換わる（取り消せば元に戻る）。</div>`);
+    else if (ex && ex.status === 'paper_pending' && ex.scannedBy) msgs.push(`<div class="m-warn">この学生の${partName(s.part)}は、教員が撮った用紙がすでに確認待ちにある。回すとこの用紙で入れ替わる。</div>`);
     else if (ex && ex.status === 'paper_pending') {
       // 学生が自分で読み込んで送ってきた内容と、いま撮った用紙を突き合わせる
       const theirs = ex.answers || {}, start = s.part === 'PM' ? 101 : 1, diff = [];
       for (let q = start; q < start + 100; q++) if (String(theirs[q] ?? '') !== String(s.answers[q] ?? '')) diff.push(q);
       msgs.push(diff.length
-        ? `<div class="m-warn">学生が送った確認待ちの内容と <b>${diff.length} 問</b>違う（問${diff.slice(0, 12).join('・')}${diff.length > 12 ? '…' : ''}）。登録するとこの用紙の内容で提出になる。</div>`
-        : '<div class="m-ok">学生が送った確認待ちの内容と全問一致。登録すると提出になる。</div>');
+        ? `<div class="m-warn">学生が送った確認待ちの内容と <b>${diff.length} 問</b>違う（問${diff.slice(0, 12).join('・')}${diff.length > 12 ? '…' : ''}）。確認待ちでこの用紙の内容に入れ替わる（学生の送信は取り消しで戻せる）。</div>`
+        : '<div class="m-ok">学生が送った確認待ちの内容と全問一致。</div>');
     }
-    else if (ex) msgs.push(`<div class="m-warn">この学生の${partName(s.part)}は一時保存中の解答あり。登録すると置き換わる。</div>`);
+    else if (ex) msgs.push(`<div class="m-warn">この学生の${partName(s.part)}は一時保存中の解答あり。許可するとこの用紙で置き換わる。</div>`);
     if (s.uid && dupOf(s)) msgs.push(`<div class="m-warn">同じ学生・${partName(s.part)}の用紙が他にも読み込まれている。</div>`);
     msgs.push(`<div>${n} 問を読み取り（空欄 ${100 - n} 問）${fq.length ? `・<span class="m-warn">要確認 ${fq.length} 問</span>` : ''}</div>`);
 
@@ -536,7 +607,7 @@
           ${fixes}
           <details class="ps-grid" data-grid="${s.key}"${s.gridOpen ? ' open' : ''}><summary>読み取った答えを全部見る・直す</summary><div class="ps-agrid">${grid}</div></details>
           <div class="ps-acts">
-            <button class="ps-btn ps-reg" data-reg="${s.key}">この内容で登録</button>
+            <button class="ps-btn ps-reg" data-reg="${s.key}">確認待ちに回す</button>
             <button class="ps-btn ps-del" data-rm="${s.key}">外す</button>
           </div>
         </div>
@@ -569,6 +640,7 @@
     const s = sheetOf(k); s.removed = true;
     sheets = sheets.filter(o => o !== s);
     const el = $('psSc' + k); el && el.remove();
+    if (!sheets.length && !$('psEmpty')) $('psList').innerHTML = EMPTY;
     updateCounts();
   }
 
@@ -594,56 +666,44 @@
     return { score, categoryScores: catStats, wrongAnswers: wrongList };
   }
 
-  async function write(s) {
+  // 教員が撮った用紙を確認待ちに回す（採点しない）。前の状態は prev に残し、取り消しで戻す
+  async function queue(s) {
     const ex = currentExamName();
-    const { score, categoryScores, wrongAnswers } = calcScore(s.answers, ex, s.part);
+    const cur = resp[s.uid] && resp[s.uid][s.part];
+    const prev = cur && cur.scannedBy ? cur.prev : cur;   // 教員撮影の上書きなら、その前の状態を引き継ぐ
     const data = {
-      answers: s.answers, status: 'submitted', score, categoryScores, wrongAnswers,
-      email: studs[s.uid].email || '', submittedAt: Date.now(), source: 'paper',
+      answers: { ...s.answers }, status: 'paper_pending', source: 'paper',
+      email: studs[s.uid].email || '', paperAt: Date.now(), scannedBy: (currentUser && currentUser.email) || 'teacher',
+      ...(prev ? { prev } : {})
     };
     await db.ref(`responses/${ex}/${s.uid}/${s.part}`).set(data);
     (resp[s.uid] ||= {})[s.part] = data;
     syncApp(ex, s.uid, s.part, data);
-    s.done = true; s.doneScore = score;
-    renderSheet(s);
-    renderPending();
+    const k = s.uid + '|' + s.part;
+    delete pend[k]; pendSheet[k] = s;
+    removeSheet(s.key);
+    renderPending(); updateCounts();
+    sheets.forEach(o => o.res && o.res.ok && renderSheet(o));
   }
   function register(k) {
     const s = sheetOf(k);
-    const ex = currentExamName();
-    if (!ex) return alertBox('模試を選んでください');
+    if (!currentExamName()) return alertBox('模試を選んでください');
     if (!s.uid) return alertBox('学生を選んでください');
-    if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
     const unresolved = Object.keys(s.res.flags).filter(q => !(s.resolved && s.resolved[q]));
     const prev = resp[s.uid] && resp[s.uid][s.part];
     const notes = [];
-    if (unresolved.length) notes.push(`要確認 ${unresolved.length} 問が未確認（読み取ったまま登録）`);
-    if (prev && prev.status === 'submitted') notes.push(`提出済みの解答（${prev.score ?? '-'}点）を上書き`);
-    else if (prev) notes.push('一時保存中の解答を置き換え');
+    if (unresolved.length) notes.push(`要確認 ${unresolved.length} 問が未確認（読み取ったまま回す）`);
+    if (prev && prev.status === 'submitted') notes.push(`提出済みの解答（${prev.score ?? '-'}点）がある。許可するとこの用紙で置き換わる`);
+    else if (prev && prev.status === 'paper_pending' && prev.scannedBy) notes.push('教員が撮った用紙がすでに確認待ちにある（この用紙で入れ替える）');
     if (dupOf(s)) notes.push('同じ学生・時間帯の用紙が他にもある');
     const go = async () => {
-      loading('登録中...');
-      try { await write(s); } catch (e) { unloading(); return alertBox('登録に失敗しました: ' + e.message); }
-      unloading(); updateCounts(); sheets.forEach(o => o !== s && !o.done && o.res && o.res.ok && renderSheet(o));
+      loading('確認待ちに回しています...');
+      try { await queue(s); } catch (e) { unloading(); return alertBox('確認待ちに回せませんでした: ' + e.message); }
+      unloading();
     };
     const who = studentLabel(s.uid) + '・' + partName(s.part);
-    if (notes.length) confirmBox(who + '\n\n' + notes.map(x => '・' + x).join('\n') + '\n\n登録しますか？', go, '登録する');
+    if (notes.length) confirmBox(who + '\n\n' + notes.map(x => '・' + x).join('\n') + '\n\n確認待ちに回しますか？', go, '回す');
     else go();
-  }
-  function registerAll() {
-    const ex = currentExamName();
-    if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
-    const list = sheets.filter(s => !s.done && isClean(s));
-    if (!list.length) return;
-    confirmBox(`要確認のない ${list.length} 枚を登録します。`, async () => {
-      let ok = 0; const ng = [];
-      for (const s of list) {
-        loading(`登録中...（${ok + ng.length + 1}/${list.length}）`);
-        try { await write(s); ok++; } catch (e) { ng.push(studentLabel(s.uid) + '：' + e.message); }
-      }
-      unloading(); updateCounts();
-      alertBox(`${ok} 枚を登録しました。` + (ng.length ? '\n\n失敗：\n' + ng.join('\n') : ''));
-    }, 'まとめて登録');
   }
 
   // ===== 分析アプリの画面切り替えにつなぐ =====
