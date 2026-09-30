@@ -600,8 +600,8 @@ thead th{border-bottom:1px solid var(--g5);}
 .ka-star tr.st-qd>td{padding:10px 12px!important;white-space:normal!important;}
 .ka-star tr.st-qd .qd{position:sticky;left:12px;}
 .ka-star .st-qn{display:none;}
-/* スマホ：★の表を画面幅に収める（問は節の上に出し、見出しを短く）＝横スクロールを出さない */
-@media (max-width:640px){
+/* スマホ：★の表を画面幅に収める（問は節の上に出し、見出しを短く）＝横スクロールを出さない。screen限定＝印刷の縮小率を測るときに効くと行が2段になり縮めすぎる */
+@media screen and (max-width:640px){
   .ka-star .v2-tbl th:first-child,.ka-star tr.st-q>td:first-child{display:none;}
   .ka-star .st-qn{display:block;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink,#222);margin-bottom:2px;white-space:nowrap;}
   .ka-star .st-long{display:none;}
@@ -937,7 +937,9 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .v2-tbl td.gap{color:var(--ng);}
 .v2-tbl tr.avg-row td{background:var(--g1);font-weight:600;border-bottom:1px solid var(--g3);}
 .v2-tbl td.sec-cell{font-size:12px;}
-.ka-star .v2-tbl td.sec-cell{font-size:11.5px;}
+.ka-star .v2-tbl{font-size:12px;}
+.ka-star .v2-tbl td,.ka-star .v2-tbl th{padding-top:5px;padding-bottom:5px;}
+.ka-star .v2-tbl td.sec-cell{font-size:11px;}
 .ka-star .v2-tbl td:first-child,.ka-star .v2-tbl th{white-space:nowrap;}
 .ka-star .sec-path{font-size:10.5px;}
 .v2-h .v2-ctrl{gap:14px;}
@@ -1001,6 +1003,10 @@ body.sm-measuring .kp1 .ka-star .sec-cell{max-width:0;width:72%;font-size:7.5pt!
 body.sm-measuring .kp1 .ka-star .sp-line{display:flex;white-space:nowrap;min-width:0;}
 body.sm-measuring .kp1 .ka-star .sp-line .sec-path{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis;font-size:7pt;}
 body.sm-measuring .kp1 .ka-star .sp-line .sec-t{flex:0 .001 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-left:.3em;}
+body.sm-measuring .kp1 .ka-star .v2-tbl{font-size:7.5pt!important;}
+body.sm-measuring .kp1 .ka-star .v2-tbl th,body.sm-measuring .kp1 .ka-star .v2-tbl td{padding:.4mm 1.4mm!important;line-height:1.18;}
+body.sm-measuring .kp1 .ka-star .sec-cell{font-size:7pt!important;}
+body.sm-measuring .kp1 .ka-star .sp-line .sec-path{font-size:6.5pt;}
 body.sm-measuring .kp1{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}
 body.sm-measuring .sm-fit{width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}  /* zoomは幅も縮めるので割り戻す */
 body.sm-measuring .sm-fit .sm-none{display:none!important;}
@@ -1019,6 +1025,10 @@ body.sm-measuring .sm-fit .sm-none{display:none!important;}
 .kp1 .ka-star .sp-line{display:flex;white-space:nowrap;min-width:0;}
 .kp1 .ka-star .sp-line .sec-path{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis;font-size:7pt;}
 .kp1 .ka-star .sp-line .sec-t{flex:0 .001 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-left:.3em;}
+.kp1 .ka-star .v2-tbl{font-size:7.5pt!important;}
+.kp1 .ka-star .v2-tbl th,.kp1 .ka-star .v2-tbl td{padding:.4mm 1.4mm!important;line-height:1.18;}
+.kp1 .ka-star .sec-cell{font-size:7pt!important;}
+.kp1 .ka-star .sp-line .sec-path{font-size:6.5pt;}
   .sm-fit{zoom:var(--smz,1);break-before:page;margin:0!important;}
   .sm-fit .sm-none{display:none!important;}
   .sm-fit .sm-cols{gap:0 24px!important;}
@@ -3308,8 +3318,9 @@ function histSvg(totals, H = 150, people = null) {   // people＝[{t, nm}]（教
 // この模試：クラスの分布（学生カルテの点グラフと同じ形・横軸は点のある範囲に寄せる）
 // people＝[{t, nm, uid}]（教員だけ）→ 点の代わりに苗字の札を置く。重なる札は空いている段へ積む（整列させない）
 // me＝{t, uid}（学生カルテ）：教員＝その学生の札を黒に／学生＝名前は出さず点だけ・自分の所に「あなた」の札
-function examStripSvg(totals, avg, people, me) {
-  const W = 960, L = 16, R = 16;
+// opt.W＝図の横幅（viewBox）。小さいほど同じ表示幅で点・文字が大きく出る（カルテは720）
+function examStripSvg(totals, avg, people, me, opt = {}) {
+  const W = opt.W || 960, L = 16, R = 16;
   const named = !!(people && people.length);
   const lo = Math.max(0, Math.floor((Math.min(...totals, PASS_LINE) - 5) / 10) * 10);
   const hi = Math.min(200, Math.ceil((Math.max(...totals, PASS_LINE) + 5) / 10) * 10);
@@ -3629,7 +3640,7 @@ function karteHtml(uid, rows, showAll) {
       const mine = me?.full ? me.total : null;
       const rank = mine != null ? st.totals.filter(t => t > mine).length + 1 : null;
       h += `<span class="v2-note">${rank ? `${st.n}人中 <b class="mn">${rank}</b>位　·　` : ''}平均 <span class="mn">${st.avg}</span>　·　中央値 <span class="mn">${st.med}</span></span></div>` +
-        `<div class="trend-scroll">${examStripSvg(st.totals, st.avg, null, mine != null ? { t: mine, uid, pt: prevTotal(ex, uid), nm: isTeacher ? String(getActiveStudents().find(s => s.uid === uid)?.name || '').trim().split(/[\s　]+/)[0] || '本人' : null } : null)}</div>` +
+        `<div class="trend-scroll">${examStripSvg(st.totals, st.avg, null, mine != null ? { t: mine, uid, pt: prevTotal(ex, uid), nm: isTeacher ? String(getActiveStudents().find(s => s.uid === uid)?.name || '').trim().split(/[\s　]+/)[0] || '本人' : null } : null, { W: 720 })}</div>` +
         `<div class="v2-cap">${isTeacher ? '点1つが1人（他の学生の名前は出さない）' : '点1つが1人（名前は出さない）'}。薄い線＝前回の点から（緑↑・赤↓）　▲＝クラス平均　赤線＝120点</div></section>`;
     }
   }
