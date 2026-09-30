@@ -481,6 +481,7 @@ function updateStatusUI() {
   // 送信後（確認待ち・提出済）は一時保存を出さない＝押すと下書きに戻ってしまうため
   const sent = currentStatus === 'paper_pending' || currentStatus === 'submitted';
   document.getElementById('saveBtn').hidden = sent;
+  btn.hidden = currentStatus === 'submitted';   // 提出後は送り直せない（直すときは先生が差し戻す）
   const tag = document.getElementById('sentTag');
   tag.hidden = !sent;
   tag.innerHTML = currentStatus === 'paper_pending' ? '<span>✓ 送信済み<small>先生の確認待ち</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
@@ -606,20 +607,30 @@ async function handleSubmit() {
   const lock = await teacherLocked().catch(() => '');
   if (lock) return showAlert(lock);
   if (paperMode) return submitPaper();
-  const again = currentStatus === 'submitted';
-  showConfirm(again ? '解答を送信し直します。\n前に送った解答は、いまの画面の解答で上書きされます。' : '解答を送信します。\nよろしいですか？', () => {
+  // 提出後は正答が見えるので、送り直しはできない（DBのルールでも止まる）。直すときは先生に差し戻してもらう
+  if (currentStatus === 'submitted') return showAlert('この時間帯は提出済みです。\n直したいところがあれば先生に伝えてください（先生が差し戻すと直せます）。');
+  showConfirm('解答を送信します。\n送信した後は自分では直せません。よろしいですか？', () => {
     showLoading('送信・採点中...');
-    const { score, categoryScores, wrongAnswers } = calcScore(answers, currentExam, currentPart);
-    const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
+    const ex = currentExam, part = currentPart;
+    const path = `responses/${ex}/${currentUser.uid}/${part}`;
     db.ref(path).set({
-      answers, status: 'submitted', score,
-      categoryScores, wrongAnswers,
+      answers, status: 'submitted',
       email: currentUser.email,
       submittedAt: Date.now()
-    }).then(() => {
+    }).then(async () => {
+      // 正答は提出した後にだけ読める＝ここで読んで点を出す
+      let msg = '送信完了！';
+      try {
+        const sec = (await db.ref(`secret/${ex}/${part}/answers`).once('value')).val();
+        if (sec) {
+          const m = examMasterCache[ex] || (examMasterCache[ex] = {});
+          m.answers = { ...(m.answers || {}), ...Object.fromEntries(Object.entries(sec).filter(([, v]) => v != null)) };
+          msg += `\n得点：${calcScore(answers, ex, part).score}点`;
+        }
+      } catch (e) { /* 点が出せなくても提出は済んでいる */ }
       hideLoading();
       returnedAt = null; loadReturned();
-      showAlert(`送信完了！\n得点：${score}点`, () => { currentStatus='submitted'; updateStatusUI(); });
+      showAlert(msg, () => { currentStatus='submitted'; updateStatusUI(); });
     }).catch(e => { hideLoading(); showAlert('送信に失敗しました: '+e.message); });
   });
 }

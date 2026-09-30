@@ -1632,6 +1632,41 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
+// ===== 正答と問題文の置き場 =====
+// 正答・問題文は secret/<模試>/<AM|PM>/{answers,questions}。学生はその時間帯を提出した後だけ読める（DBのルールで守る）
+// exams/<模試> には学生に見えてよい物（科目・節・日付・受付中・クラスの集計）だけを置く
+function partOfQ(q) { return Number(q) <= 100 ? 'AM' : 'PM'; }
+function splitSecret(answers, questions) {
+  const out = { AM: {}, PM: {} };
+  [['answers', answers], ['questions', questions]].forEach(([key, src]) => {
+    Object.entries(src || {}).forEach(([k, v]) => {
+      if (v == null || k === '0') return;
+      (out[partOfQ(k)][key] ||= {})[k] = v;
+    });
+  });
+  return out;
+}
+// secret の中身を master.answers / master.questions に重ねる（secret がまだ無い回は exams の値のまま）
+function mergeSecret(master, sec) {
+  if (!master || !sec) return;
+  ['answers', 'questions'].forEach(key => {
+    const m = {};
+    ['AM', 'PM'].forEach(p => Object.entries(sec[p]?.[key] || {}).forEach(([k, v]) => { if (v != null) m[k] = v; }));
+    if (Object.keys(m).length) master[key] = { ...(master[key] || {}), ...m };
+  });
+}
+// 保存用：正答・問題文を secret へ、exams 側の古い置き場は消す（DBの根から一度に書く）
+function secretUpdate(name, answers, questions) {
+  const sp = splitSecret(answers, questions), u = {};
+  ['AM', 'PM'].forEach(p => {
+    if (answers)   u[`secret/${name}/${p}/answers`]   = sp[p].answers   || null;
+    if (questions) u[`secret/${name}/${p}/questions`] = sp[p].questions || null;
+  });
+  if (answers)   u[`exams/${name}/answers`]   = null;
+  if (questions) u[`exams/${name}/questions`] = null;
+  return u;
+}
+
 // ===== データ一括読み込み =====
 async function loadAllData() {
   showLoading('データを読み込み中...');
@@ -1640,15 +1675,18 @@ async function loadAllData() {
   syncNatBtn();
   try {
     // 模試マスタ + 学生リストを並行取得（学生リストは教員のみ全件取得）
-    const [examSnap, stuSnap] = await Promise.all([
+    const [examSnap, stuSnap, secSnap] = await Promise.all([
       db.ref('exams').once('value'),
       isTeacher ? db.ref('students').once('value') : Promise.resolve(null),
+      isTeacher ? db.ref('secret').once('value') : Promise.resolve(null),
     ]);
+    const secAll = secSnap ? (secSnap.val() || {}) : {};
 
     // 模試マスタ
     examList = [];
     examSnap.forEach(child => {
       const e = child.val();
+      mergeSecret(e, secAll[child.key]);
       examList.push({ name: child.key, ...e });
       allData[child.key] = { master: e, responses: {} };
     });
@@ -1702,6 +1740,13 @@ async function loadAllData() {
           allData[examName].responses[uid] = snap.val();
         }
       });
+      // 正答・問題文は、提出済みの時間帯だけ読める
+      const need = [];
+      examList.forEach(e => ['AM', 'PM'].forEach(p => {
+        if (allData[e.name]?.responses?.[uid]?.[p]?.status === 'submitted') need.push([e.name, p]);
+      }));
+      const secs = await Promise.all(need.map(([n, p]) => db.ref(`secret/${n}/${p}`).once('value').then(s => s.val()).catch(() => null)));
+      need.forEach(([n, p], i) => { if (secs[i]) mergeSecret(allData[n].master, { [p]: secs[i] }); });
     }
 
     // ソート（新しい順）
@@ -1909,7 +1954,7 @@ async function importQuestionJson() {
         questions[num] = entry;
       }
 
-      await db.ref('exams/' + examName + '/questions').set(questions);
+      await db.ref().update(secretUpdate(examName, null, questions));
 
       // ローカルキャッシュを更新
       if (!allData[examName])          allData[examName]         = { master: {}, responses: {} };
@@ -1968,12 +2013,11 @@ async function importBulkJson() {
   try {
     const upd = {};
     for (const [name, m] of Object.entries(data)) {
-      upd[name + '/answers']    = m.answers;
-      upd[name + '/categories'] = m.categories;
-      if (m.questions) upd[name + '/questions'] = m.questions;
-      if (!exist.includes(name)) upd[name + '/active'] = false;
+      upd[`exams/${name}/categories`] = m.categories;
+      Object.assign(upd, secretUpdate(name, m.answers, m.questions || null));
+      if (!exist.includes(name)) upd[`exams/${name}/active`] = false;
     }
-    await db.ref('exams').update(upd);
+    await db.ref().update(upd);
     hideLoading();
     if (status) status.textContent = `✅ ${names.length}回 取込完了`;
     if (input)  input.value = '';
@@ -2066,7 +2110,7 @@ function updateExamActive(name, val) {
 async function deleteExam(name) {
   if (!isTeacher) return;
   if (!confirm(`「${name}」を削除しますか？`)) return;
-  await db.ref('exams/' + name).remove();
+  await db.ref().update({ ['exams/' + name]: null, ['secret/' + name]: null });
   examList = examList.filter(e=>e.name!==name);
   delete allData[name];
   ctxMemo = {};
@@ -2085,8 +2129,9 @@ async function renameExam(oldName) {
   try {
     // exams ノードをコピー → 旧削除
     const examSnap = await db.ref('exams/' + oldName).once('value');
-    await db.ref('exams/' + n).set(examSnap.val());
-    await db.ref('exams/' + oldName).remove();
+    const secSnap  = await db.ref('secret/' + oldName).once('value');
+    await db.ref().update({ ['exams/' + n]: examSnap.val(), ['secret/' + n]: secSnap.val() });
+    await db.ref().update({ ['exams/' + oldName]: null, ['secret/' + oldName]: null });
     // responses ノードをコピー → 旧削除
     const respSnap = await db.ref('responses/' + oldName).once('value');
     if (respSnap.exists()) {
@@ -2911,9 +2956,9 @@ async function saveGridData() {
 
   showLoading('Firebaseに保存中...');
   try {
-    await db.ref('exams/' + examName).update({
-      answers:    gridData[examName].answers,
-      categories: gridData[examName].categories,
+    await db.ref().update({
+      [`exams/${examName}/categories`]: gridData[examName].categories,
+      ...secretUpdate(examName, gridData[examName].answers, null),
     });
     // ローカルキャッシュも更新
     if (!allData[examName]) allData[examName] = { master:{}, responses:{} };

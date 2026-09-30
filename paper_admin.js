@@ -270,8 +270,10 @@
     const keep = loaded ? $('psExam').value : '';   // 開くたびに模試（正答）と学生を読み直す＝管理画面で直した正答・新しい模試を拾う
     loading('模試と学生を読み込み中...');
     try {
-      const [es, ss] = await Promise.all([db.ref('exams').once('value'), db.ref('students').once('value')]);
+      const [es, ss, sc] = await Promise.all([db.ref('exams').once('value'), db.ref('students').once('value'), db.ref('secret').once('value')]);
       exams = es.val() || {}; studs = ss.val() || {};
+      const sec = sc.val() || {};
+      Object.keys(exams).forEach(n => mergeSecret(exams[n], sec[n]));   // 正答は secret/ にある（分析アプリの関数）
       const names = Object.keys(exams).sort((a, b) => {
         const A = exams[a], B = exams[b];
         if (!!A.active !== !!B.active) return A.active ? -1 : 1;
