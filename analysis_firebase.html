@@ -754,6 +754,7 @@ thead th{border-bottom:1px solid var(--g5);}
   .cat-row{grid-template-columns:minmax(0,1fr) 38% 3.2em;gap:8px;}
   .cat-row.w4{grid-template-columns:minmax(0,1fr) 32% 3.2em 2.6em;}
   .v2-svg text{font-size:22px;}
+  .v2-svg text.xl{font-size:12px;}   /* 推移グラフの模試名（10回分の幅に収める） */
   .qd-opt{grid-template-columns:1.6em 1fr 60px 3em;}
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .v2-tbl th,.v2-tbl td{white-space:nowrap;padding-left:8px;padding-right:8px;}
@@ -5267,11 +5268,13 @@ function setKarteStar(v) { karteStarTh = Number(v); renderKarte(); }
 
 // 全模試の推移（旧：成績推移）
 function trendAllSvg(exs, lines, avg, who, navg) {
-  const W = 960, H = 300, L = 38, R = 24, T = 24, B = 40;
+  const W = 960, H = 310, L = 38, R = 24, T = 24, B = 52;
   const vals = lines.flat().concat(avg).concat(navg || []).filter(v => v != null).concat(PASS_LINE);
   const lo = Math.max(0, Math.floor((Math.min(...vals) - 10) / 20) * 20);
   const hi = Math.min(200, Math.ceil((Math.max(...vals) + 10) / 20) * 20);
-  const x = i => exs.length === 1 ? (L + W - R) / 2 : L + 30 + i / (exs.length - 1) * (W - L - R - 60);
+  // 年10回くらいの前提で10回分の枠を取り、左から詰める（2回しかなくても横いっぱいに広げない）
+  const slots = Math.max(10, exs.length), sw = (W - L - R - 10) / slots;
+  const x = i => L + 10 + (i + 0.5) * sw;
   const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   let g = '';
   for (let v = lo; v <= hi; v += 20) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
@@ -5291,7 +5294,21 @@ function trendAllSvg(exs, lines, avg, who, navg) {
   const pa = avg.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
   if (pa.length > 1) g += `<polyline class="ln-cls" points="${pa.map(q => q.join(',')).join(' ')}"/>`;
   avg.forEach((v, i) => { if (v != null) g += `<circle class="dt-cls" cx="${x(i)}" cy="${y(v)}" r="4"/><text class="hn" x="${x(i)}" y="${y(v) - 10}" text-anchor="middle">${v}</text>`; });
-  exs.forEach((e, i) => { const lb = shortExam(e.name); g += `<text class="jp" x="${x(i)}" y="${H - 12}" text-anchor="middle">${esc(lb.length > 18 ? lb.slice(0, 17) + '…' : lb)}</text>`; });
+  // 模試名：枠の幅で3行まで折る（全角1・半角0.6で数える）。はみ出す分は…・全文はマウスを当てると出る
+  const cap = sw / 12, cw = ch => /[ -~]/.test(ch) ? 0.6 : 1;
+  exs.forEach((e, i) => {
+    // 空白で区切った語ごとに詰める（語が1行より長いときだけ字で切る）
+    const lb = shortExam(e.name), ln = [];
+    const wd = t => [...t].reduce((a, ch) => a + cw(ch), 0);
+    for (let tok of lb.split(/\s+/).filter(Boolean)) {
+      const cur = ln.length ? ln[ln.length - 1] : null;
+      if (cur != null && wd(cur + ' ' + tok) <= cap) { ln[ln.length - 1] = cur + ' ' + tok; continue; }
+      while (wd(tok) > cap) { let k = 0, w = 0; for (const ch of tok) { if (w + cw(ch) > cap) break; w += cw(ch); k++; } ln.push(tok.slice(0, k)); tok = tok.slice(k); }
+      if (tok) ln.push(tok);
+    }
+    if (ln.length > 3) { ln.length = 3; ln[2] = ln[2].slice(0, -1) + '…'; }
+    g += `<text class="jp xl" x="${x(i)}" y="${H - 34}" text-anchor="middle"><title>${esc(lb)}</title>${ln.map((t, k) => `<tspan x="${x(i)}" dy="${k ? '1.2em' : 0}">${esc(t.trim())}</tspan>`).join('')}</text>`;
+  });
   return `<svg class="v2-svg trend-all" viewBox="0 0 ${W} ${H}" role="img" aria-label="全模試の推移">${g}</svg>`;
 }
 let trendHl = new Set();   // 全部の模試：グラフで強調している学生
