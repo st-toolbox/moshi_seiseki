@@ -65,6 +65,22 @@
 .ps .ps-acts .ps-btn{padding:10px 16px;font-size:13.5px;}
 .ps .ps-reg{background:var(--ps-am);color:#fff;}
 .ps .ps-del{background:transparent;color:var(--g4);border:1px solid var(--g3);font-weight:500;}
+/* 学生から届いた確認待ち：1件1行。行を押すと答えが開く・右端で許可／差し戻し */
+.ps .ps-pl{background:#fff;border:1px solid var(--ps-line);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.ps details.ps-pr+details.ps-pr{border-top:1px solid var(--ps-line);}
+.ps details.ps-pr>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:7px 10px 7px 14px;cursor:pointer;font-size:12.5px;color:var(--g4);}
+.ps details.ps-pr>summary::-webkit-details-marker{display:none;}
+.ps details.ps-pr>summary:hover{background:#FAFAF8;}
+.ps .ps-pr .tw{width:10px;flex-shrink:0;transition:transform .15s;color:var(--g3);}
+.ps details.ps-pr[open] .tw{transform:rotate(90deg);}
+.ps .ps-pr .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Mono',monospace;color:var(--ink,#222);}
+.ps .ps-pr .inf{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ps .ps-pr .inf b{color:var(--ps-warn);font-weight:600;}
+.ps .ps-pr .tm{white-space:nowrap;}
+.ps .ps-pr .ps-btn{padding:6px 14px;font-size:12.5px;}
+.ps .ps-pr .pb{padding:4px 16px 14px 36px;}
+.ps .ps-pr .pb .ps-msgs{color:var(--g4);margin-bottom:6px;}
+@media (max-width:700px){ .ps details.ps-pr>summary{display:grid;grid-template-columns:10px 1fr auto auto;grid-template-areas:'tw nm tm tm' '. inf ok ng';row-gap:4px;column-gap:8px;} .ps .ps-pr .tw{grid-area:tw;} .ps .ps-pr .nm{grid-area:nm;} .ps .ps-pr .tm{grid-area:tm;text-align:right;} .ps .ps-pr .inf{grid-area:inf;align-self:center;} .ps .ps-pr .ps-reg{grid-area:ok;} .ps .ps-pr .ps-del{grid-area:ng;} .ps .ps-pr .pb{padding-left:14px;} }
 .ps .ps-sc.done{opacity:.75;} .ps .ps-sc.done .ps-body{display:none;}
 .ps .ps-sc.err .ps-head{background:var(--ng-bg);}
 .ps .ps-pgrid{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
@@ -197,6 +213,7 @@
   }
   function onScanClick(e) {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.closest('summary')) e.preventDefault();  // 1行の右端のボタンで行が開閉しないように
     const d = b.dataset;
     if (d.pa) return setPend(d.pa, +d.q, +d.v);
     if (d.approve) return approvePending(d.approve, d.part);
@@ -297,7 +314,7 @@
   function renderPending() {
     const box = $('psPend'), list = pendingList();
     if (!list.length) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="ps-lb" style="margin:6px 0 10px">学生から届いた確認待ち（${list.length}件）— 用紙と見比べて許可すると提出になる</div>` +
+    box.innerHTML = `<div class="ps-lb" style="margin:6px 0 10px">学生から届いた確認待ち（${list.length}件）— 用紙と見比べて許可すると提出になる</div><div class="ps-pl">` +
       list.map(({ uid, part, r }) => {
         const k = uid + '|' + part;
         const a = pend[k] ||= Object.fromEntries(Object.entries(r.answers || {}).filter(([, v]) => v != null).map(([q, v]) => [q, +v]));
@@ -307,16 +324,21 @@
           `<button class="bb${a[q] === v ? ' on' : ''}" data-pa="${esc(k)}" data-q="${q}" data-v="${v}">${v}</button>`).join('')}</div>`;
         const who = studs[uid] ? studentLabel(uid) : (r.email || uid);
         const t = r.paperAt ? new Date(r.paperAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-        return `<div class="ps-sc"><div class="ps-head"><span class="nm">${esc(who)}・${partName(part)}</span><span>${esc(t)}</span><span class="ps-badge b-warn">確認待ち</span></div>
-          <div class="ps-pad ps-form">
-            <div class="ps-msgs"><div>${n} 問に解答（空欄 ${100 - n} 問）。用紙と違う所は押して直してから許可する。用紙を撮ると、この内容との違いを自動で出す。</div></div>
-            <details class="ps-grid" data-pend="${esc(k)}"${pendOpen[k] ? ' open' : ''}><summary>答えを全部見る・直す</summary><div class="ps-agrid">${grid}</div></details>
-            <div class="ps-acts">
-              <button class="ps-btn ps-reg" data-approve="${esc(uid)}" data-part="${part}">許可して提出にする</button>
-              <button class="ps-btn ps-del" data-ret="${esc(uid)}" data-part="${part}">差し戻す</button>
-            </div>
-          </div></div>`;
-      }).join('');
+        const fixed = Object.keys(a).filter(q => a[q] !== (r.answers && r.answers[q] != null ? +r.answers[q] : undefined)).length
+          + Object.keys(r.answers || {}).filter(q => r.answers[q] != null && a[q] === undefined).length;
+        return `<details class="ps-pr" data-pend="${esc(k)}"${pendOpen[k] ? ' open' : ''}>
+          <summary><svg class="tw" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span class="nm">${esc(who)}・${partName(part)}</span>
+            <span class="inf">${n}問解答・空欄${100 - n}${fixed ? `・<b>${fixed}問直した</b>` : ''}</span>
+            <span class="tm">${esc(t)}</span>
+            <button class="ps-btn ps-reg" data-approve="${esc(uid)}" data-part="${part}">許可</button>
+            <button class="ps-btn ps-del" data-ret="${esc(uid)}" data-part="${part}">差し戻し</button>
+          </summary>
+          <div class="pb">
+            <div class="ps-msgs">用紙と違う所は押して直してから許可する。用紙を撮ると、この内容との違いを自動で出す。</div>
+            <div class="ps-agrid">${grid}</div>
+          </div></details>`;
+      }).join('') + '</div>';
   }
   function setPend(k, q, v) { const a = pend[k]; if (a[q] === v) delete a[q]; else a[q] = v; renderPending(); }
   function approvePending(uid, part) {
