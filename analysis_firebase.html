@@ -483,6 +483,9 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-svg text.hn{fill:var(--g5);font-weight:500;}
 .v2-svg text.hnm{fill:#fff;font-weight:500;}  /* 棒の中の苗字（教員だけ） */
 .v2-svg .sd{fill:var(--accent);opacity:.55;}
+.v2-svg .myd{fill:#d9480f;stroke:#fff;stroke-width:1.5;}
+.v2-svg .myl{stroke:#d9480f;stroke-width:1.5;}
+.v2-svg .chip.mine.me1 rect{fill:#d9480f;}
 .v2-svg .me{stroke:var(--g5);stroke-width:1.5;}
 .v2-svg .med{fill:var(--g5);}
 .v2-svg text.met{fill:var(--g5);font-weight:600;}
@@ -1012,6 +1015,7 @@ body.sm-measuring .sm-fit{width:calc(733.2px / var(--smz,1))!important;zoom:var(
 body.sm-measuring .sm-fit .sm-none{display:none!important;}
 @media print{
   .kp1{zoom:var(--smz,1);}
+  .kp1-more{break-before:page;}
   .kp1 .ka-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)!important;}
   .kp1 .ka-gap{border-left:1px solid var(--line)!important;border-top:none!important;padding-left:6mm!important;}
   .kp1 .ka-score{padding-right:6mm!important;}
@@ -3362,9 +3366,10 @@ function examStripSvg(totals, avg, people, me, opt = {}) {
            `<text class="snm" x="${c.cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">${esc(c.nm)}</text></g>`;
     });
   } else {
-    dots.forEach(d => { g += `<circle class="sd" cx="${x(d.t)}" cy="${base - 7 - (d.k - 1) * 8}" r="3.4"/>`; });
+    // 自分の点は同じ点数の山の一番上に置き、色を変えて札と線でつなぐ
+    dots.forEach(d => { if (!(myTop && d.t === me.t && d.k === myTop)) g += `<circle class="sd" cx="${x(d.t)}" cy="${base - 7 - (d.k - 1) * 8}" r="3.4"/>`; });
     if (myTop) {
-      const lab = me.nm || 'あなた', w = [...lab].reduce((a, ch) => a + (/[ -~]/.test(ch) ? 7 : 12.5), 0) + 14, cx = Math.min(W - R - w / 2, Math.max(L + w / 2, x(me.t))), y = base - 7 - (myTop - 1) * 8 - 8 - RH;
+      const lab = 'あなた', w = [...lab].reduce((a, ch) => a + (/[ -~]/.test(ch) ? 7 : 12.5), 0) + 14, cx = Math.min(W - R - w / 2, Math.max(L + w / 2, x(me.t))), y = base - 7 - (myTop - 1) * 8 - 8 - RH;
       if (me.pt != null && me.pt !== me.t) {
         const px = x(Math.min(hi, Math.max(lo, me.pt))), my = y + (RH - 4) / 2;
         if (Math.abs(px - cx) > w / 2) {
@@ -3372,7 +3377,9 @@ function examStripSvg(totals, avg, people, me, opt = {}) {
           tails.push(`<line class="${cls}" x1="${px}" x2="${px < cx ? cx - w / 2 : cx + w / 2}" y1="${my}" y2="${my}"/><circle class="${cls}" cx="${px}" cy="${my}" r="2.6"><title>前回 ${me.pt}点</title></circle>`);
         }
       }
-      g += `<g class="chip mine"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${RH - 4}" rx="2.5"/><text class="snm" x="${cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">${esc(lab)}</text></g>`;
+      const dy = base - 7 - (myTop - 1) * 8;
+      g += `<line class="myl" x1="${cx}" y1="${y + RH - 4}" x2="${x(me.t)}" y2="${dy - 5}"/><circle class="myd" cx="${x(me.t)}" cy="${dy}" r="5"/>`;
+      g += `<g class="chip mine me1"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${RH - 4}" rx="2.5"/><text class="snm" x="${cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">${esc(lab)}</text></g>`;
     }
   }
   const pl = `<line class="pl" x1="${x(PASS_LINE)}"`, k = g.indexOf('</text>', g.indexOf(pl)) + 7;
@@ -4166,7 +4173,14 @@ function smBalance(box) {
 // 印刷：カルテの「この模試の出題マップ」を1ページに収める。出ていない科目・章は省き、印刷幅で2列を釣り合わせてから縮小率を決める
 const PRINT_W = 194 * 96 / 25.4, PRINT_H = 285 * 96 / 25.4;   // A4縦・カルテ印刷の余白 6mm/8mm の中身
 // 学生1人＝2ページ：1ページ目（合計〜問題ごとの正誤・弱点）＝.kp1、2ページ目（この模試の出題マップ）＝.sm-fit
+// ★の表が長いと1枚目ごと縮んで読めなくなる＝この倍率を下回るなら、表の後ろを「続き」のページへ送る
+const KP1_MINZ = 0.85;
+function kpUnsplit() {
+  document.querySelectorAll('.kp1-more').forEach(m => { const tb = m._src; if (tb?.isConnected) m.querySelectorAll('tbody>tr').forEach(tr => tb.appendChild(tr)); m.remove(); });
+}
+window.addEventListener('afterprint', kpUnsplit);
 function smFitPrint() {
+  kpUnsplit();
   const secs = [...document.querySelectorAll('.sm-fit, .kp1')];
   if (!secs.length) return;
   // 測る間はスマホ幅のCSS（screen and max-width）を止め、印刷で効く (max-width:900px) は効かせる＝スマホで開いても印刷と同じ形で測る
@@ -4177,21 +4191,36 @@ function smFitPrint() {
   document.body.classList.add('sm-measuring');
   try {
     // 縮めると幅が広がって段組み・折り返しが変わるので、比例計算でなく二分探索で「収まる最大」を探す
-    secs.forEach(sec => {
+    const queue = secs.slice();
+    while (queue.length) { const sec = queue.shift();
       let lim = PRINT_H * 0.92;   // 測った高さと印刷の高さは少しずれる（0.97では最後の1行が3枚目に落ちた）
-      if (sec.classList.contains('kp1')) {   // 同じページの先頭に学生名の見出しが載る
+      if (sec.classList.contains('kp1') && !sec.classList.contains('kp1-more')) {   // 同じページの先頭に学生名の見出しが載る
         const head = (sec.closest('.student-print-page') || document.getElementById('page-karte'))?.querySelector('.v2-head');
         if (head) lim -= head.getBoundingClientRect().height + 5 * 96 / 25.4;
       }
       // 高さだけで決めると、行が少ない時に倍率が上がり、固定幅の列（問題数・バー・%）に押されて科目名が「医学…」まで潰れる＝名前の欄が行幅の4割以上あることも条件
       const nameOk = () => { const r = sec.querySelector('.sm-row.lv1'), n = r?.querySelector('.sm-name'); return !r || !r.offsetWidth || n.offsetWidth / r.offsetWidth >= 0.4; };
       const fits = z => { sec.style.setProperty('--smz', z); sec.querySelectorAll('.sm-cols').forEach(smBalance); return sec.getBoundingClientRect().height <= lim && nameOk(); };
+      // ★の表の後ろの行から「続き」のページへ送り、このページが KP1_MINZ で入るまで減らす（最低3問は残す）
+      const tb = sec.classList.contains('kp1') ? sec.querySelector('.ka-star tbody') : null;
+      if (tb && !fits(KP1_MINZ) && tb.querySelectorAll('tr.st-q').length > 3) {
+        const star = sec.querySelector('.ka-star'), src = sec.classList.contains('kp1-more') ? sec._src : tb;
+        const more = document.createElement('div');
+        more.className = 'kp1 kp1-more'; more._src = src;
+        more.innerHTML = `<section class="v2-block ka-star"><div class="v2-h"><h2>問題ごとの正誤・弱点（続き）</h2></div><div class="tbl-wrap"><table class="v2-tbl"></table></div></section>`;
+        const t2 = more.querySelector('table'); t2.appendChild(star.querySelector('thead').cloneNode(true)); const tb2 = t2.appendChild(document.createElement('tbody'));
+        sec.after(more);
+        do {
+          let tr; do { tr = tb.lastElementChild; tb2.prepend(tr); } while (!tr.classList.contains('st-q'));
+        } while (!fits(KP1_MINZ) && tb.querySelectorAll('tr.st-q').length > 3);
+        queue.unshift(more);
+      }
       let lo = 0.2, hi = 1;
       if (fits(1)) lo = 1;
       else for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
       fits(lo);
       sec.style.setProperty('--smz', lo.toFixed(3));
-    });
+    }
   } finally { document.body.classList.remove('sm-measuring'); mq.forEach(([r, t]) => { r.media.mediaText = t; }); }
 }
 window.addEventListener('beforeprint', smFitPrint);
