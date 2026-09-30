@@ -858,7 +858,7 @@ body.sm-measuring .hs-tbl{min-width:0;} body.sm-measuring .hs-tbl col.hs-c0{widt
 @media print{ .ro-tbl col.ro-cno{width:6em;} .ro-tbl col.ro-cnm{width:6.5em;} .ro-tbl col.ro-cl,.ro-tbl col.ro-cg{width:4em;} .ro-tbl col.ro-cb{width:0;} }
 .ka-histp{display:none;}
 @media print{
-  .ka-histp{display:block;break-before:page;zoom:var(--smz,1);} .ka-histp>.v2-block{margin-top:0!important;margin-bottom:0!important;}
+  .ka-histp{display:block;break-before:page;zoom:var(--smz,1);} .ka-histp>.v2-block{margin-top:0!important;margin-bottom:0!important;} .ka-histp>.v2-block+.v2-block{margin-top:7mm!important;padding-top:4mm;border-top:1px solid #d0d0d0;}
   /* 1枚に収める：分野40行＋点の4行。クラスとの差は同じ行の右に小さく */
   .ka-histp .hs-tbl{font-size:8pt!important;}
   .ka-histp .hs-tbl th,.ka-histp .hs-tbl td{padding:.6mm 1mm!important;line-height:1.2!important;}
@@ -873,6 +873,7 @@ body.sm-measuring .hs-tbl{min-width:0;} body.sm-measuring .hs-tbl col.hs-c0{widt
 body.sm-measuring .ka-histp{display:block!important;width:calc(733.2px / var(--smz,1))!important;zoom:var(--smz,1);}
 body.sm-measuring .student-print-page:has(.ka-histp){display:block!important;position:absolute;left:-99999px;top:0;}
 body.sm-measuring .ka-histp>.v2-block{margin-top:0!important;margin-bottom:0!important;}
+body.sm-measuring .ka-histp>.v2-block+.v2-block{margin-top:7mm!important;padding-top:4mm;border-top:1px solid #d0d0d0;}
 body.sm-measuring .ka-histp .hs-tbl{font-size:8pt!important;}
 body.sm-measuring .ka-histp .hs-tbl th,body.sm-measuring .ka-histp .hs-tbl td{padding:.6mm 1mm!important;line-height:1.2!important;}
 body.sm-measuring .ka-histp .hs-tbl td:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
