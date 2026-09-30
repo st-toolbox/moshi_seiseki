@@ -1130,6 +1130,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 .sm summary:hover{background:var(--g1);}
 .sm-row{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
 .sm-row.lv1{background:var(--g1);font-weight:600;padding:9px 8px;margin-top:10px;border-bottom:1px solid var(--g3);}
+.sm details.sm-s:not([open])>summary.lv1{margin-top:0;padding-top:5px;padding-bottom:5px;border-bottom-color:var(--line);}
 .sm-row.lv2 .sm-name{padding-left:18px;}
 .sm-row.lv3{font-size:12.5px;color:var(--g5);}
 .sm-row.lv3 .sm-name{padding-left:38px;}
@@ -5529,7 +5530,9 @@ function smBalance(box) {
   const hdH = cols[0].querySelector('.sm-hd').getBoundingClientRect().height + 40;
   const sum = a => a.reduce((x, y) => x + y, 0);
   let big = sum(hts[0]) >= sum(hts[1]) ? 0 : 1, k = blk[big].length;
-  if (!one && sum(hts[0]) + sum(hts[1]) > 0) {
+  // 科目だけ（全部たたんだ）ときは回さない＝基礎は左・専門は右のまま
+  const flat = !box.querySelector('details.sm-s[open]');
+  if (!one && !flat && sum(hts[0]) + sum(hts[1]) > 0) {
     let best = Infinity;
     for (let i = 1; i <= blk[big].length; i++) {
       const own = hdH + sum(hts[big].slice(0, i)), oth = hdH + sum(hts[1 - big]) + (i < blk[big].length ? hdH + sum(hts[big].slice(i)) : 0);
