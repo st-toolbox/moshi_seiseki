@@ -564,6 +564,10 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-svg .chip.ok rect{fill:var(--ok,#2f7d4f);}
 .v2-svg .chip.mine rect,.v2-svg .chip:hover rect{fill:var(--ink,#171A18);}
 .v2-svg text.snm{font-size:11.5px;fill:#fff;font-weight:500;letter-spacing:.04em;font-family:'IBM Plex Sans JP',sans-serif;}
+.v2-svg .tail{stroke-width:1.6;fill:none;opacity:.32;stroke-linecap:round;}
+.v2-svg .tail.up{stroke:var(--ok,#2F6B4F);} .v2-svg .tail.dn{stroke:var(--ng,#B3452C);}
+.v2-svg circle.tail{fill:var(--bg,#fff);opacity:.55;}
+.v2-svg .tail.mine{opacity:.8;stroke-width:2;}
 .v2-svg .chip .stem{stroke:var(--accent);stroke-width:1;opacity:.35;}
 .v2-svg text.avl{fill:var(--g5);font-weight:500;}
 .v2-svg .ln-me{fill:none;stroke:var(--g5);stroke-width:2;}
@@ -4741,8 +4745,11 @@ function examStripSvg(totals, avg, people, me) {
     const cw = t => [...t].reduce((a, ch) => a + (/[\x20-\x7e]/.test(ch) ? 7 : 12.5), 0) + 12;
     people.slice().sort((a, b) => a.t - b.t).forEach(p => {
       const w = cw(p.nm), cx = Math.min(W - R - w / 2, Math.max(L + w / 2, x(p.t)));
-      let r = 0; while (chips.some(c => c.r === r && Math.abs(c.cx - cx) < (c.w + w) / 2 + 3)) r++;
-      chips.push({ ...p, w, cx, r });
+      // 前回からの線も札の一部として場所を取る（線が隣の札をまたぐと誰の線か分からなくなる）
+      const px = p.pt != null && p.pt !== p.t ? x(Math.min(hi, Math.max(lo, p.pt))) : cx;
+      const a = Math.min(cx - w / 2, px - 4), b = Math.max(cx + w / 2, px + 4);
+      let r = 0; while (chips.some(c => c.r === r && c.a < b + 4 && a < c.b + 4)) r++;
+      chips.push({ ...p, w, cx, r, a, b });
     });
   }
   const rows = chips.length ? Math.max(...chips.map(c => c.r)) + 1 : 0;
@@ -4752,9 +4759,18 @@ function examStripSvg(totals, avg, people, me) {
   let g = `<line class="ax" x1="${L}" x2="${W - R}" y1="${base}" y2="${base}"/>`;
   for (let v = lo; v <= hi; v += 10) if (v !== PASS_LINE) g += `<line class="ax" x1="${x(v)}" x2="${x(v)}" y1="${base}" y2="${base + 4}"/><text x="${x(v)}" y="${base + 18}" text-anchor="middle">${v}</text>`;
   g += `<line class="pl" x1="${x(PASS_LINE)}" x2="${x(PASS_LINE)}" y1="10" y2="${base + 4}"/><text class="plt" x="${x(PASS_LINE)}" y="${base + 18}" text-anchor="middle">120</text>`;
+  // 前回の点→今回の札へ薄い線（上がった＝緑・下がった＝赤）。札の高さで横に引き、前回の位置に白丸
+  const tails = [];
   if (named) {
     chips.forEach(c => {
       const y = base - 8 - (c.r + 1) * RH + 3;
+      if (c.pt != null && c.pt !== c.t) {
+        const px = x(Math.min(hi, Math.max(lo, c.pt))), my = y + (RH - 4) / 2, mn = me && c.uid && c.uid === me.uid ? ' mine' : '';
+        if (Math.abs(px - c.cx) > c.w / 2) {
+          const ex_ = px < c.cx ? c.cx - c.w / 2 : c.cx + c.w / 2, cls = `tail ${c.t > c.pt ? 'up' : 'dn'}${mn}`;
+          tails.push(`<line class="${cls}" x1="${px}" x2="${ex_}" y1="${my}" y2="${my}"/><circle class="${cls}" cx="${px}" cy="${my}" r="2.6"><title>${esc(c.nm)} 前回 ${c.pt}点</title></circle>`);
+        }
+      }
       g += `<circle class="sd" cx="${x(c.t)}" cy="${base}" r="2.2"/>` +
            `<g class="chip${c.t >= PASS_LINE ? ' ok' : ''}${me && c.uid && c.uid === me.uid ? ' mine' : ''}"><title>${esc(c.nm)} ${c.t}点</title><rect x="${c.cx - c.w / 2}" y="${y}" width="${c.w}" height="${RH - 4}" rx="2.5"/>` +
            `<text class="snm" x="${c.cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">${esc(c.nm)}</text></g>`;
@@ -4762,10 +4778,19 @@ function examStripSvg(totals, avg, people, me) {
   } else {
     dots.forEach(d => { g += `<circle class="sd" cx="${x(d.t)}" cy="${base - 7 - (d.k - 1) * 8}" r="3.4"/>`; });
     if (myTop) {
-      const w = 52, cx = Math.min(W - R - w / 2, Math.max(L + w / 2, x(me.t))), y = base - 7 - (myTop - 1) * 8 - 8 - RH;
-      g += `<g class="chip mine"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${RH - 4}" rx="2.5"/><text class="snm" x="${cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">あなた</text></g>`;
+      const lab = me.nm || 'あなた', w = [...lab].reduce((a, ch) => a + (/[ -~]/.test(ch) ? 7 : 12.5), 0) + 14, cx = Math.min(W - R - w / 2, Math.max(L + w / 2, x(me.t))), y = base - 7 - (myTop - 1) * 8 - 8 - RH;
+      if (me.pt != null && me.pt !== me.t) {
+        const px = x(Math.min(hi, Math.max(lo, me.pt))), my = y + (RH - 4) / 2;
+        if (Math.abs(px - cx) > w / 2) {
+          const cls = `tail ${me.t > me.pt ? 'up' : 'dn'} mine`;
+          tails.push(`<line class="${cls}" x1="${px}" x2="${px < cx ? cx - w / 2 : cx + w / 2}" y1="${my}" y2="${my}"/><circle class="${cls}" cx="${px}" cy="${my}" r="2.6"><title>前回 ${me.pt}点</title></circle>`);
+        }
+      }
+      g += `<g class="chip mine"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${RH - 4}" rx="2.5"/><text class="snm" x="${cx}" y="${y + (RH - 4) / 2 + 4.3}" text-anchor="middle">${esc(lab)}</text></g>`;
     }
   }
+  const pl = `<line class="pl" x1="${x(PASS_LINE)}"`, k = g.indexOf('</text>', g.indexOf(pl)) + 7;
+  g = g.slice(0, k) + tails.join('') + g.slice(k);
   if (avg != null) g += `<path class="avt" d="M${x(avg)} ${base + 3} l-4 7 h8 z"/><text class="avl" x="${x(avg) + 7}" y="${base + 30}" text-anchor="middle">平均 ${avg}</text>`;
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の分布">${g}</svg>`;
 }
@@ -4891,7 +4916,7 @@ function renderExamView() {
     fig('120点以上', `${reach}<small>/ ${st.n}</small>`, '合格ラインの目安') +
     (nat && nat.mean != null ? fig('全国平均', nat.mean, [nat.n ? `全国 ${nat.n}人` : '', st.avg != null ? `クラスは ${signed(Math.round((st.avg - nat.mean) * 10) / 10)}` : ''].filter(Boolean).join('　')) : '') + `</div>`;
   // 数字は左に縦並び、分布はその横（上下に積むと縦が長すぎる）
-  h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">点1つが1人　▲＝クラス平均　赤線＝120点</span></div><div class="trend-scroll">${examStripSvg(t, st.avg, isTeacher ? histPeople(ex) : null)}</div></section></div>` : '</div>';
+  h += t.length ? `<section class="v2-block"><div class="v2-h"><h2>合計点の分布</h2><span class="v2-note">${isTeacher ? '札1枚が1人　薄い線＝前回の点から（緑↑・赤↓）' : '点1つが1人'}　▲＝クラス平均　赤線＝120点</span></div><div class="trend-scroll">${examStripSvg(t, st.avg, isTeacher ? histPeople(ex) : null)}</div></section></div>` : '</div>';
   h += examStudentsHtml(ex);
 
   h += exLowHtml(ex, st);
@@ -4921,9 +4946,15 @@ function renderRoster() {
 }
 // この模試：学生ごとの点（旧：学生一覧の「この模試」）
 // 分布の棒に載せる苗字（午前午後とも出した学生＝分布と同じ母集団）
+function prevTotal(ex, uid) {
+  const yl = yearExams().some(e => e.name === ex) ? yearExams() : examList, idx = yl.findIndex(e => e.name === ex);
+  if (idx < 0) return null;
+  const p = yl.slice(idx + 1).find(e => examTotal(e.name, uid)?.full);
+  return p ? examTotal(p.name, uid).total : null;
+}
 function histPeople(ex) {
   return getActiveStudents().map(s => ({ s, t: examTotal(ex, s.uid) })).filter(r => r.t && r.t.full)
-    .map(r => ({ uid: r.s.uid, t: r.t.total, nm: String(r.s.name || stuNo(r.s)).trim().split(/[\s　]+/)[0] }));
+    .map(r => ({ uid: r.s.uid, t: r.t.total, pt: prevTotal(ex, r.s.uid), nm: String(r.s.name || stuNo(r.s)).trim().split(/[\s　]+/)[0] }));
 }
 function examStudentsHtml(ex) {
   const yl = yearExams().some(e => e.name === ex) ? yearExams() : examList;   // 前回・推移は今年度の模試の中で
@@ -5024,8 +5055,8 @@ function karteHtml(uid, rows, showAll) {
       const mine = me?.full ? me.total : null;
       const rank = mine != null ? st.totals.filter(t => t > mine).length + 1 : null;
       h += `<span class="v2-note">${rank ? `${st.n}人中 <b class="mn">${rank}</b>位　·　` : ''}平均 <span class="mn">${st.avg}</span>　·　中央値 <span class="mn">${st.med}</span></span></div>` +
-        `<div class="trend-scroll">${examStripSvg(st.totals, st.avg, isTeacher ? histPeople(ex) : null, mine != null ? { t: mine, uid } : null)}</div>` +
-        `<div class="v2-cap">${isTeacher ? '札1枚が1人（黒＝この学生）' : '点1つが1人（名前は出さない）'}。▲＝クラス平均　赤線＝120点</div></section>`;
+        `<div class="trend-scroll">${examStripSvg(st.totals, st.avg, null, mine != null ? { t: mine, uid, pt: prevTotal(ex, uid), nm: isTeacher ? String(getActiveStudents().find(s => s.uid === uid)?.name || '').trim().split(/[\s　]+/)[0] || '本人' : null } : null)}</div>` +
+        `<div class="v2-cap">${isTeacher ? '点1つが1人（他の学生の名前は出さない）' : '点1つが1人（名前は出さない）'}。薄い線＝前回の点から（緑↑・赤↓）　▲＝クラス平均　赤線＝120点</div></section>`;
     }
   }
 
