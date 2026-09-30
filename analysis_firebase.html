@@ -971,7 +971,7 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .cat-g.kg-kiso,.cat-tr tr.grp-row.kg-kiso td{background:rgba(26,124,193,.07);}
 .cat-g.kg-senmon,.cat-tr tr.grp-row.kg-senmon td{background:rgba(212,36,111,.06);}
 .cat-g.kg-kiso,.cat-g.kg-senmon{padding-left:8px;padding-right:8px;}
-.sm-cont{margin-top:28px;}
+.sm>.sm-gh:not(:first-child){margin-top:28px;}
 /* 印刷1枚：測るとき（画面・一瞬）と印刷で同じ形にする */
 body.sm-measuring .student-print-page:has(.sm-fit,.kp1){display:block!important;position:absolute;left:-99999px;top:0;}
 /* 1ページ目：印刷用の指定（別の@media printにある）を測るときにも同じく当てる */
@@ -1026,7 +1026,7 @@ body.sm-measuring .sm-fit .sm-none{display:none!important;}
   .sm-fit .sm-row.lv1{padding:1px 6px;margin-top:3px;}
   .sm-fit .sm-row.lv3{font-size:11px;}
   .sm-fit .sm-hd{padding:2px 0;}
-  .sm-fit .sm-cont{margin-top:10px;}
+  .sm-fit .sm>.sm-gh:not(:first-child){margin-top:10px;}
   .sm-fit .sm .cat-g{padding-top:2px;padding-bottom:2px;}
   .sm-fit .sm-bar{height:5px;}
   .sm-fit .v2-cap{display:none;}
@@ -1041,7 +1041,7 @@ body.sm-measuring .sm-fit .sm-row{padding:0;font-size:12px;line-height:1.12;}
 body.sm-measuring .sm-fit .sm-row.lv1{padding:1px 6px;margin-top:3px;}
 body.sm-measuring .sm-fit .sm-row.lv3{font-size:11px;}
 body.sm-measuring .sm-fit .sm-hd{padding:2px 0;}
-body.sm-measuring .sm-fit .sm-cont{margin-top:10px;}
+body.sm-measuring .sm-fit .sm>.sm-gh:not(:first-child){margin-top:10px;}
 body.sm-measuring .sm-fit .sm .cat-g{padding-top:2px;padding-bottom:2px;}
 body.sm-measuring .sm-fit .sm-bar{height:5px;}
 body.sm-measuring .sm-fit .v2-cap{display:none;}
@@ -4106,39 +4106,39 @@ function exLowHtml(ex, st) {
 }
 
 // 出題マップの一括展開：lv 1=科目を開く 2=章も 3=節も 0=全部たたむ
-// 出題マップの2列を釣り合わせる：多い方の群（ふつうは基礎）の後ろの科目を、少ない方の列の下へ回す。
-// 科目・章・節を開閉して高さが変わるたびに測り直す（ResizeObserver）。1列表示のときは元の順に戻す
+// 出題マップの2列を釣り合わせる：基礎→専門の順に新聞のように流す。左列の上から基礎、あふれた分は右列の上に「基礎（続き）」、その下に専門
+// （専門が多いときは、左列の基礎の下に専門が始まり、右列は「専門（続き）」）。
+// 科目・章・節を開閉して高さが変わるたびに測り直す（ResizeObserver）。1列表示・全部たたんだときは 基礎＝左・専門＝右 のまま
 function smBalance(box) {
   const cols = [...box.children].filter(c => c.classList.contains('sm'));
   if (cols.length !== 2) return;
   const blk = [0, 1].map(g => [...box.querySelectorAll(`details.sm-s[data-g="${g}"]`)]);
-  const conts = cols.map(c => c.querySelector(':scope > .sm-cont'));   // conts[0]＝左列の下に置く「専門（続き）」
+  const gh = (g, c) => box.querySelector(`.sm-gh[data-g="${g}"]${c ? '.sm-cont' : ':not(.sm-cont)'}`);
+  const H = [gh(0), gh(1)], C = [gh(0, 1), gh(1, 1)];   // H＝群の見出し、C＝「（続き）」の見出し
+  if (!H[0] || !H[1] || !C[0] || !C[1]) return;
   const one = getComputedStyle(box).gridTemplateColumns.trim().split(/\s+/).length < 2;
-  const hts = blk.map(b => b.map(d => d.getBoundingClientRect().height + 10));
-  const hdH = cols[0].querySelector('.sm-hd').getBoundingClientRect().height + 40;
-  const sum = a => a.reduce((x, y) => x + y, 0);
-  let big = sum(hts[0]) >= sum(hts[1]) ? 0 : 1, k = blk[big].length;
-  // 科目だけ（全部たたんだ）ときは回さない＝基礎は左・専門は右のまま
+  const S = [...blk[0], ...blk[1]], n0 = blk[0].length, N = S.length;
+  const ht = S.map(d => d.getBoundingClientRect().height + 10);
+  const hdH = H[0].getBoundingClientRect().height + 30;
+  const sum = (a, b) => ht.slice(a, b).reduce((x, y) => x + y, 0);
+  // i＝左列に入る科目の数。左＝S[0..i)、右＝S[i..N)
+  const cost = i => Math.max(hdH + sum(0, i) + (i > n0 ? hdH : 0),
+                             i < n0 ? hdH + sum(i, n0) + hdH + sum(n0, N) : hdH + sum(i, N));
+  let k = n0;
   const flat = !box.querySelector('details.sm-s[open]');
-  if (!one && !flat && sum(hts[0]) + sum(hts[1]) > 0) {
-    let best = Infinity;
-    for (let i = 1; i <= blk[big].length; i++) {
-      const own = hdH + sum(hts[big].slice(0, i)), oth = hdH + sum(hts[1 - big]) + (i < blk[big].length ? hdH + sum(hts[big].slice(i)) : 0);
-      const m = Math.max(own, oth);
-      if (m < best - 1) { best = m; k = i; }
-    }
+  if (!one && !flat && N > 1) {
+    let best = cost(n0);
+    for (let i = 1; i < N; i++) { const m = cost(i); if (m < best - 1) { best = m; k = i; } }
   }
-  // 並びが変わるときだけ動かす（動かすと高さが変わり、また呼ばれる）
-  const want = [[...blk[0], ...blk[1]]].flat().map(d => (d.dataset.g == big && blk[big].indexOf(d) >= k) ? 1 - big : Number(d.dataset.g));
-  const now = [...blk[0], ...blk[1]].map(d => cols.indexOf(d.parentElement));
-  if (want.every((w, i) => w === now[i])) return;
-  cols[big].querySelectorAll(':scope > details.sm-s').forEach(d => d.remove());
-  blk[big].slice(0, k).forEach(d => cols[big].insertBefore(d, conts[big]));
-  const oc = cols[1 - big];
-  blk[1 - big].forEach(d => oc.insertBefore(d, conts[1 - big]));
-  blk[big].slice(k).forEach(d => oc.appendChild(d));
-  conts[1 - big].hidden = k >= blk[big].length;
-  conts[big].hidden = true;
+  const L = [H[0], ...S.slice(0, Math.min(k, n0))], R = [];
+  if (k > n0) L.push(H[1], ...S.slice(n0, k));
+  if (k < n0) R.push(C[0], ...S.slice(k, n0), H[1], ...S.slice(n0));
+  else R.push(...(k > n0 ? [C[1]] : [H[1]]), ...S.slice(k));
+  C[0].hidden = !(k < n0); C[1].hidden = !(k > n0);
+  const want = [L, R].map((a, i) => [...a, ...[C[0], C[1]].filter(c => c.hidden && cols[i].contains(c))]);
+  // 並びが変わるときだけ動かす（動かすと高さが変わり、また呼ばれる）。隠れた「続き」は今いる列の末尾に置いたまま
+  if (want.every((a, i) => a.length === cols[i].children.length && a.every((el, j) => cols[i].children[j] === el))) return;
+  want.forEach((a, i) => a.forEach(el => cols[i].appendChild(el)));
 }
 // 印刷：カルテの「この模試の出題マップ」を1ページに収める。出ていない科目・章は省き、印刷幅で2列を釣り合わせてから縮小率を決める
 const PRINT_W = 194 * 96 / 25.4, PRINT_H = 285 * 96 / 25.4;   // A4縦・カルテ印刷の余白 6mm/8mm の中身
@@ -4231,8 +4231,9 @@ function secMapHtml(exArg, st0, uid) {
   const mob = matchMedia('screen and (max-width:760px)').matches;
   const tools = `<div class="sm-tools">まとめて表示<button onclick="smOpen(this,0)" title="科目だけを並べる"${mob ? ' class="on"' : ''}>科目</button><button onclick="smOpen(this,1)" title="全科目を開いて章まで並べる"${mob ? '' : ' class="on"'}>章</button><button onclick="smOpen(this,2)" title="全部の章を開いて節まで並べる">節</button></div>`;
   const hdIn = (g, lb) => `<div class="cat-g${kgCls(g)}">${lb || g}</div><div class="sm-hd"><span>科目 ▸ 章 ▸ 節</span><span class="r">${multi ? '全部' : 'この模試'}</span>${uid ? `<span class="r">${who}</span>` : ''}<span>${uid ? `<i class="sm-who">${who}の</i>正答率<b class="sm-cls-lg"></b>クラス` : 'クラス正答率'}</span><span class="r">国試</span></div>`;
-  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}">${hdIn(g)}`;
-  const cont = g => `<div class="sm-cont" hidden>${hdIn(g, g + '（続き）')}</div>`;
+  const gi = g => g === '基礎' ? 0 : 1;
+  const hd = g => `<div class="sm${uid ? ' sm-u' : ''}"><div class="sm-gh" data-g="${gi(g)}">${hdIn(g)}</div>`;
+  const cont = g => `<div class="sm-gh sm-cont" data-g="${gi(g)}" hidden>${hdIn(g, g + '（続き）')}</div>`;
   const firstQ = S => Math.min(...allQs(S).map(o => o.n));
   const split = CATEGORY_ORDER.indexOf('失語症');   // 分野別の正答率と同じ切れ目（失語症から専門）
   const cols = ['', ''];
@@ -4260,7 +4261,7 @@ function secMapHtml(exArg, st0, uid) {
   });
   const where = multi ? '受けた模試のどれにも' : 'この模試で';
   const starCap = uid && !multi ? `★＝「問題ごとの正誤・弱点」の★（クラスの${karteStarTh}%以上が取れているのに落とした問題）がある科目・章・節。数字は問題数。` : '';
-  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}${cont('専門')}</div>${hd('専門')}${cols[1]}${cont('基礎')}</div></div>` + (none ? `<div class="v2-cap">${starCap}節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">${starCap}灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
+  return tools + `<div class="sm-cols">${hd('基礎')}${cols[0]}${cont('基礎')}</div>${hd('専門')}${cols[1]}${cont('専門')}</div></div>` + (none ? `<div class="v2-cap">${starCap}節の紐づけなし ${none}問は入っていません。灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>` : `<div class="v2-cap">${starCap}灰色＝${where}出ていない科目・章・節。国試＝その科目・章・節に紐づく過去の国試の問題数。</div>`);
 }
 
 document.addEventListener('click', e => {
