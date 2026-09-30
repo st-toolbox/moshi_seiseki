@@ -3400,12 +3400,12 @@ function stripSvg(totals, mine, avg) {
   if (mine != null) g += `<line class="me" x1="${x(mine)}" x2="${x(mine)}" y1="12" y2="${base}"/><text class="met jp" x="${x(mine)}" y="8" text-anchor="middle">${isTeacher ? '本人' : 'あなた'} ${mine}</text>`;
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="クラスの分布">${g}</svg>`;
 }
-function trendSvg(pts) {  // pts: [{label, me, avg}] 古い順
-  const W = 960, H = 260, L = 38, R = 20, T = 22, B = 36;
+function trendSvg(pts, slots = 0) {  // pts: [{label, me, avg}] 古い順。slots＝横に取っておく回数（左から積み、空いた回は薄く「N回目」）
+  const W = 960, H = 260, L = 38, R = 20, T = 22, B = 36, N = Math.max(pts.length, slots);
   const vals = pts.flatMap(p => [p.me, p.avg]).filter(v => v != null).concat(PASS_LINE);
   const lo = Math.max(0, Math.floor((Math.min(...vals) - 10) / 20) * 20);
   const hi = Math.min(200, Math.ceil((Math.max(...vals) + 10) / 20) * 20);
-  const x = i => pts.length === 1 ? (L + W - R) / 2 : L + 20 + i / (pts.length - 1) * (W - L - R - 40);
+  const x = i => N === 1 ? (L + W - R) / 2 : L + 20 + i / (N - 1) * (W - L - R - 40);
   const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   let g = '';
   for (let v = lo; v <= hi; v += 20) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
@@ -3414,10 +3414,13 @@ function trendSvg(pts) {  // pts: [{label, me, avg}] 古い順
   g += line('avg', 'ln-avg') + line('me', 'ln-me');
   pts.forEach((d, i) => {
     if (d.avg != null) g += `<circle class="dt-avg" cx="${x(i)}" cy="${y(d.avg)}" r="3"/>`;
-    if (d.me != null) g += `<circle class="dt-me" cx="${x(i)}" cy="${y(d.me)}" r="4.5"/><text class="hn" x="${x(i)}" y="${y(d.me) - 10}" text-anchor="middle">${d.me}</text>`;
-    const lb = d.label.length > 18 ? d.label.slice(0, 17) + '…' : d.label;
-    g += `<text class="jp" x="${x(i)}" y="${H - 12}" text-anchor="middle">${esc(lb)}</text>`;
+    if (d.me != null) g += `<circle class="dt-me" cx="${x(i)}" cy="${y(d.me)}" r="4.5"/><text class="hn" x="${x(i)}" y="${d.avg != null && d.me < d.avg ? y(d.me) + 19 : y(d.me) - 10}" text-anchor="middle">${d.me}</text>`;   // 平均より下なら点の下に書く（平均の点と重ならない）
+    // 模試名は1回分の幅に収める（収まらない分は…・全文はマウスで）。両端は内側へ寄せて切れないように
+    const mx = N > 1 ? Math.max(6, Math.floor((W - L - R - 40) / (N - 1) / 11.5)) : 18, lb = d.label.length > mx ? d.label.slice(0, mx - 1) + '…' : d.label;
+    const an = N > 1 && i === 0 ? 'start' : N > 1 && i === N - 1 ? 'end' : 'middle', lx = an === 'start' ? x(i) - 14 : an === 'end' ? x(i) + 14 : x(i);
+    g += `<text class="jp" x="${lx}" y="${H - 12}" text-anchor="${an}"><title>${esc(d.label)}</title>${esc(lb)}</text>`;
   });
+  for (let i = pts.length; i < N; i++) g += `<line class="gl" x1="${x(i)}" x2="${x(i)}" y1="${T}" y2="${H - B}" opacity=".5"/><text class="jp" x="${x(i)}" y="${H - 12}" text-anchor="middle" opacity=".45">${i + 1}回目</text>`;
   return `<svg class="v2-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="合計点の推移">${g}</svg>`;
 }
 // 直近の点を古い順に並べ、間を矢印（上がった＝緑↑・下がった＝赤↓・同じ＝灰→）でつなぐ
@@ -3844,8 +3847,8 @@ function karteTrendHtml(uid, noTable) {
   if (taken.length) {
     const pts = taken.map(e => ({ label: shortExam(e.name), date: e.date, t: examTotal(e.name, uid), avg: ctx(e.name)?.avg ?? null }));
     h += `<section class="v2-block"><div class="v2-h"><h2>これまでの模試</h2><span class="v2-note">${taken.length}回</span></div>` +
-      (pts.length < 2 ? '<div class="v2-empty">推移のグラフは2回目の模試から出ます。</div>' : '') +
-      (pts.length >= 2 ? trendSvg(pts.map(p => ({ label: p.label, me: p.t.total, avg: p.avg }))) + '<div class="legend"><span><i></i>本人</span><span><i class="avg"></i>クラス平均</span><span><i class="pl"></i>120点</span></div>' : '') +
+      // 1回だけでも出す（左から積む。模試成績一覧と同じく10回分の枠）
+      (pts.length ? trendSvg(pts.map(p => ({ label: p.label, me: p.t.total, avg: p.avg })), 10) + '<div class="legend"><span><i></i>本人</span><span><i class="avg"></i>クラス平均</span><span><i class="pl"></i>120点</span></div>' : '') +
       (noTable ? '</section>' : `<div class="tbl-wrap" style="margin-top:14px"><table class="v2-tbl"><thead><tr><th>模試</th><th>実施日</th><th class="r">午前</th><th class="r">午後</th><th class="r">合計</th><th class="r">クラス平均</th><th class="r">平均との差</th></tr></thead><tbody>` +
       pts.slice().reverse().map(p => { const d = p.avg != null ? Math.round((p.t.total - p.avg) * 10) / 10 : null;
         return `<tr><td>${esc(p.label)}</td><td>${esc(formatDate(p.date)) || '—'}</td><td class="r mn">${p.t.am ?? '—'}</td><td class="r mn">${p.t.pm ?? '—'}</td><td class="r mn"><b>${p.t.total}</b></td><td class="r mn">${p.avg ?? '—'}</td><td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td></tr>`; }).join('') +
