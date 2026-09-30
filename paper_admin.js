@@ -65,6 +65,11 @@
 .ps .ps-reg{background:var(--ps-am);color:#fff;}
 .ps .ps-del{background:transparent;color:var(--g4);border:1px solid var(--g3);font-weight:500;}
 /* 学生から届いた確認待ち：1件1行。行を押すと答えが開く・右端で許可／差し戻し */
+.ps-hr{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.ps-mslink{font-size:12.5px;color:var(--g4);text-decoration:none;border:1px solid var(--g3);border-radius:999px;padding:4px 12px;white-space:nowrap;background:#fff;}
+.ps-mslink:hover{color:var(--ink,#222);border-color:var(--g4);}
+@media (max-width:700px){ .ps-hr{align-items:flex-start;} }
+@media print{ .ps-mslink{display:none!important;} }
 .ps .ps-pl{background:#fff;border:1px solid var(--ps-line);border-radius:10px;overflow:hidden;margin-bottom:14px;}
 .ps details.ps-pr+details.ps-pr{border-top:1px solid var(--ps-line);}
 .ps details.ps-pr>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:7px 10px 7px 14px;cursor:pointer;font-size:12.5px;color:var(--g4);}
@@ -156,7 +161,7 @@
       </div>
     </div>
     <div class="page ps" id="page-paper_scan">
-      <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が撮って送った解答・教員が撮った用紙は、まず確認待ちにたまる。用紙と見比べて許可すると提出になる</div></div><div class="ps-counts" id="psCounts"></div></div>
+      <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が撮って送った解答・教員が撮った用紙は、まず確認待ちにたまる。用紙と見比べて許可すると提出になる</div></div><div class="ps-hr"><a class="ps-mslink" href="marksheet_firebase.html" target="_blank" rel="noopener">マークシートを開く ↗</a><div class="ps-counts" id="psCounts"></div></div></div>
       <div class="ps-card">
         <div class="ps-lb">模試</div>
         <div class="ps-exrow">
