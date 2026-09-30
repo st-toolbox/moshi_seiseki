@@ -43,9 +43,11 @@
     const o = [];
     const t = (x, y, s, fs, a = {}) => o.push(`<text x="${x}" y="${y}" font-size="${fs}" font-family="${a.ff || FF}" fill="${a.fill || INK}"${a.anchor ? ` text-anchor="${a.anchor}"` : ''}${a.w ? ` font-weight="${a.w}"` : ''}${a.ls ? ` letter-spacing="${a.ls}"` : ''}>${esc(s)}</text>`);
     const rect = (cx, cy, w, h, fill = INK) => o.push(`<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" fill="${fill}"/>`);
+    // マークは縦長の楕円（丸より塗りやすい）。中心は座標のまま＝読み取りは中心の小円と外の紙を見るので、丸で刷った旧用紙も同じく読める
+    const ell = (cx, cy, r) => `<ellipse cx="${cx}" cy="${cy}" rx="${+(r * 0.76).toFixed(2)}" ry="${+(r * 1.15).toFixed(2)}"`;
     const bubble = (cx, cy, r, label) => {
-      o.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="${LINE}" stroke-width="0.25"/>`);
-      t(cx, cy + r * 0.42, label, r * 1.12, { ff: MONO, fill: DIG, anchor: 'middle' });
+      o.push(`${ell(cx, cy, r)} fill="#fff" stroke="${LINE}" stroke-width="0.25"/>`);
+      t(cx, cy + r * 0.38, label, r * 1.0, { ff: MONO, fill: DIG, anchor: 'middle' });
     };
     const c = L.corner;
     for (const k of ['TL', 'TR', 'BR', 'BL']) rect(c[k][0], c[k][1], c.size, c.size);
@@ -84,15 +86,15 @@
     t(84, 53, '氏名', 2.8, { w: 600 });
     o.push(`<rect x="84" y="55" width="104" height="10" fill="none" stroke="${LINE}" stroke-width="0.25"/>`);
     t(84, 72, '記入のしかた', 2.7, { w: 600 });
-    ['HB以上の鉛筆で、○の中を濃く塗りつぶす', '1問につき1つだけ塗る。直すときは消しゴムできれいに消す',
+    ['HB以上の鉛筆で、枠の中を濃く塗りつぶす', '1問につき1つだけ塗る。直すときは消しゴムできれいに消す',
       '学籍番号は上の枠に数字を書き、同じ数字を下の列で塗る', '四隅の■と左右の目印を汚さない・折り曲げない']
       .forEach((s, i) => t(84, 77 + i * 4.5, '・' + s, 2.5, { fill: SUB }));
     t(84, 99.5, '良い例', 2.4, { fill: SUB });
-    o.push(`<circle cx="96" cy="98.7" r="1.9" fill="${INK}"/>`);
+    o.push(`${ell(96, 98.7, 1.9)} fill="${INK}"/>`);
     t(104, 99.5, '悪い例', 2.4, { fill: SUB });
-    o.push(`<circle cx="116" cy="98.7" r="1.9" fill="none" stroke="${LINE}" stroke-width="0.25"/><path d="M114.9 98.6 l0.9 1 l1.8 -2.2" fill="none" stroke="${INK}" stroke-width="0.45"/>`);
-    o.push(`<circle cx="122" cy="98.7" r="1.9" fill="none" stroke="${LINE}" stroke-width="0.25"/><line x1="120.8" y1="99.9" x2="123.2" y2="97.5" stroke="${INK}" stroke-width="0.45"/>`);
-    o.push(`<circle cx="128" cy="98.7" r="1.9" fill="#C8CBC6" stroke="${LINE}" stroke-width="0.25"/>`);
+    o.push(`${ell(116, 98.7, 1.9)} fill="none" stroke="${LINE}" stroke-width="0.25"/><path d="M114.9 98.6 l0.9 1 l1.8 -2.2" fill="none" stroke="${INK}" stroke-width="0.45"/>`);
+    o.push(`${ell(122, 98.7, 1.9)} fill="none" stroke="${LINE}" stroke-width="0.25"/><line x1="120.8" y1="99.9" x2="123.2" y2="97.5" stroke="${INK}" stroke-width="0.45"/>`);
+    o.push(`${ell(128, 98.7, 1.9)} fill="#C8CBC6" stroke="${LINE}" stroke-width="0.25"/>`);
     t(131.5, 99.5, '（チェック・斜線・薄塗りは読めない）', 2.2, { fill: SUB });
 
     // 解答欄

@@ -137,7 +137,7 @@
     const main = document.querySelector('main.main');
     main.insertAdjacentHTML('beforeend', `
     <div class="page ps" id="page-paper_print">
-      <div class="page-header-row"><div><div class="page-title">マークシート印刷</div><div class="page-sub">スマホを忘れた学生に配る紙のマークシート</div></div></div>
+      <div class="page-header-row"><div><div class="page-title">マークシート印刷</div></div></div>
       <div class="ps-pgrid">
         <div class="ps-card">
           <div class="ps-lb">模試名（選ぶか入力・空欄なら手書き）</div>
@@ -153,7 +153,7 @@
           <button class="ps-pbtn" id="psPBtn">印刷する</button>
           <div class="ps-hint">A4・<b>拡大縮小なし（100%）</b>・余白なしで印刷。モノクロでよい。</div>
           <ol class="ps-howto">
-            <li>スマホを忘れた学生に配り、HB以上の鉛筆で塗ってもらう</li>
+            <li>学生に配り、HB以上の鉛筆で塗ってもらう</li>
             <li>学生がマークシート画面の「撮って読み込む」で撮影 → 先生の確認待ちになる（まだ提出ではない）</li>
             <li>回収した用紙を <a data-go="paper_scan">マークシート取り込み</a> で見比べて許可すると提出になる。教員が用紙を撮影・スキャンしても、同じ確認待ちにたまる</li>
           </ol>
