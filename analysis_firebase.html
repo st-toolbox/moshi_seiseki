@@ -680,6 +680,9 @@ thead th{border-bottom:1px solid var(--g5);}
 .ka-review .rv-no{width:auto;height:auto;border-radius:0;background:none;color:var(--g5);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;display:block;}
 .ka-review .rv-h{letter-spacing:.12em;}
 .ka-review .rv-item{background:var(--g1);border-left:2px solid var(--ng);border-radius:0;}
+.dr-star .rv-src{align-items:baseline;} .dr-star .rv-src .rv-no{font-size:12px;display:inline;color:var(--g4);}
+.dr-star .rv-src .star{margin-right:-6px;}
+.dr-sec{font-size:11.5px;color:var(--g4);margin-bottom:4px;}
 .ka-review .rv-item.rv-kq{background:var(--paper);border:1px solid var(--line);border-left:2px solid var(--accent);}
 .ka-review .rv-rate{color:var(--accent);}
 .ka-review .rv-my{color:var(--ng);}
@@ -1302,10 +1305,12 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
       <header class="v2-head">
         <div><div class="v2-kicker" id="drKicker">復習</div><h1 class="v2-title" id="drTitle"></h1><div class="v2-sub" id="drSub"></div></div>
         <div class="v2-ctrl">
+          <label>表示 <span class="seg" id="drViewBtns"><button data-val="star" class="active" onclick="setDrillView('star')">★の問題</button><button data-val="sec" onclick="setDrillView('sec')">優先する節</button></span></label>
           <label class="teacher-only">学生 <select class="pg-sel" id="drStuSel" onchange="pickStudent(this.value)"></select></label>
           <label id="drExamLbl">模試 <select class="pg-sel" id="drExamSel" onchange="pickExam(this.value)"></select></label>
           <label>範囲 <span class="seg" id="drScopeBtns"><button data-val="exam" class="active" onclick="setDrillScope('exam')">この模試</button><button data-val="all" onclick="setDrillScope('all')">全部の模試</button></span></label>
-          <label>国試の類題 <span class="seg" id="drKqBtns"><button data-val="0" onclick="setDrillKq(0)">なし</button><button data-val="1" onclick="setDrillKq(1)">1問</button><button data-val="3" class="active" onclick="setDrillKq(3)">3問</button></span></label>
+          <label id="drStarLbl">★の基準 クラス正答率 <span class="seg" id="drStarBtns"><button data-val="60" onclick="setDrillStar(60)">60%</button><button data-val="70" class="active" onclick="setDrillStar(70)">70%</button><button data-val="80" onclick="setDrillStar(80)">80%</button><button data-val="90" onclick="setDrillStar(90)">90%</button></span> 以上</label>
+          <label id="drKqLbl">国試の類題 <span class="seg" id="drKqBtns"><button data-val="0" onclick="setDrillKq(0)">なし</button><button data-val="1" onclick="setDrillKq(1)">1問</button><button data-val="3" class="active" onclick="setDrillKq(3)">3問</button></span></label>
         </div>
       </header>
       <div id="drBody"></div>
@@ -3701,11 +3706,39 @@ function allMapHtml(exs) {
   return h + refNotice() + `<div class="v2-note" style="margin-bottom:10px">今年度の模試 ${names.length}回で出た範囲を 科目 ▸ 章 ▸ 節 で。問題数は全部の模試の合計、バー＝クラス正答率（赤 50%未満）。${skip ? `節の紐づけがない ${skip}回は入っていません。` : ''}最初は章まで開いている（章を開くと節）</div>` + secMapHtml(names, null, null) + '</section>';
 }
 // ---------- 復習（優先して取り返す節の順に、落とした問題と国試の類題） ----------
-let drillScope = 'exam', drillKqN = 3, drillShowAll = false, drillSeq = 0;
+let drillScope = 'exam', drillKqN = 3, drillShowAll = false, drillSeq = 0, drillView = 'star';
+// 表示：star＝★の問題（クラスの多くが取れたのに落とした問題の一覧）／sec＝優先して取り返す節。印刷はいま出している方だけ
+function setDrillView(v)  { drillView = v; setSegActive('drViewBtns', v); renderDrill(); }
+function setDrillStar(v)  { karteStarTh = Number(v); renderDrill(); }
+function drillStarHtml(uid) {
+  const exs = drillScope === 'all' ? examsTakenBy(uid).map(e => e.name) : [currentExam];
+  const who = isTeacher ? '本人' : 'あなた', items = [];
+  exs.forEach(ex => {
+    const m = allData[ex]?.master, r = allData[ex]?.responses?.[uid], st = ctx(ex);
+    if (!m?.answers || !r) return;
+    for (let n = 1; n <= 200; n++) {
+      const part = n <= 100 ? 'AM' : 'PM';
+      if (r[part]?.status !== 'submitted') continue;
+      const c = String(m.answers[n] || ''), my = String(r[part].answers?.[n] ?? ''), cr = qRate(st, n);
+      if (!ansScorable(c) || ansIsCorrect(c, my) || cr == null || cr * 100 < karteStarTh) continue;
+      items.push({ ex, n, c, my, cr });
+    }
+  });
+  const head = `<section class="v2-block ka-review dr-star"><div class="v2-h"><h2><span class="star">★</span> の問題</h2><span class="v2-note">クラスの${karteStarTh}%以上が正解したのに落とした <b class="mn">${items.length}</b>問　·　クラス正答率の高い順</span></div>`;
+  if (!items.length) return head + `<div class="v2-empty">★の問題はありません（または回答がありません）。</div></section>`;
+  items.sort((a, b) => b.cr - a.cr || (a.ex < b.ex ? -1 : a.ex > b.ex ? 1 : 0) || a.n - b.n);
+  return head + items.map((o, i) => { const key = secKeyOf(o.ex, o.n);
+    return `<div class="rv-item"><div class="rv-src"><span class="rv-no">${String(i + 1).padStart(2, '0')}</span><span class="star">★</span>${esc(drillScope === 'all' ? mockQLabel(shortExam(o.ex), o.n) : mockQLabel('', o.n).trim())}<span class="rv-rate">クラス正答率 ${Math.round(o.cr * 100)}%</span></div>` +
+      (key ? `<div class="dr-sec">${secPathHtml(key)}</div>` : catOf(o.ex, o.n) ? `<div class="dr-sec">${esc(catOf(o.ex, o.n))}</div>` : '') +
+      mockQHtml(o.ex, o.n) +
+      `<div class="rv-ans"><span>${who}の解答 <b class="rv-my">${esc(o.my === '' ? '無回答' : o.my)}</b></span><span>正答 <b>${esc(o.c)}</b></span></div></div>`; }).join('') +
+    '<div class="rv-foot">★はみんなが取れている問題＝本番で差がつく。まずここから。</div></section>';
+}
 function setDrillScope(v) { drillScope = v; setSegActive('drScopeBtns', v); renderDrill(); }
 function setDrillKq(v)    { drillKqN = Number(v); setSegActive('drKqBtns', v); renderDrill(); }
 function drillKqIds(rows) { return drillKqN ? rows.flatMap(r => r.kq.slice(0, drillKqN)) : []; }
 function drillHtml(uid, rows, showAll) {
+  if (drillView === 'star') return drillStarHtml(uid);
   const ns = noSectionsMsg(drillScope);
   if (ns) return ns;
   if (!rows.length) return '<div class="v2-empty">落とした問題はありません（または回答がありません）。</div>';
@@ -3736,11 +3769,15 @@ async function renderDrill() {
   const uid = karteUid();
   fillStuSel('drStuSel'); fillExamSel('drExamSel');
   document.getElementById('drExamLbl').style.display = drillScope === 'all' ? 'none' : '';
+  document.getElementById('drKqLbl').style.display = drillView === 'star' ? 'none' : '';
+  document.getElementById('drStarLbl').style.display = drillView === 'star' ? '' : 'none';
+  setSegActive('drStarBtns', karteStarTh);
+  document.getElementById('drKicker').textContent = drillView === 'star' ? '復習　★の問題' : '復習　優先する節';
   document.getElementById('drTitle').textContent = isTeacher ? (studentLabel(uid) || '学生を選んでください') : 'あなたの復習';
   document.getElementById('drSub').textContent = drillScope === 'all' ? `全部の模試　·　受けた模試 ${uid ? examsTakenBy(uid).length : 0}回` : shortExam(currentExam);
   if (!uid) { box.innerHTML = '<div class="v2-empty">上の欄で学生を選んでください。</div>'; return; }
   const rows = karteRows(uid, drillScope);
-  const ids = drillKqIds(drillShowAll ? rows : rows.slice(0, 10));
+  const ids = drillView === 'star' ? [] : drillKqIds(drillShowAll ? rows : rows.slice(0, 10));
   if (refState === 'ok' && ids.some(i => !(i in kqCache))) box.innerHTML = '<div class="v2-empty">国試の問題を読み込み中...</div>';
   await loadKq(ids);
   if (seq !== drillSeq) return;
@@ -3754,13 +3791,13 @@ async function printAllDrill() {
   showLoading('全学生の復習を作成中...');
   ctxMemo = {};
   const per = list.map(s => ({ s, rows: karteRows(s.uid, drillScope) }));
-  await loadKq(per.flatMap(x => drillKqIds(x.rows.slice(0, 10))));
+  if (drillView !== 'star') await loadKq(per.flatMap(x => drillKqIds(x.rows.slice(0, 10))));
   hideLoading();
   per.forEach(({ s, rows }) => {
     const page = document.createElement('div');
     page.className = 'student-print-page';
     page.style.display = 'none';
-    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">復習</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(drillScope === 'all' ? '全部の模試' : shortExam(currentExam))}</div></div></header>` + drillHtml(s.uid, rows, false);
+    page.innerHTML = `<header class="v2-head"><div><div class="v2-kicker">${drillView === 'star' ? '復習　★の問題' : '復習　優先する節'}</div><h1 class="v2-title">${esc(s.name || s.email)}</h1><div class="v2-sub">${esc(drillScope === 'all' ? '全部の模試' : shortExam(currentExam))}</div></div></header>` + drillHtml(s.uid, rows, false);
     container.appendChild(page);
   });
   document.body.classList.add('print-all-students');
