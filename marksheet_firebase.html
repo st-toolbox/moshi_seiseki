@@ -132,6 +132,10 @@ select:focus{outline:none;border-color:var(--g5);}
 .btn-submit{background:var(--theme);color:#fff;}
 .btn-submit:hover{opacity:.9;}
 .btn-submit:active{transform:scale(.98);}
+/* 送信後：一時保存の代わりに「送信済み」を出す（押せない表示） */
+.btn-sent{background:var(--ok-bg);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);cursor:default;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.3;}
+.btn-sent small{display:block;font-size:11px;font-weight:500;opacity:.85;}
+.btn-sent[hidden],.btn-save[hidden]{display:none!important;}
 
 /* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(23,26,24,.35);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -267,7 +271,8 @@ select:focus{outline:none;border-color:var(--g5);}
 <!-- FOOTER -->
 <div class="footer" id="appFooter" style="display:none;">
   <div class="footer-inner">
-    <button class="btn btn-save" onclick="handleSave()">一時保存</button>
+    <button class="btn btn-save" id="saveBtn" onclick="handleSave()">一時保存</button>
+    <div class="btn btn-sent" id="sentTag" hidden></div>
     <button class="btn btn-submit" id="submitBtn" onclick="handleSubmit()">解答を送信する</button>
   </div>
 </div>
@@ -473,16 +478,22 @@ function updateStatusUI() {
   const btn    = document.getElementById('submitBtn');
   const banner = document.getElementById('draftBanner');
   badge.className = 'badge';
+  // 送信後（確認待ち・提出済）は一時保存を出さない＝押すと下書きに戻ってしまうため
+  const sent = currentStatus === 'paper_pending' || currentStatus === 'submitted';
+  document.getElementById('saveBtn').hidden = sent;
+  const tag = document.getElementById('sentTag');
+  tag.hidden = !sent;
+  tag.innerHTML = currentStatus === 'paper_pending' ? '<span>✓ 送信済み<small>先生の確認待ち</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
   banner.classList.toggle('ret', currentStatus === 'draft' && !!returnedAt);
   banner.textContent = currentStatus === 'draft' && returnedAt
     ? `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。まだ提出になっていません。`
     : '⚠ 解答はまだ送信されていません（一時保存中）';
   if (currentStatus === 'paper_pending') {
     badge.classList.add('badge-draft'); badge.textContent = '先生の確認待ち';
-    btn.textContent = '直して確認に回す'; banner.classList.remove('show');
+    btn.textContent = '再送信'; banner.classList.remove('show');
   } else if (currentStatus === 'submitted') {
     badge.classList.add('badge-done'); badge.textContent = '提出済';
-    btn.textContent = '修正して再送信'; banner.classList.remove('show');
+    btn.textContent = '再送信'; banner.classList.remove('show');
   } else if (currentStatus === 'draft') {
     badge.classList.add('badge-draft'); badge.textContent = returnedAt ? '差し戻し' : '一時保存中';
     btn.textContent = '解答を送信する'; banner.classList.add('show');
@@ -490,7 +501,7 @@ function updateStatusUI() {
     badge.classList.add('badge-new'); badge.textContent = '新規入力';
     btn.textContent = '解答を送信する'; banner.classList.remove('show');
   }
-  if (paperMode && currentStatus !== 'paper_pending') btn.textContent = '先生の確認に回す';
+  if (paperMode && !sent) btn.textContent = '先生の確認に回す';
 }
 
 // ===== シート描画 =====
@@ -584,7 +595,8 @@ function handleSave() {
 function handleSubmit() {
   if (!currentExam) return showAlert('模試を選択してください');
   if (paperMode) return submitPaper();
-  showConfirm('解答を送信します。\nよろしいですか？', () => {
+  const again = currentStatus === 'submitted';
+  showConfirm(again ? '解答を送信し直します。\n前に送った解答は、いまの画面の解答で上書きされます。' : '解答を送信します。\nよろしいですか？', () => {
     showLoading('送信・採点中...');
     const { score, categoryScores, wrongAnswers } = calcScore(answers, currentExam, currentPart);
     const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
@@ -604,7 +616,8 @@ function handleSubmit() {
 // ===== 紙のマークシートから読み込む =====
 // 紙から読み込んだ解答は、先生が用紙と見比べて許可するまで提出（採点）にならない
 function submitPaper() {
-  showConfirm('先生の確認に回します。\n先生が用紙と見比べて許可すると提出になります。', () => {
+  const again = currentStatus === 'paper_pending';
+  showConfirm(again ? '送信し直します。\n前に送った解答は、いまの画面の解答で上書きされます。先生が用紙と見比べて許可すると提出になります。' : '先生の確認に回します。\n先生が用紙と見比べて許可すると提出になります。', () => {
     showLoading('送信中...');
     const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
     db.ref(path).set({
@@ -616,7 +629,7 @@ function submitPaper() {
       returnedAt = null; loadReturned();
       showAlert('先生の確認に回しました。\n用紙を先生に提出してください。', () => { currentStatus = 'paper_pending'; updateStatusUI(); });
     }).catch(e => { hideLoading(); showAlert('送信に失敗しました: ' + e.message); });
-  }, '確認に回す');
+  }, again ? '再送信する' : '確認に回す');
 }
 
 async function paperPicked(input) {
