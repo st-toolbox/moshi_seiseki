@@ -267,7 +267,7 @@
   const currentExamName = () => $('psExam').value;
 
   async function openScan() {
-    if (loaded) return examChanged();
+    const keep = loaded ? $('psExam').value : '';   // 開くたびに模試（正答）と学生を読み直す＝管理画面で直した正答・新しい模試を拾う
     loading('模試と学生を読み込み中...');
     try {
       const [es, ss] = await Promise.all([db.ref('exams').once('value'), db.ref('students').once('value')]);
@@ -280,7 +280,8 @@
       $('psExam').innerHTML = '<option value="">模試を選択してください...</option>' +
         names.map(n => `<option value="${esc(n)}">${esc(n)}${exams[n].date ? '（' + esc(exams[n].date) + '）' : ''}${exams[n].active ? '' : '　［受付終了］'}</option>`).join('');
       const first = names.find(n => exams[n].active);
-      if (first) $('psExam').value = first;
+      if (keep && exams[keep]) $('psExam').value = keep;
+      else if (first) $('psExam').value = first;
       loaded = true;
     } catch (e) { unloading(); return alertBox('読み込みに失敗しました: ' + e.message); }
     unloading();
@@ -314,6 +315,7 @@
   // 教員が撮って回した分のうち、学生の送信と食い違いがなく直してもいないもの＝まとめて許可してよい
   function bulkable() {
     return pendingList().filter(({ uid, part, r }) => r.scannedBy && !pendDiff(uid, part, r).fixed
+      && !(r.prev && r.prev.status === 'submitted')   // 提出済みを置き換える分は1件ずつ見る
       && !(r.prev && r.prev.answers && r.prev.status !== 'submitted' && ansDiff(r.prev.answers, r.answers, part).length));
   }
   function ansDiff(a, b, part) {
@@ -341,7 +343,7 @@
         const t = r.paperAt ? new Date(r.paperAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
         const byT = !!r.scannedBy, notes = [];
         if (fixed) notes.push(`<b>${fixed}問直した</b>`);
-        if (byT && r.prev && r.prev.status === 'submitted') notes.push(`<b>提出済み（${r.prev.score ?? '-'}点）を置き換え</b>`);
+        if (byT && r.prev && r.prev.status === 'submitted') notes.push(`<b>提出済み（${esc(r.prev.score ?? '-')}点）を置き換え</b>`);
         else if (byT && r.prev && r.prev.answers) {
           const d = ansDiff(r.prev.answers, r.answers, part).length;
           notes.push(d ? `<b>学生の送信と${d}問違う</b>` : '学生の送信と一致');
@@ -372,8 +374,16 @@
   function setPend(k, q, v) { const a = pend[k]; if (a[q] === v) delete a[q]; else a[q] = v; renderPending(); }
   async function doApprove(ex, uid, part) {
     const k = uid + '|' + part, answers = pend[k];
+    // 画面を開いた後に学生が送り直していないか、許可の直前に読み直す
+    const now = (await db.ref(`responses/${ex}/${uid}/${part}`).once('value')).val();
+    const seen = resp[uid][part];
+    if (!now || now.status !== 'paper_pending' || (now.paperAt || 0) !== (seen.paperAt || 0)) {
+      if (now) resp[uid][part] = now; else delete resp[uid][part];
+      delete pend[k];
+      throw new Error('この解答は画面を開いた後に変わっています（学生が送り直した・別の先生が処理した）。最新の内容に表示し直したので、もう一度見比べてください。');
+    }
     const { score, categoryScores, wrongAnswers } = calcScore(answers, ex, part);
-    const prev = resp[uid][part];
+    const prev = now;
     const data = { answers, status: 'submitted', score, categoryScores, wrongAnswers,
       email: prev.email || (studs[uid] && studs[uid].email) || '', submittedAt: Date.now(), source: 'paper',
       paperAt: prev.paperAt || null, scannedBy: prev.scannedBy || null, approvedBy: (currentUser && currentUser.email) || '',
@@ -393,14 +403,14 @@
         unloading(); renderPending(); updateCounts();
         sheets.forEach(o => o.res && o.res.ok && renderSheet(o));
         alertBox(`提出にしました（${score}点）`);
-      } catch (e) { unloading(); alertBox('登録に失敗しました: ' + e.message); }
+      } catch (e) { unloading(); renderPending(); updateCounts(); alertBox('登録に失敗しました: ' + e.message); }
     }, '許可する');
   }
   function approveScanned() {
     const ex = currentExamName();
     if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
     const list = bulkable(); if (!list.length) return;
-    confirmBox(`教員が撮った ${list.length} 件を、読み取った内容のまま提出にします。\n（直した行・学生の送信と違う行は含まない。1件ずつ許可する）`, async () => {
+    confirmBox(`教員が撮った ${list.length} 件を、読み取った内容のまま提出にします。\n（直した行・学生の送信と違う行・提出済みを置き換える行は含まない。1件ずつ許可する）`, async () => {
       let ok = 0; const ng = [];
       for (const { uid, part } of list) {
         loading(`登録中...（${ok + ng.length + 1}/${list.length}）`);
@@ -558,7 +568,7 @@
     else if (OMR_UI.idOfEmail(studs[s.uid].email) !== id) msgs.push(`<div class="m-warn">用紙の学籍番号は OE${esc(id)}（手で選んだ学生と違う）</div>`);
     else msgs.push(`<div class="m-ok">学籍番号 OE${esc(id)} → 一致</div>`);
     if (!s.raw.part) msgs.push('<div class="m-warn">午前・午後が用紙から読めない。どちらか確かめてください。</div>');
-    if (ex && ex.status === 'submitted') msgs.push(`<div class="m-ng">この学生の${partName(s.part)}は提出済み（${ex.score ?? '-'}点${ex.source === 'paper' ? '・紙' : ''}）。確認待ちに回すと、許可したときにこの用紙で置き換わる（取り消せば元に戻る）。</div>`);
+    if (ex && ex.status === 'submitted') msgs.push(`<div class="m-ng">この学生の${partName(s.part)}は提出済み（${esc(ex.score ?? '-')}点${ex.source === 'paper' ? '・紙' : ''}）。確認待ちに回すと、許可したときにこの用紙で置き換わる（取り消せば元に戻る）。</div>`);
     else if (ex && ex.status === 'paper_pending' && ex.scannedBy) msgs.push(`<div class="m-warn">この学生の${partName(s.part)}は、教員が撮った用紙がすでに確認待ちにある。回すとこの用紙で入れ替わる。</div>`);
     else if (ex && ex.status === 'paper_pending') {
       // 学生が自分で読み込んで送ってきた内容と、いま撮った用紙を突き合わせる
@@ -649,7 +659,7 @@
       if (!catStats[cat]) catStats[cat] = { correct: 0, total: 0 };
       catStats[cat].total++;
       const isCorrect = correct && correct !== '解なし' && (
-        correct.includes(',') ? correct.split(',').includes(userAns) : userAns === correct
+        correct.includes(',') ? correct.split(',').map(x => x.trim()).includes(userAns) : userAns === correct
       );
       if (isCorrect) { score++; catStats[cat].correct++; }
       else wrongList.push({ qNum: String(q), userAns: userAns || '未解答', correctAns: correct, category: cat });
@@ -661,7 +671,7 @@
   async function queue(s) {
     const ex = currentExamName();
     const cur = resp[s.uid] && resp[s.uid][s.part];
-    const prev = cur && cur.scannedBy ? cur.prev : cur;   // 教員撮影の上書きなら、その前の状態を引き継ぐ
+    const prev = cur && cur.scannedBy && cur.status === 'paper_pending' ? cur.prev : cur;   // 確認待ちの教員撮影を撮り直すなら、その前の状態を引き継ぐ（許可済みの提出はそのまま prev に残す）
     const data = {
       answers: { ...s.answers }, status: 'paper_pending', source: 'paper',
       email: studs[s.uid].email || '', paperAt: Date.now(), scannedBy: (currentUser && currentUser.email) || 'teacher',

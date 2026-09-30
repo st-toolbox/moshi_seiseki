@@ -117,27 +117,8 @@ tbody tr:hover td{background:var(--g1);}
 .chart-box{position:relative;}
 
 /* 成績推移・個別模試集計・弱点抽出 1画面レイアウト共通 */
-#page-trend,#page-summary,#page-weakness{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;overflow:hidden;}
-#page-trend.active,#page-summary.active,#page-weakness.active{display:flex;}
-#page-trend .page-header-row,#page-summary .page-header-row,#page-weakness .page-header-row{margin-bottom:10px;flex-shrink:0;}
-#page-trend .card,#page-summary .card{margin-bottom:10px;}
 /* 弱点抽出 */
-#page-weakness .filter-row{flex-shrink:0;margin-bottom:6px;}
-#page-weakness .legend-row{flex-shrink:0;margin-bottom:6px;}
-#page-weakness #weakScrollArea{flex:1;min-height:0;overflow-y:auto;}
-.thresh-btns{display:flex;gap:6px;}
-.thresh-btns button{padding:4px 14px;border:1px solid var(--g3);border-radius:6px;background:#fff;font-size:13px;cursor:pointer;color:var(--g5);}
-.thresh-btns button.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700;}
-#page-trend #trendChartCard{flex-shrink:0;}
-#page-trend #trendTableCard{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;}
-#page-trend #trendTableCard .tbl-wrap{flex:1;overflow-y:auto;overflow-x:auto;}
-#page-trend #trendTableCard table{width:auto;}
 /* 個別模試集計 */
-#page-summary .grid4{flex-shrink:0;margin-bottom:10px;}
-#page-summary .grid2{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0;}
-#page-summary .grid2 .card{margin-bottom:0;display:flex;flex-direction:column;overflow:hidden;}
-#page-summary .grid2 .card .tbl-wrap{flex:1;overflow-y:auto;}
-#page-summary .grid2 .card .chart-box{flex:1;}
 
 /* HIST TABLE */
 .hist-wrap{overflow:auto;border:1px solid var(--g2);border-radius:var(--rs);background:#fff;}
@@ -155,10 +136,6 @@ tbody tr:hover td{background:var(--g1);}
 .hist-tbl .sec-div td{border-top:2px solid var(--accent);}
 
 /* LOW RATE */
-#page-lowrate{display:none;flex-direction:column;height:calc(100vh - 54px);padding:16px 20px;box-sizing:border-box;}
-#page-lowrate.active{display:flex;}
-#page-lowrate .filter-row{flex-shrink:0;margin-bottom:6px;}
-#page-lowrate #lrContent{flex:1;min-height:0;overflow-y:auto;}
 .lr-table{width:100%;border-collapse:collapse;font-size:12px;}
 .lr-table thead th{padding:6px 12px;background:var(--g1);text-align:left;border-bottom:2px solid var(--g2);font-size:11px;font-weight:600;color:var(--g4);position:sticky;top:0;z-index:1;}
 .lr-table tbody tr{height:34px;}
@@ -319,13 +296,6 @@ tbody tr:hover td{background:var(--g1);}
   .main{overflow:visible!important;}
   .page{display:none!important;padding:0!important;}
   .page.active{display:block!important;}
-  #page-trend.active,#page-summary.active,#page-weakness.active{display:block!important;height:auto!important;overflow:visible!important;}
-  #page-weakness #weakScrollArea{overflow:visible!important;}
-  #page-trend #trendTableCard{flex:none!important;overflow:visible!important;}
-  #page-trend #trendTableCard .tbl-wrap{overflow:visible!important;}
-  #page-summary .grid2{display:grid!important;height:auto!important;}
-  #page-summary .grid2 .card{overflow:visible!important;}
-  #page-summary .grid2 .card .tbl-wrap{overflow:visible!important;}
   .card{border:1px solid #ccc;border-radius:4px;padding:10px;margin-bottom:10px;break-inside:avoid;}
   .grid2{grid-template-columns:1fr 1fr;gap:10px;}
   .grid4{gap:8px;margin-bottom:10px;}
@@ -338,18 +308,10 @@ tbody tr:hover td{background:var(--g1);}
   .pm-break-label{page-break-before:always!important;padding-top:4px;}
   .chart-box{overflow:visible!important;}
   .chart-box canvas{max-height:220px!important;}
-  #page-trend .chart-box canvas{max-height:200px!important;}
-  #page-category .chart-box canvas{max-height:320px!important;}
   /* 模試成績一覧 印刷 */
-  #page-hist{padding:2mm 0 0!important;}
   #histPageHeader{background:#e0e0e0!important;padding:2mm 4mm!important;margin-bottom:3mm!important;border-radius:3pt;}
-  #page-weakness .page-header-row{background:#e0e0e0!important;padding:2mm 4mm!important;margin-bottom:3mm!important;border-radius:3pt;}
-  #page-weakness .page-header-row>div{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
-  #page-weakness .page-title{font-size:14pt!important;margin-bottom:0!important;}
-  #page-weakness .page-sub{font-size:10pt!important;color:#333!important;}
   #histPageHeader .page-title{font-size:10pt!important;}
   #histPrintName{font-size:9pt!important;color:#333!important;}
-  #page-hist .hist-wrap{display:none!important;}
   #histPrintWrap{display:block!important;}
   #histPrintName{display:inline!important;}
   .hist-phdr{font-size:8pt;font-weight:700;background:#e0e0e0!important;padding:1.5mm 3mm;border-radius:2pt;margin-bottom:2mm;}
@@ -394,7 +356,6 @@ tbody tr:hover td{background:var(--g1);}
   body.print-resp-detail .resp-wrong{color:#000!important;font-weight:400!important;}
 
   /* 節別の弱点・復習リスト 印刷 */
-  #page-sec .page-header-row,#page-secclass .page-header-row,#page-review .page-header-row{background:#e0e0e0!important;padding:2mm 4mm!important;margin-bottom:3mm!important;border-radius:3pt;}
   .sec-tbl{font-size:8.5pt!important;}
   .sec-tbl th,.sec-tbl td{padding:1.2mm 2mm!important;}
   .sec-tbl tr{break-inside:avoid;}
@@ -405,9 +366,6 @@ tbody tr:hover td{background:var(--g1);}
   .rv-text,.rv-opts,.rv-ans{font-size:9pt!important;}
   .rv-src{font-size:8pt!important;}
   /* 全学生印刷モード */
-  body.print-all-students #page-trend.active,
-  body.print-all-students #page-summary.active,
-  body.print-all-students #page-weakness.active,
   body.print-all-students .page.active{display:none!important;}
   body.print-all-students .student-print-page{display:block!important;}
   .student-print-page{page-break-before:always;}
@@ -940,7 +898,7 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .sv-pop-n{font-size:10.5px;color:var(--g4);margin-top:6px;line-height:1.5;}
 .sv-bar{position:sticky;top:0;z-index:55;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:6px 16px;background:var(--g5);color:var(--paper);font-size:12.5px;}
 .sv-bar button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--paper);border-radius:4px;background:transparent;color:var(--paper);cursor:pointer;}
-.sv-on .teacher-only,.sv-on #page-admin_exam,.sv-on #page-admin_student,.sv-on #page-data_edit,.sv-on #page-responses,.sv-on #page-admin_teacher,.sv-on #page-secclass{display:none!important;}
+.sv-on .teacher-only,.sv-on #page-admin_exam,.sv-on #page-admin_student,.sv-on #page-data_edit,.sv-on #page-responses,.sv-on #page-admin_teacher{display:none!important;}
 @media print{ .sv,.sv-bar{display:none!important;} }
 .cr{flex:1 1 420px;border-top:2px solid var(--g5);padding-top:10px;font-size:12px;min-width:0;}
 .cr-h{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-bottom:10px;}
@@ -1559,9 +1517,6 @@ let currentExam    = '';
 let currentStudent = '';
 let allData       = {};  // { examName: { master, responses } }
 let students      = [];
-let charts        = {};
-let editingExam   = null;
-let editPart      = 'AM';
 let questionCache = {};
 
 let currentGakunenFilter = '3年'; // '全員' | '2年' | '3年'
@@ -1661,14 +1616,13 @@ auth.onAuthStateChanged(async user => {
       document.getElementById('userRole').style.background = 'var(--ok-bg)';
       document.getElementById('userRole').style.color = 'var(--ok)';
       // 学生は管理画面非表示
-      document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses, #page-admin_teacher, #page-secclass').forEach(el => el.style.display='none');
+      document.querySelectorAll('#page-admin_exam, #page-admin_student, #page-data_edit, #page-responses, #page-admin_teacher').forEach(el => el.style.display='none');
       // 学生には教員用のメニュー（学年・全学生印刷・管理・クラスの節別）を出さない。学生のデータは自分の分だけなので学年で絞らない
       document.querySelectorAll('.teacher-only').forEach(el => el.style.display='none');
       document.body.classList.add('is-student');
       currentGakunenFilter = '全員';
     }
 
-    applyWeakMode();
     await loadAllData();
   } else {
     currentUser = null;
@@ -1919,11 +1873,6 @@ function formatDate(d) {
 
 
 
-// ===== 科目別低正答率 =====
-let lrThresh = 50;
-let lrQStat  = {};   // { qNum: {correct, total} }
-let lrCatList = [];  // [{ cat, qs:[{q,pct}] }]
-let lrOptStat = {};  // { qNum: { "optionKey": count } }
 
 
 
@@ -2040,10 +1989,6 @@ async function importBulkJson() {
 
 
 
-// ===== 弱点抽出 =====
-function applyWeakMode() {
-  // student selector is now in sidebar; nothing to toggle here
-}
 
 
 
@@ -2124,6 +2069,8 @@ async function deleteExam(name) {
   await db.ref('exams/' + name).remove();
   examList = examList.filter(e=>e.name!==name);
   delete allData[name];
+  ctxMemo = {};
+  buildExamSel();
   renderAdminExamTable();
 }
 
@@ -2184,6 +2131,7 @@ async function confirmExamModal() {
   if (!allData[name]) allData[name]={master:{date,active,answers:{},categories:{}},responses:{}};
   if (!examList.find(e=>e.name===name)) examList.push({name,date,active});
   closeExamModal();
+  buildExamSel();
   renderAdminExamTable();
   alert('保存しました');
 }
@@ -2367,13 +2315,6 @@ function setupStudentPaste() {
 let refSections = null;   // { 'sid|章|節': {s:科目, c:章, t:節, g:分野, kq:'28-12,27-3,...'} }
 let refState    = 'loading';
 const kqCache   = {};     // { '28-12': {q,a,r,n} }
-let secScope      = 'exam';  // 'exam' | 'all'
-let secShow       = 'miss';  // 'miss' | 'all'
-let secClassScope = 'exam';
-let rvScope = 'exam';
-let rvKqN   = 3;
-let rvTop   = 10;            // 0=すべて（初期は上位10節＝1人で100節を超えるので）
-let rvSeq   = 0;
 
 async function loadRef() {
   try {
@@ -2439,6 +2380,7 @@ function studentSecStats(uid, exams) {
     const r = allData[ex]?.responses?.[uid];
     if (!m?.answers || !m.sections || !r) return;
     ['AM', 'PM'].forEach(part => {
+      if (r[part]?.status !== 'submitted') return;   // 下書き・差し戻し・確認待ちは数えない
       const ans = r[part]?.answers;
       if (!ans) return;
       const start = part === 'AM' ? 1 : 101;
@@ -2478,7 +2420,7 @@ function setSegActive(groupId, val) {
 }
 function noSectionsMsg(scope) {
   if (scope === 'exam' && currentExam && !allData[currentExam]?.master?.sections)
-    return '<div class="lr-empty">この模試には節の紐づけがありません（「全模試通算」で見られます）</div>';
+    return '<div class="lr-empty">この模試には節の紐づけがありません（「全部の模試」で見られます）</div>';
   return '';
 }
 
@@ -2671,7 +2613,7 @@ function renderResponsesPage() {
         const r = allData[examName]?.responses?.[s.uid]?.[part];
         if (!r) return;
         const ts = r.submittedAt || r.updatedAt || 0;
-        rows.push({ examName, uid: s.uid, studentEmail: s.email || '', label: s.name || s.email || s.uid, part, score: r.score, status: r.status, ts, respEmail: r.email || '' });
+        rows.push({ examName, uid: s.uid, studentEmail: s.email || '', label: s.name || s.email || s.uid, part, score: r.status === 'submitted' ? partScore({ [part]: r }, part, examName) : null, status: r.status, ts, respEmail: r.email || '' });
       });
     });
   });
@@ -2706,7 +2648,7 @@ function renderResponsesPage() {
       <td>${esc(row.label)}</td>
       <td style="font-size:11px;color:var(--g4)">${esc(row.examName)}</td>
       <td style="font-weight:500">${esc(row.part)}</td>
-      <td class="mono" style="${col}">${row.score??'—'}</td>
+      <td class="mono" style="${col}">${esc(row.score ?? '—')}</td>
       <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':'下書き'}</span></td>
       <td style="font-size:11px;color:var(--g4);white-space:nowrap;">${fmtTs(row.ts)}</td>
       <td style="font-size:10px;font-family:'DM Mono',monospace;">
@@ -2758,7 +2700,7 @@ function showRespDetail(examName, uid, part) {
   document.getElementById('respDetailTitle').textContent =
     `${label}　${examName}　${part}`;
   document.getElementById('respDetailSummary').textContent =
-    `得点: ${resp.score ?? '—'} 点　　正答: ${correct} / ${total} 問　　状態: ${resp.status === 'submitted' ? '提出済' : '下書き'}`;
+    `得点: ${resp.status === 'submitted' ? correct : '—'} 点　　正答: ${correct} / ${total} 問　　状態: ${resp.status === 'submitted' ? '提出済' : '下書き'}`;
   document.getElementById('respDetailBody').innerHTML = rows.map(r =>
     `<tr>
       <td style="color:var(--g4)">${r.q}</td>
@@ -2977,6 +2919,7 @@ async function saveGridData() {
     if (!allData[examName]) allData[examName] = { master:{}, responses:{} };
     allData[examName].master.answers    = { ...gridData[examName].answers };
     allData[examName].master.categories = { ...gridData[examName].categories };
+    ctxMemo = {};
     hideLoading();
     alert('✅ 保存しました！');
   } catch(e) {
@@ -3076,7 +3019,6 @@ let karteScope   = 'exam';   // 節の範囲 'exam' | 'all'
 let karteKqN     = 0;        // 節ごとに出す国試の類題（復習リストをカルテから外したので読まない）
 let karteShowAll = false;    // 優先節 上位10 ／ すべて
 let karteSeq     = 0;
-let rosterView   = 'exam';   // 学生一覧 'exam' | 'trend'
 let roSortBy     = { exam: { k: 'num', d: 1 }, trend: { k: 'num', d: 1 } };  // 初期は学生番号順  // 学生一覧の並び（見出しクリック）。d: 1=昇順 -1=降順
 let exLowMode    = 'map';    // この模試：'map'（出題マップ 科目→章→節）| 'cat'（科目別の問題）| 'sec'（節ワースト10）
 let exLowTh      = 50;       // 科目別の問題：正答率がこれ以下
@@ -3128,10 +3070,20 @@ if (window.Chart) {
 }
 
 function asArr(o) { return Array.isArray(o) ? o : Object.values(o || {}); }
-function partScore(r, part) { return r?.[part]?.status === 'submitted' ? (Number(r[part].score) || 0) : null; }
+// 得点は保存された score でなく、いまの正答で数え直す（正答を直した・score だけ書き換えられた、に左右されない）
+function partScore(r, part, exam) {
+  const p = r?.[part];
+  if (p?.status !== 'submitted') return null;
+  const ma = allData[exam]?.master?.answers;
+  if (!ma) return Number(p.score) || 0;
+  const a = p.answers || {}, s = part === 'AM' ? 1 : 101;
+  let n = 0;
+  for (let q = s; q < s + 100; q++) { const c = String(ma[q] || ''); if (ansScorable(c) && ansIsCorrect(c, a[q])) n++; }
+  return n;
+}
 function examTotal(exam, uid) {
   const r = allData[exam]?.responses?.[uid];
-  const am = partScore(r, 'AM'), pm = partScore(r, 'PM');
+  const am = partScore(r, 'AM', exam), pm = partScore(r, 'PM', exam);
   if (am === null && pm === null) return null;
   return { am, pm, total: (am || 0) + (pm || 0), full: am !== null && pm !== null };
 }
@@ -3205,7 +3157,9 @@ async function publishStats() {
     if (!m) continue;
     const s = computeStats(e.name, list);
     if (!s.n && !s.partial && !m.stats) continue;
-    const out = { n: s.n, partial: s.partial, totals: s.totals, avg: s.avg, med: s.med, q: s.q, updatedAt: Date.now() };
+    // 5人未満は人数だけ（2〜3人の回は平均や問ごとの正答率から他の学生の点が割り出せる）
+    const out = s.n >= 5 ? { n: s.n, partial: s.partial, totals: s.totals, avg: s.avg, med: s.med, q: s.q, updatedAt: Date.now() }
+                         : { n: s.n, partial: s.partial, updatedAt: Date.now() };
     if (m.stats && statsSig(m.stats) === statsSig(out)) continue;
     try { await db.ref('exams/' + e.name + '/stats').set(out); m.stats = out; }
     catch (err) { console.warn('stats の保存に失敗', e.name, err); }
@@ -3214,7 +3168,10 @@ async function publishStats() {
 // クラスの数字：教員はその場で（学年フィルター内）、学生は置いてある集計を読む
 function ctx(exam) {
   if (!exam) return null;
-  if (exam in ctxMemo) return ctxMemo[exam];
+  // 学生の画面・学生に渡す紙（カルテ・復習）は、5人未満の回のクラスの数字を出さない
+  const hand = !isTeacher || ['page-karte', 'page-drill'].some(id => document.getElementById(id)?.classList.contains('active'));
+  const key = exam + (hand ? '|h' : '');
+  if (key in ctxMemo) return ctxMemo[key];
   let v = null;
   if (isTeacher) v = computeStats(exam, getActiveStudents());
   else {
@@ -3222,7 +3179,8 @@ function ctx(exam) {
     if (s) v = { n: s.n || 0, partial: s.partial || 0, totals: asArr(s.totals).map(Number).sort((a, b) => a - b),
                  avg: s.avg ?? null, med: s.med ?? null, q: s.q || {}, opt: null };
   }
-  return (ctxMemo[exam] = v);
+  if (hand && v && v.n < 5) v = { n: v.n, partial: v.partial, totals: [], avg: null, med: null, q: {}, opt: null };
+  return (ctxMemo[key] = v);
 }
 function qRate(st, n) { const o = st?.q?.['q' + n]; return o && o.t ? o.c / o.t : null; }
 
@@ -3570,7 +3528,6 @@ function openKarte(uid) {
 
 // ---------- 学生カルテ ----------
 function setKarteScope(v) { karteScope = v; setSegActive('kaScopeBtns', v); renderKarte(); }
-function setKarteKq(v)    { karteKqN = v;   setSegActive('kaKqBtns', v);    renderKarte(); }
 function karteUid() { return isTeacher ? currentStudent : (currentUser?.uid || ''); }
 // 優先度＝国試でその節から出た問題数 × その節で落とした割合（国試の節データが無いときは落とした数だけ）
 function karteRows(uid, scope) {
@@ -3747,13 +3704,13 @@ function drillHtml(uid, rows, showAll) {
     if (!k) return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}</div><div class="rv-text rv-none">（読み込めませんでした）</div></div>`;
     return `<div class="rv-item rv-kq"><div class="rv-src">${esc(kqLabel(id))}${k.r != null ? `<span class="rv-rate">参考正答率 ${k.r}%</span>` : ''}</div><div class="rv-text">${esc(k.q)}</div><div class="rv-ans"><span>正答 <b>${esc(k.a)}</b></span></div></div>`; };
   const nMiss = shown.reduce((a, r) => a + r.miss.length, 0);
-  return refNotice() + `<section class="v2-block ka-review"><div class="v2-h"><h2>優先して取り返す節の順</h2><span class="v2-note">落とした ${nMiss}問 ／ ${shown.length}節　<span class="star">★</span>＝クラスの8割以上が正解した問題</span></div>` +
+  return refNotice() + `<section class="v2-block ka-review"><div class="v2-h"><h2>優先して取り返す節の順</h2><span class="v2-note">落とした ${nMiss}問 ／ ${shown.length}節　<span class="star">★</span>＝クラスの${karteStarTh}%以上が正解した問題</span></div>` +
     shown.map((g, gi) => `<section class="rv-sec"><div class="rv-sec-hd"><span class="rv-no">${String(gi + 1).padStart(2, '0')}</span>
         <div class="rv-sec-name">${g.info.g ? `<div class="rv-sec-g">${esc(g.info.g)}</div>` : ''}<div>${secPathHtml(g.k)}</div></div>
         <div class="rv-sec-meta">この節 ${g.ok}/${g.n} 正解<br>国試の出題 ${g.kq.length}問</div></div>
       <div class="rv-h">落とした模試の問題</div>
       ${g.miss.map(m => { const cr = qRate(ctx(m.exam), m.q);
-        return `<div class="rv-item"><div class="rv-src">${cr != null && cr >= 0.8 ? '<span class="star">★</span>' : ''}${esc(mockQLabel(m.exam, m.q))}${cr != null ? `<span class="rv-rate">クラス正答率 ${Math.round(cr * 100)}%</span>` : ''}</div>
+        return `<div class="rv-item"><div class="rv-src">${cr != null && cr * 100 >= karteStarTh ? '<span class="star">★</span>' : ''}${esc(mockQLabel(m.exam, m.q))}${cr != null ? `<span class="rv-rate">クラス正答率 ${Math.round(cr * 100)}%</span>` : ''}</div>
         ${mockQHtml(m.exam, m.q)}
         <div class="rv-ans"><span>${isTeacher ? '本人' : 'あなた'}の解答 <b class="rv-my">${esc(m.my === '' ? '無回答' : m.my)}</b></span><span>正答 <b>${esc(m.correct)}</b></span></div></div>`; }).join('')}
       ${drillKqN && g.kq.length ? '<div class="rv-h">国試で同じ節から出た問題（新しい順）</div>' + g.kq.slice(0, drillKqN).map(kqHtml).join('') : ''}
@@ -3881,7 +3838,6 @@ async function printAllKarte() {
 function segHtml(opts, cur, fn) {
   return '<span class="seg">' + opts.map(([v, l]) => `<button class="${String(v) === String(cur) ? 'active' : ''}" onclick="${fn}('${v}')">${l}</button>`).join('') + '</span>';
 }
-function setRosterView(v) { rosterView = v; setSegActive('roViewBtns', v); renderRoster(); }
 function stuNo(s) { return (s.email || '').split('@')[0]; }
 // 空欄はどちら向きでも末尾。同点は学生番号順
 function roSort(rows, view, get) {

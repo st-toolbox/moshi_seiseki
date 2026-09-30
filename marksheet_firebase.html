@@ -567,7 +567,7 @@ function calcScore(ans, examName, part) {
     if (!catStats[cat]) catStats[cat] = { correct:0, total:0 };
     catStats[cat].total++;
     const isCorrect = correct && correct !== '解なし' && (
-      correct.includes(',') ? correct.split(',').includes(userAns) : userAns === correct
+      correct.includes(',') ? correct.split(',').map(x => x.trim()).includes(userAns) : userAns === correct
     );
     if (isCorrect) { score++; catStats[cat].correct++; }
     else wrongList.push({ qNum:String(q), userAns:userAns||'未解答', correctAns:correct, category:cat });
@@ -576,8 +576,17 @@ function calcScore(ans, examName, part) {
 }
 
 // ===== 保存・送信 =====
-function handleSave() {
+// 先生が用紙で確かめた解答は、学生の画面から上書きしない（書く直前にDBを読み直して判定＝古い画面のまま押しても止まる）
+async function teacherLocked() {
+  const d = (await db.ref(`responses/${currentExam}/${currentUser.uid}/${currentPart}`).once('value')).val();
+  if (d && d.status === 'submitted' && d.source === 'paper') return 'この時間帯は、先生が紙の用紙と見比べて提出にしています。\n直したいところがあれば先生に伝えてください。';
+  if (d && d.status === 'paper_pending' && d.scannedBy) return 'この時間帯の用紙は、先生が取り込んで確認中です。\n直したいところがあれば先生に伝えてください。';
+  return '';
+}
+async function handleSave() {
   if (!currentExam) return showAlert('模試を選択してください');
+  const lock = await teacherLocked().catch(() => '');
+  if (lock) return showAlert(lock);
   showLoading('一時保存中...');
   const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
   db.ref(path).set({
@@ -592,8 +601,10 @@ function handleSave() {
   }).catch(e => { hideLoading(); showAlert('保存に失敗しました: '+e.message); });
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!currentExam) return showAlert('模試を選択してください');
+  const lock = await teacherLocked().catch(() => '');
+  if (lock) return showAlert(lock);
   if (paperMode) return submitPaper();
   const again = currentStatus === 'submitted';
   showConfirm(again ? '解答を送信し直します。\n前に送った解答は、いまの画面の解答で上書きされます。' : '解答を送信します。\nよろしいですか？', () => {
