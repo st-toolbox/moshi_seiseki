@@ -12,12 +12,11 @@
 .ps select:focus,.ps input:focus{outline:none;border-color:var(--g5);}
 .ps .ps-top{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:end;}
 .ps .ps-counts{font-family:'DM Mono',monospace;font-size:12px;color:var(--g4);white-space:nowrap;}
-.ps .ps-drop{margin-top:12px;border:1.5px dashed var(--g3);border-radius:6px;padding:16px;text-align:center;font-size:13px;color:var(--g4);line-height:1.7;cursor:pointer;}
-.ps .ps-drop.over{border-color:var(--ps-am);background:var(--ps-am-bg);color:var(--ps-am);}
-.ps .ps-drop b{color:var(--g5);}
-@media (hover:none){ .ps .ps-drop{display:none;} }
-.ps .ps-dock{position:sticky;bottom:0;z-index:5;background:#fff;border:1px solid var(--g5);border-radius:10px;padding:10px;margin-top:6px;display:grid;grid-template-columns:2fr 1fr;gap:8px;box-shadow:0 -4px 14px rgba(23,26,24,.06);}
-@media (max-width:560px){ .ps .ps-dock{grid-template-columns:1.5fr 1fr;} }
+.ps .ps-exrow{display:flex;gap:8px;align-items:stretch;}
+.ps .ps-exrow select{flex:1;min-width:0;}
+.ps .ps-exrow .ps-btn{padding:8px 16px;font-size:13px;flex-shrink:0;}
+.ps .ps-exrow .ps-btn svg{width:16px;height:16px;}
+@media (max-width:560px){ .ps .ps-exrow{flex-wrap:wrap;} .ps .ps-exrow select{flex-basis:100%;} .ps .ps-exrow .ps-btn{flex:1;} }
 .ps .ps-btn{padding:12px 10px;border-radius:6px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;}
 .ps .ps-btn svg{width:19px;height:19px;flex-shrink:0;}
 .ps .ps-cam{background:var(--ps-am);color:#fff;}
@@ -118,13 +117,13 @@
   .ps-sheet{page:pssheet;width:210mm;height:297mm;overflow:hidden;break-after:page;}
   .ps-sheet:last-child{break-after:auto;}
   .ps-sheet svg{display:block;width:210mm;height:297mm;}
-  #page-paper_scan .ps-dock,#page-paper_scan .ps-drop{display:none!important;}
+  #page-paper_scan .ps-exrow .ps-btn{display:none!important;}
 }`;
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   const partName = p => p === 'PM' ? '午後' : '午前';
-  const EMPTY = '<div class="ps-empty" id="psEmpty">下の<b>撮る</b>で用紙を1枚ずつ撮影する。読み取れた用紙は上の<b>確認待ち</b>にたまる（まだ提出ではない）。<br>学籍番号から学生を自動で選び、午前・午後も用紙から判定する。読み切れない用紙だけがここに残る。</div>';
+  const EMPTY = '<div class="ps-empty" id="psEmpty">模試を選んで<b>撮る</b>で用紙を1枚ずつ撮影する（スキャンした画像・PDFは<b>画像・PDF</b>か、この画面に落とす）。読み取れた用紙は上の<b>確認待ち</b>にたまる（まだ提出ではない）。<br>学籍番号から学生を自動で選び、午前・午後も用紙から判定する。読み切れない用紙だけがここに残る。</div>';
   const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   // ===== 組み立て（ページ・モーダル・印刷の置き場） =====
@@ -160,15 +159,14 @@
       <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が撮って送った解答・教員が撮った用紙は、まず確認待ちにたまる。用紙と見比べて許可すると提出になる</div></div><div class="ps-counts" id="psCounts"></div></div>
       <div class="ps-card">
         <div class="ps-lb">模試</div>
-        <select id="psExam"></select>
-        <div class="ps-drop" id="psDrop">スキャンした画像・PDFをここに<b>ドラッグ</b>（複数可）、またはクリックして選ぶ</div>
+        <div class="ps-exrow">
+          <select id="psExam"></select>
+          <button class="ps-btn ps-cam" data-pick="psCam">${CAM}撮る</button>
+          <button class="ps-btn ps-sub" data-pick="psFile">画像・PDF</button>
+        </div>
       </div>
       <div id="psPend"></div>
       <div id="psList">${EMPTY}</div>
-      <div class="ps-dock">
-        <button class="ps-btn ps-cam" data-pick="psCam">${CAM}撮る</button>
-        <button class="ps-btn ps-sub" data-pick="psFile">画像・PDF</button>
-      </div>
       <input type="file" id="psCam" accept="image/*" capture="environment" hidden>
       <input type="file" id="psFile" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden>
     </div>`);
@@ -194,15 +192,10 @@
     document.querySelectorAll('#page-paper_scan [data-pick]').forEach(b => b.addEventListener('click', () => pick(b.dataset.pick)));
     $('psCam').addEventListener('change', e => takeFiles(e.target));
     $('psFile').addEventListener('change', e => takeFiles(e.target));
-    const drop = $('psDrop');
-    drop.addEventListener('click', () => pick('psFile'));
-    ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
-    ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', e => addFiles([...e.dataTransfer.files]));
-    // 取り込み画面では、枠の外に落としてもブラウザが画像を開いてしまわないように
+    // 取り込み画面では、画面のどこに画像・PDFを落としても読み込む（ブラウザが画像を開いてしまわないように）
     const onScan = () => $('page-paper_scan').classList.contains('active');
     window.addEventListener('dragover', e => { if (onScan()) e.preventDefault(); });
-    window.addEventListener('drop', e => { if (onScan()) e.preventDefault(); });
+    window.addEventListener('drop', e => { if (!onScan()) return; e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]); });
     window.addEventListener('beforeunload', e => { if (sheets.some(s => !s.done && s.res && s.res.ok)) { e.preventDefault(); e.returnValue = ''; } });
     // 画面内のボタン（描き直すたびに作り直すので委譲で受ける）
     $('page-paper_scan').addEventListener('click', onScanClick);
