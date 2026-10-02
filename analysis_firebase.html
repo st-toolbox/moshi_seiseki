@@ -652,7 +652,8 @@ thead th{border-bottom:1px solid var(--g5);}
 .sec-tbl th{border-bottom:1px solid var(--g5);}
 
 @media (max-width:900px){
-  .ex-top{grid-template-columns:1fr;gap:24px;}
+  .ex-top{grid-template-columns:minmax(0,1fr);gap:24px;}   /* 1frだと中の図(min-width:820px)に列が引き伸ばされ、.mainのoverflow-x:hiddenで切れて横スクロールできない */
+  .ex-top>*{min-width:0;}
   #page-exam,#page-roster,#page-karte,#page-drill{padding:24px 16px 48px;}
   .figs{grid-template-columns:repeat(2,minmax(0,1fr));}
   .fig+.fig{border-left:none;padding-left:0;}
