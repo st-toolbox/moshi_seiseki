@@ -963,7 +963,14 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .ka-star .v2-tbl td:first-child,.ka-star .v2-tbl th{white-space:nowrap;}
 .ka-star .sec-path{font-size:10.5px;}
 .v2-h .v2-ctrl{gap:14px;}
-.exl-cat{margin-bottom:22px;}
+.exl-cat{margin-bottom:22px;scroll-margin-top:66px;}
+.exl-jump{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px;scroll-margin-top:66px;}
+.exl-jump button{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--g2);border-radius:999px;background:#fff;cursor:pointer;color:inherit;}
+.exl-jump button:hover{border-color:var(--g4);}
+.exl-jump .mn{margin-left:6px;color:var(--g4);font-size:11px;}
+.exl-top{font:inherit;font-size:11px;margin-left:10px;padding:0 4px;border:0;background:none;color:var(--g4);cursor:pointer;}
+.exl-top:hover{color:inherit;text-decoration:underline;}
+@media print{ .exl-jump,.exl-top{display:none!important;} }
 .exl-hd{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;padding:6px 0;border-bottom:1px solid var(--g5);}
 .exl-hd .mn{font-size:12px;color:var(--g4);font-weight:500;}
 .exq{border-bottom:1px solid var(--line);}
@@ -3117,7 +3124,7 @@ let karteShowAll = false;    // 優先節 上位10 ／ すべて
 let karteSeq     = 0;
 let roSortBy     = { exam: { k: 'num', d: 1 }, trend: { k: 'num', d: 1 } };  // 初期は学生番号順  // 学生一覧の並び（見出しクリック）。d: 1=昇順 -1=降順
 let exLowMode    = 'map';    // この模試：'map'（出題マップ 科目→章→節）| 'cat'（科目別の問題）| 'sec'（節ワースト10）
-let exLowTh      = 50;       // 科目別の問題：正答率がこれ以下
+let exLowTh      = 40;       // 科目別の問題：正答率がこれ以下（100＝全部）
 let karteStarTh  = 70;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
 let ctxMemo      = {};
 // 全国データ：ref/national/{模試名} = {n, mean, sd, date, q:{問:%}, ch:{問:{選択肢:%}}, diff:{問:主催の正答}}
@@ -3987,6 +3994,7 @@ function fillStuSel(id) {
 }
 function setExLow(v)   { exLowMode = v; renderExamView(); }
 function setExLowTh(v) { exLowTh = Number(v); renderExamView(); }
+function exlJump(i) { document.getElementById(i < 0 ? 'exlJump' : 'exlCat' + i)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function setNatGap(v)  { natGapTh = Number(v); renderExamView(); }
 // この模試：全国正答率がクラス正答率より natGapTh ポイント以上高い問題（差の大きい順）。科目ごとの件数も
 function exNatHtml(ex, st) {
@@ -4132,7 +4140,7 @@ function exLowHtml(ex, st) {
   const m = allData[ex]?.master || {};
   const nat = natOf(ex), mode = exLowMode === 'nat' && !nat?.q ? 'map' : exLowMode;
   let h = `<section class="v2-block"><div class="v2-h"><h2>出題されたところ・落としたところ</h2><div class="v2-ctrl">${segHtml([['map', '出題マップ'], ['cat', '科目別の問題'], ['sec', '節ワースト10']].concat(nat?.q ? [['nat', '全国との差']] : []), mode, 'setExLow')}` +
-    (mode === 'cat' ? `<label>正答率 ${segHtml([[30, '30%'], [40, '40%'], [50, '50%'], [60, '60%']], exLowTh, 'setExLowTh')} 以下</label>` : '') +
+    (mode === 'cat' ? `<label>正答率 ${segHtml([[20, '20%'], [40, '40%'], [60, '60%'], [80, '80%'], [100, '全部']], exLowTh, 'setExLowTh')}${exLowTh < 100 ? ' 以下' : ''}</label>` : '') +
     (mode === 'nat' ? `<label>全国より ${segHtml([[10, '10'], [20, '20'], [30, '30']], natGapTh, 'setNatGap')} ポイント以上低い</label>` : '') + '</div></div>';
   if (mode === 'nat') return h + exNatHtml(ex, st) + '</section>';
   if (mode === 'map') {
@@ -4163,8 +4171,10 @@ function exLowHtml(ex, st) {
   const cats = CATEGORY_ORDER.filter(c => by[c]).concat(Object.keys(by).filter(c => !CATEGORY_ORDER.includes(c)));
   if (!cats.length) return h + `<div class="v2-empty">正答率${exLowTh}%以下の問題はありません。</div></section>`;
   const nAll = cats.reduce((a, c) => a + by[c].length, 0);
-  h += `<div class="v2-note" style="margin-bottom:10px">正答率${exLowTh}%以下 <b class="mn">${nAll}</b>問 ／ ${cats.length}科目。科目の中は正答率の低い順。開くと問題と選択肢の分布</div>`;
-  return h + cats.map(c => `<div class="exl-cat"><div class="exl-hd"><span>${esc(c)}</span><span class="mn">${by[c].length}問</span></div>` +
+  h += `<div class="v2-note" style="margin-bottom:10px">${exLowTh < 100 ? `正答率${exLowTh}%以下` : '全部の問題'} <b class="mn">${nAll}</b>問 ／ ${cats.length}科目。科目の中は正答率の低い順。開くと問題と選択肢の分布</div>`;
+  // 科目へ飛ぶ（担当の先生が自分の科目だけ見る用）。ボタンで scrollIntoView＝URLの#を使わない
+  h += `<nav class="exl-jump" id="exlJump">${cats.map((c, i) => `<button type="button" onclick="exlJump(${i})">${esc(c)}<span class="mn">${by[c].length}</span></button>`).join('')}</nav>`;
+  return h + cats.map((c, i) => `<div class="exl-cat" id="exlCat${i}"><div class="exl-hd"><span>${esc(c)}</span><span><span class="mn">${by[c].length}問</span><button type="button" class="exl-top" onclick="exlJump(-1)">▲ 科目一覧</button></span></div>` +
     by[c].sort((a, b) => a.r - b.r || a.n - b.n).map(o => exQHtml(ex, o.n, o.r, st)).join('') + '</div>').join('') + '</section>';
 }
 
