@@ -1316,7 +1316,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
           <label class="teacher-only">学生 <select class="pg-sel" id="drStuSel" onchange="pickStudent(this.value)"></select></label>
           <label id="drExamLbl">模試 <select class="pg-sel" id="drExamSel" onchange="pickExam(this.value)"></select></label>
           <label>範囲 <span class="seg" id="drScopeBtns"><button data-val="exam" class="active" onclick="setDrillScope('exam')">この模試</button><button data-val="all" onclick="setDrillScope('all')">全部の模試</button></span></label>
-          <label id="drStarLbl">★の基準 クラス正答率 <span class="seg" id="drStarBtns"><button data-val="60" onclick="setDrillStar(60)">60%</button><button data-val="70" class="active" onclick="setDrillStar(70)">70%</button><button data-val="80" onclick="setDrillStar(80)">80%</button><button data-val="90" onclick="setDrillStar(90)">90%</button></span> 以上</label>
+          <label id="drStarLbl">★の基準 クラス正答率 <span class="seg" id="drStarBtns"><button data-val="60" class="active" onclick="setDrillStar(60)">60%</button><button data-val="70" onclick="setDrillStar(70)">70%</button><button data-val="80" onclick="setDrillStar(80)">80%</button><button data-val="90" onclick="setDrillStar(90)">90%</button></span> 以上</label>
           <label id="drKqLbl">国試の類題 <span class="seg" id="drKqBtns"><button data-val="0" onclick="setDrillKq(0)">なし</button><button data-val="1" onclick="setDrillKq(1)">1問</button><button data-val="3" class="active" onclick="setDrillKq(3)">3問</button></span></label>
         </div>
       </header>
@@ -3125,7 +3125,7 @@ let karteSeq     = 0;
 let roSortBy     = { exam: { k: 'num', d: 1 }, trend: { k: 'num', d: 1 } };  // 初期は学生番号順  // 学生一覧の並び（見出しクリック）。d: 1=昇順 -1=降順
 let exLowMode    = 'map';    // この模試：'map'（出題マップ 科目→章→節）| 'cat'（科目別の問題）| 'sec'（節ワースト10）
 let exLowTh      = 40;       // 科目別の問題：正答率がこれ以下（100＝全部）
-let karteStarTh  = 70;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
+let karteStarTh  = 60;       // カルテ：★＝クラスのこの%以上が正解したのに落とした
 let ctxMemo      = {};
 // 全国データ：ref/national/{模試名} = {n, mean, sd, date, q:{問:%}, ch:{問:{選択肢:%}}, diff:{問:主催の正答}}
 // 表示するのは教員だけ（学生の画面・「学生の立場で見る」には出さない）。ONにした時だけ読み込む
