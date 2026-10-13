@@ -302,6 +302,8 @@ let currentStatus   = 'new';
 let examMasterCache = {};
 let paperMode = false;  // 紙から読み込んだ解答＝先生の確認待ちで出す（自分では提出にならない）
 let returnedAt = null;  // 先生から差し戻された時刻（差し戻し中だけ）
+let resubAt = null;     // 提出の後に送り直した時刻（先生の確認待ちの間だけ）
+let resubRejAt = null;  // 送り直しを先生が受け付けなかった時刻
 let afterLoad = null;  // 読み込み完了後に1回だけ実行
 let paperFlags = {};   // 紙から読み込んだときの要確認（問題番号→{flag,alt}）
 
@@ -414,10 +416,17 @@ function loadReturned() {
   Promise.all(examNames.map(ex => db.ref(`responses/${ex}/${currentUser.uid}`).once('value').then(v => [ex, v.val()]).catch(() => [ex, null])))
     .then(rows => {
       const list = [];
-      rows.forEach(([ex, r]) => ['AM', 'PM'].forEach(p => { const x = r && r[p]; if (x && x.status === 'draft' && x.returnedAt) list.push({ ex, p, t: x.returnedAt }); }));
-      if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
-      box.innerHTML = `<b>⚠ 先生から差し戻されたマークシートがあります（${list.length}件）</b><br>用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。<br>` +
-        list.map(o => `<button class="ret-go" data-ex="${htmlEsc(o.ex)}" data-p="${o.p}">${htmlEsc(o.ex)}・${o.p === 'AM' ? '午前' : '午後'}（${fmtTime(o.t)}）を開く</button>`).join('');
+      const rej = [];
+      rows.forEach(([ex, r]) => ['AM', 'PM'].forEach(p => {
+        const x = r && r[p];
+        if (x && x.status === 'draft' && x.returnedAt) list.push({ ex, p, t: x.returnedAt });
+        // 送り直しを先生が受け付けなかった（7日だけ知らせる）
+        if (x && x.status === 'submitted' && !x.resubmit && x.resubmitRejectedAt && Date.now() - x.resubmitRejectedAt < 7 * 864e5) rej.push({ ex, p, t: x.resubmitRejectedAt });
+      }));
+      if (!list.length && !rej.length) { box.hidden = true; box.innerHTML = ''; return; }
+      const go = o => `<button class="ret-go" data-ex="${htmlEsc(o.ex)}" data-p="${o.p}">${htmlEsc(o.ex)}・${o.p === 'AM' ? '午前' : '午後'}（${fmtTime(o.t)}）を開く</button>`;
+      box.innerHTML = (list.length ? `<b>⚠ 先生から差し戻されたマークシートがあります（${list.length}件）</b><br>用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。<br>` + list.map(go).join('') : '') +
+        (rej.length ? `${list.length ? '<br>' : ''}<b>⚠ 送り直した解答を、先生が受け付けませんでした（${rej.length}件）</b><br>前に提出した解答のままです。<br>` + rej.map(go).join('') : '');
       box.querySelectorAll('.ret-go').forEach(b => b.addEventListener('click', () => openSheet(b.dataset.ex, b.dataset.p)));
       box.hidden = false;
     });
@@ -459,10 +468,13 @@ function checkAndLoad() {
   paperFlags = {}; document.getElementById('paperResult').innerHTML = '';
   db.ref(path).once('value').then(snap => {
     const data = snap.val();
+    const rs = data && data.status === 'submitted' && data.resubmit && data.resubmit.answers ? data.resubmit : null;
     originalAnswers = data ? { ...data.answers } : {};
-    answers         = data ? { ...data.answers } : {};
+    answers         = rs ? { ...rs.answers } : data ? { ...data.answers } : {};
     currentStatus   = data ? data.status : 'new';
     returnedAt      = data && data.status === 'draft' && data.returnedAt ? data.returnedAt : null;
+    resubAt         = rs ? (rs.at || Date.now()) : null;
+    resubRejAt      = data && data.status === 'submitted' && !rs && data.resubmitRejectedAt ? data.resubmitRejectedAt : null;
     paperMode       = !!data && (data.status === 'paper_pending' || (data.status === 'draft' && data.source === 'paper'));
     updateStatusUI();
     renderSheet();
@@ -481,10 +493,11 @@ function updateStatusUI() {
   // 送信後（確認待ち・提出済）は一時保存を出さない＝押すと下書きに戻ってしまうため
   const sent = currentStatus === 'paper_pending' || currentStatus === 'submitted';
   document.getElementById('saveBtn').hidden = sent;
-  btn.hidden = currentStatus === 'submitted';   // 提出後は送り直せない（直すときは先生が差し戻す）
+  btn.hidden = false;   // 提出後も「再送信」で送り直せる（先生が許可するまで前の提出のまま）
   const tag = document.getElementById('sentTag');
   tag.hidden = !sent;
-  tag.innerHTML = currentStatus === 'paper_pending' ? '<span>✓ 送信済み<small>先生の確認待ち</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
+  tag.innerHTML = currentStatus === 'paper_pending' ? '<span>✓ 送信済み<small>先生の確認待ち</small></span>'
+    : resubAt ? '<span>✓ 提出済<small>再送信は先生の確認待ち</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
   banner.classList.toggle('ret', currentStatus === 'draft' && !!returnedAt);
   banner.textContent = currentStatus === 'draft' && returnedAt
     ? `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。まだ提出になっていません。`
@@ -493,8 +506,15 @@ function updateStatusUI() {
     badge.classList.add('badge-draft'); badge.textContent = '先生の確認待ち';
     btn.textContent = '再送信'; banner.classList.remove('show');
   } else if (currentStatus === 'submitted') {
-    badge.classList.add('badge-done'); badge.textContent = '提出済';
-    btn.textContent = '再送信'; banner.classList.remove('show');
+    badge.classList.add(resubAt ? 'badge-draft' : 'badge-done'); badge.textContent = resubAt ? '再送信：先生の確認待ち' : '提出済';
+    btn.textContent = '再送信';
+    if (resubAt) {
+      banner.textContent = `再送信しました（${fmtTime(resubAt)}）。先生が許可すると、いまの提出と入れ替わります。許可されるまでは前の提出のままです。`;
+      banner.classList.add('show');
+    } else if (resubRejAt) {
+      banner.textContent = `⚠ 送り直した解答を、先生が受け付けませんでした（${fmtTime(resubRejAt)}）。前に提出した解答のままです。`;
+      banner.classList.add('show', 'ret');
+    } else banner.classList.remove('show');
   } else if (currentStatus === 'draft') {
     badge.classList.add('badge-draft'); badge.textContent = returnedAt ? '差し戻し' : '一時保存中';
     btn.textContent = '解答を送信する'; banner.classList.add('show');
@@ -580,12 +600,12 @@ function calcScore(ans, examName, part) {
 // 先生が用紙で確かめた解答は、学生の画面から上書きしない（書く直前にDBを読み直して判定＝古い画面のまま押しても止まる）
 async function teacherLocked() {
   const d = (await db.ref(`responses/${currentExam}/${currentUser.uid}/${currentPart}`).once('value')).val();
-  if (d && d.status === 'submitted' && d.source === 'paper') return 'この時間帯は、先生が紙の用紙と見比べて提出にしています。\n直したいところがあれば先生に伝えてください。';
   if (d && d.status === 'paper_pending' && d.scannedBy) return 'この時間帯の用紙は、先生が取り込んで確認中です。\n直したいところがあれば先生に伝えてください。';
   return '';
 }
 async function handleSave() {
   if (!currentExam) return showAlert('模試を選択してください');
+  if (currentStatus === 'submitted') return showAlert('この時間帯は提出済みです。\n直したら「再送信」を押してください。');
   const lock = await teacherLocked().catch(() => '');
   if (lock) return showAlert(lock);
   showLoading('一時保存中...');
@@ -606,10 +626,10 @@ async function handleSubmit() {
   if (!currentExam) return showAlert('模試を選択してください');
   const lock = await teacherLocked().catch(() => '');
   if (lock) return showAlert(lock);
+  // 提出の後の送り直しは、提出を上書きせず resubmit に置く＝先生が許可すると入れ替わる（提出後は正答が見えるため）
+  if (currentStatus === 'submitted') return resubmit();
   if (paperMode) return submitPaper();
-  // 提出後は正答が見えるので、送り直しはできない（DBのルールでも止まる）。直すときは先生に差し戻してもらう
-  if (currentStatus === 'submitted') return showAlert('この時間帯は提出済みです。\n直したいところがあれば先生に伝えてください（先生が差し戻すと直せます）。');
-  showConfirm('解答を送信します。\n送信した後は自分では直せません。よろしいですか？', () => {
+  showConfirm('解答を送信します。\n送信した後に直すときは「再送信」で送り直せます（先生が確認して許可すると入れ替わります）。よろしいですか？', () => {
     showLoading('送信・採点中...');
     const ex = currentExam, part = currentPart;
     const path = `responses/${ex}/${currentUser.uid}/${part}`;
@@ -635,6 +655,26 @@ async function handleSubmit() {
   });
 }
 
+// ===== 提出の後に送り直す =====
+function resubmit() {
+  const changed = [...new Set([...Object.keys(originalAnswers), ...Object.keys(answers)])]
+    .filter(q => String(originalAnswers[q] ?? '') !== String(answers[q] ?? '')).length;
+  if (!changed && !resubAt) return showAlert('提出した解答から変わっていません。\n直したい問題をマークし直してから「再送信」を押してください。');
+  if (!Object.keys(answers).some(q => answers[q])) return showAlert('解答が空です。');
+  showConfirm(`解答を送り直します（提出した解答から ${changed} 問変更）。\n先生が確認して許可すると、いまの提出と入れ替わります。許可されるまでは前の提出のままです。`, () => {
+    showLoading('送信中...');
+    const at = Date.now();
+    db.ref(`responses/${currentExam}/${currentUser.uid}/${currentPart}/resubmit`).set({
+      answers, email: currentUser.email, at, ...(paperMode ? { source: 'paper' } : {})
+    }).then(() => {
+      hideLoading();
+      resubAt = at; resubRejAt = null; paperMode = false;
+      loadReturned();
+      showAlert('送り直しました。\n先生が確認して許可すると、提出が入れ替わります。', () => updateStatusUI());
+    }).catch(e => { hideLoading(); showAlert('送信に失敗しました: ' + e.message); });
+  }, '再送信する');
+}
+
 // ===== 紙のマークシートから読み込む =====
 // 紙から読み込んだ解答は、先生が用紙と見比べて許可するまで提出（採点）にならない
 function submitPaper() {
@@ -658,7 +698,6 @@ async function paperPicked(input) {
   const file = input.files && input.files[0];
   input.value = '';
   if (!file || !currentExam) return;
-  if (currentStatus === 'submitted') return showAlert('この時間帯は提出済みです。\n紙の用紙で出し直す場合は先生に伝えてください。');
   showLoading('読み取り中...');
   let res, page;
   try {
@@ -686,12 +725,9 @@ async function paperPicked(input) {
   };
   // 用紙の午前/午後と、いま開いている時間帯が違うとき
   if (res.part && res.part !== currentPart) {
-    // 切り替え先が提出済みかは読み込み後に判定する
     const name = p => p === 'AM' ? '午前' : '午後';
     showConfirm(`この用紙は${name(res.part)}です。\n${name(res.part)}に切り替えて読み込みますか？`, () => {
-      afterLoad = () => currentStatus === 'submitted'
-        ? showAlert('この時間帯は提出済みです。\n紙の用紙で出し直す場合は先生に伝えてください。')
-        : apply();   // 切り替えた時間帯の読み込みが終わってから入れる
+      afterLoad = apply;   // 切り替えた時間帯の読み込みが終わってから入れる（提出済みなら「再送信」で先生の確認に回る）
       setPart(res.part);
     }, name(res.part) + 'に切り替える');
   } else apply();

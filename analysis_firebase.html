@@ -836,6 +836,13 @@ thead th{border-bottom:1px solid var(--g5);}
 .ret-note b{font-weight:700;}
 .ret-note a{display:inline-block;margin:6px 8px 0 0;padding:4px 12px;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none;font-size:12.5px;background:var(--paper);}
 @media print{ .ret-note{display:none!important;} }
+/* 教員：開いている間に届いた提出・確認待ちを知らせる（この画面は読み込んだ時点の内容のため） */
+.live-note{margin:28px 44px 0;max-width:1312px;padding:9px 14px;border:1px solid var(--g2);border-left:3px solid var(--accent);background:var(--paper);color:var(--g5);font-size:13px;line-height:1.6;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
+.live-note[hidden]{display:none!important;}
+.live-note button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--accent);background:none;color:var(--accent);border-radius:3px;cursor:pointer;}
+.nav-badge{display:inline-block;min-width:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--ng);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;}
+@media screen and (max-width:760px){ .live-note{margin:16px 16px 0;} }
+@media print{ .live-note,.nav-badge{display:none!important;} }
 .cat-tr td.lo{color:var(--ng);}
 .hs-tbl .hs-d{display:inline-block;min-width:2.6em;margin-left:6px;font-size:10.5px;color:var(--g3);font-weight:400;}
 .hs-tbl tr.hs-tot td{background:var(--g1);font-weight:600;}
@@ -1269,6 +1276,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
 
   <main class="main">
     <div class="ret-note" id="retNote" hidden></div>
+    <div class="live-note" id="liveNote" hidden></div>
     <!-- この模試（クラス全体） -->
     <div class="page" id="page-exam">
       <header class="v2-head">
@@ -1809,6 +1817,7 @@ async function loadAllData() {
     await refP;
     renderAll();
     renderRetNote();
+    if (isTeacher) { startLiveWatch(); liveCheck(); }
     if (isTeacher) publishStats().catch(e => console.warn(e));
     if (!document.querySelector('.page.active')) showPage(isTeacher ? 'exam' : 'karte'); else renderV2();
 
@@ -1817,6 +1826,48 @@ async function loadAllData() {
     alert('データ取得エラー: ' + e.message);
   }
   hideLoading();
+}
+
+// 教員：responses を見張り、開いた後に届いた提出（読み込み直すまで集計に出ない）と、マークシートの確認待ち（紙の送信・提出の後の送り直し）を知らせる
+let liveOn = false, liveLast = null;
+function startLiveWatch() {
+  if (liveOn || !isTeacher) return;
+  liveOn = true;
+  db.ref('responses').on('value', snap => { liveLast = snap.val() || {}; liveCheck(); }, e => console.warn('responses の見張り', e));
+}
+function liveCheck() {
+  const box = document.getElementById('liveNote');
+  if (!isTeacher) {   // 学生の立場で見ている間は出さない（allData が1人分に入れ替わっているため）
+    box.hidden = true;
+    document.querySelectorAll('.nav-badge').forEach(b => b.remove());
+    return;
+  }
+  if (!liveLast) return;
+  const subSig = r => r?.status === 'submitted' ? String(r.submittedAt || 0) + '|' + JSON.stringify(r.answers || {}).length : '';
+  let pend = 0, changed = 0;
+  const seen = new Set();
+  for (const ex in liveLast) for (const uid in liveLast[ex] || {}) for (const p of ['AM', 'PM']) {
+    const r = liveLast[ex]?.[uid]?.[p];
+    seen.add(ex + '|' + uid + '|' + p);
+    if (r && (r.status === 'paper_pending' || (r.status === 'submitted' && r.resubmit))) pend++;
+    if (subSig(r) !== subSig(allData[ex]?.responses?.[uid]?.[p])) changed++;
+  }
+  for (const ex in allData) for (const uid in allData[ex]?.responses || {}) for (const p of ['AM', 'PM'])
+    if (!seen.has(ex + '|' + uid + '|' + p) && subSig(allData[ex].responses[uid][p])) changed++;   // 消えた提出
+  const parts = [];
+  if (changed) parts.push(`<span>この画面を開いた後に、提出が <b>${changed}件</b> 届いた・変わった（まだ集計に入っていない）</span><button data-live="reload">読み込み直す</button>`);
+  if (pend) parts.push(`<span>マークシートの確認待ち <b>${pend}件</b>（紙の送信・提出の後の送り直し）</span><button data-live="scan">確認する</button>`);
+  box.innerHTML = parts.join('');
+  box.hidden = !parts.length;
+  box.querySelectorAll('[data-live]').forEach(b => b.addEventListener('click', () => b.dataset.live === 'reload' ? loadAllData() : showPage('paper_scan')));
+  // メニューにも件数（管理を閉じていても見えるよう「管理」にも付ける）
+  [document.querySelector('.nav-item[data-page="paper_scan"]'), document.getElementById('admTg')].forEach(el => {
+    if (!el) return;
+    let bd = el.querySelector('.nav-badge');
+    if (!pend) { if (bd) bd.remove(); return; }
+    if (!bd) { bd = document.createElement('span'); bd.className = 'nav-badge'; el.insertBefore(bd, el.querySelector('.adm-ar')); }
+    bd.textContent = pend;
+  });
 }
 
 // 学生：先生から差し戻されたマークシート（status=draft＋returnedAt）を画面の上で知らせる。マークシートのその模試・時間帯へ飛ぶ
@@ -1889,6 +1940,7 @@ function svEnter(uid) {
   document.getElementById('svBar').hidden = false;
   document.getElementById('svBarTxt').textContent = `学生の立場で表示中：${stuNo(me)}　${me.name || ''}　（見るだけ・書き込みなし）`;
   document.getElementById('userRole').textContent = '学生として表示';
+  liveCheck();
   renderAll();
   showPage('karte');
 }
@@ -1904,6 +1956,7 @@ function svExit() {
   document.getElementById('svBtn').innerHTML = '<span class="t-lg">学生の立場で見る</span><span class="t-sm">学生</span>';
   document.getElementById('svBar').hidden = true;
   document.getElementById('userRole').textContent = '教員';
+  liveCheck();
   renderAll();
   if (stu) { currentStudent = stu; const sel = document.getElementById('sidebarStudentSel'); if (sel) sel.value = stu; }
   showPage('karte');
