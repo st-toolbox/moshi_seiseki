@@ -132,6 +132,7 @@ select:focus{outline:none;border-color:var(--g5);}
 .btn-submit{background:var(--theme);color:#fff;}
 .btn-submit:hover{opacity:.9;}
 .btn-submit:active{transform:scale(.98);}
+.btn-submit:disabled{background:var(--g2);color:var(--g4);cursor:not-allowed;opacity:1;transform:none;}
 /* 送信後：一時保存の代わりに「送信済み」を出す（押せない表示） */
 .btn-sent{background:var(--ok-bg);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);cursor:default;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.3;}
 .btn-sent small{display:block;font-size:11px;font-weight:500;opacity:.85;}
@@ -475,6 +476,7 @@ function checkAndLoad() {
     returnedAt      = data && data.status === 'draft' && data.returnedAt ? data.returnedAt : null;
     resubAt         = rs ? (rs.at || Date.now()) : null;
     resubRejAt      = data && data.status === 'submitted' && !rs && data.resubmitRejectedAt ? data.resubmitRejectedAt : null;
+    approvedBy      = data && data.status === 'submitted' && data.approvedBy ? data.approvedBy : '';
     paperMode       = !!data && (data.status === 'paper_pending' || (data.status === 'draft' && data.source === 'paper'));
     updateStatusUI();
     renderSheet();
@@ -485,6 +487,10 @@ function checkAndLoad() {
 }
 
 // ===== ステータスUI =====
+// 先生の確認待ち（紙の送信・提出の後の送り直し）の間は直せない・送れない＝許可（または受け付けない・差し戻し）の後にまた送れる
+let approvedBy = '';
+function waiting() { return currentStatus === 'paper_pending' || (currentStatus === 'submitted' && !!resubAt); }
+const WAIT_MSG = '先生の確認待ちです。\n先生が許可すると、また直して「再送信」できます。\n急いで直したいときは先生に伝えてください。';
 function updateStatusUI() {
   const badge  = document.getElementById('statusBadge');
   const btn    = document.getElementById('submitBtn');
@@ -494,22 +500,27 @@ function updateStatusUI() {
   const sent = currentStatus === 'paper_pending' || currentStatus === 'submitted';
   document.getElementById('saveBtn').hidden = sent;
   btn.hidden = false;   // 提出後も「再送信」で送り直せる（先生が許可するまで前の提出のまま）
+  btn.disabled = waiting();
   const tag = document.getElementById('sentTag');
   tag.hidden = !sent;
   tag.innerHTML = currentStatus === 'paper_pending' ? '<span>✓ 送信済み<small>先生の確認待ち</small></span>'
-    : resubAt ? '<span>✓ 提出済<small>再送信は先生の確認待ち</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
+    : resubAt ? '<span>✓ 再送信済み<small>先生の確認待ち</small></span>'
+    : resubRejAt ? '<span>✓ 提出済<small>再送信は受け付けられず</small></span>'
+    : approvedBy ? '<span>✓ 提出済<small>先生が許可済み</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
   banner.classList.toggle('ret', currentStatus === 'draft' && !!returnedAt);
   banner.textContent = currentStatus === 'draft' && returnedAt
     ? `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。まだ提出になっていません。`
     : '⚠ 解答はまだ送信されていません（一時保存中）';
   if (currentStatus === 'paper_pending') {
     badge.classList.add('badge-draft'); badge.textContent = '先生の確認待ち';
-    btn.textContent = '再送信'; banner.classList.remove('show');
+    btn.textContent = '許可待ち';
+    banner.textContent = '先生の確認待ちです。先生が用紙と見比べて許可すると提出になります。それまでは直せません（直したいところがあれば先生に伝えてください）。';
+    banner.classList.add('show');
   } else if (currentStatus === 'submitted') {
     badge.classList.add(resubAt ? 'badge-draft' : 'badge-done'); badge.textContent = resubAt ? '再送信：先生の確認待ち' : '提出済';
-    btn.textContent = '再送信';
+    btn.textContent = resubAt ? '許可待ち' : '再送信';
     if (resubAt) {
-      banner.textContent = `再送信しました（${fmtTime(resubAt)}）。先生が許可すると、いまの提出と入れ替わります。許可されるまでは前の提出のままです。`;
+      banner.textContent = `再送信しました（${fmtTime(resubAt)}）。先生が許可すると、いまの提出と入れ替わります。許可されるまでは前の提出のままで、次の再送信もできません。`;
       banner.classList.add('show');
     } else if (resubRejAt) {
       banner.textContent = `⚠ 送り直した解答を、先生が受け付けませんでした（${fmtTime(resubRejAt)}）。前に提出した解答のままです。`;
@@ -564,6 +575,7 @@ function renderSheet() {
         b.classList.add('hint');
       }
       b.onclick = () => {
+        if (waiting()) return showAlert(WAIT_MSG);
         if (answers[i] == v) delete answers[i];
         else answers[i] = v;
         renderSheet();
@@ -624,6 +636,7 @@ async function handleSave() {
 
 async function handleSubmit() {
   if (!currentExam) return showAlert('模試を選択してください');
+  if (waiting()) return showAlert(WAIT_MSG);
   const lock = await teacherLocked().catch(() => '');
   if (lock) return showAlert(lock);
   // 提出の後の送り直しは、提出を上書きせず resubmit に置く＝先生が許可すると入れ替わる（提出後は正答が見えるため）
@@ -659,7 +672,7 @@ async function handleSubmit() {
 function resubmit() {
   const changed = [...new Set([...Object.keys(originalAnswers), ...Object.keys(answers)])]
     .filter(q => String(originalAnswers[q] ?? '') !== String(answers[q] ?? '')).length;
-  if (!changed && !resubAt) return showAlert('提出した解答から変わっていません。\n直したい問題をマークし直してから「再送信」を押してください。');
+  if (!changed) return showAlert('提出した解答から変わっていません。\n直したい問題をマークし直してから「再送信」を押してください。');
   if (!Object.keys(answers).some(q => answers[q])) return showAlert('解答が空です。');
   showConfirm(`解答を送り直します（提出した解答から ${changed} 問変更）。\n先生が確認して許可すると、いまの提出と入れ替わります。許可されるまでは前の提出のままです。`, () => {
     showLoading('送信中...');
@@ -698,6 +711,7 @@ async function paperPicked(input) {
   const file = input.files && input.files[0];
   input.value = '';
   if (!file || !currentExam) return;
+  if (waiting()) return showAlert(WAIT_MSG);
   showLoading('読み取り中...');
   let res, page;
   try {
