@@ -124,7 +124,7 @@ select:focus{outline:none;border-color:var(--g5);}
 .mark-row.row-flag,.mark-row.row-flag:hover{background:var(--warn-bg);}
 .mark-row.row-flag .q-num{color:var(--warn);font-weight:600;}
 /* FOOTER */
-.footer{background:var(--paper);padding:14px 16px 28px;border-top:1px solid var(--g5);}
+.footer{position:sticky;bottom:0;z-index:100;background:var(--paper);padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--g5);}  /* 100問のどこにいても送信・再送信を押せるよう画面の下に固定 */
 .footer-inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 2fr;gap:10px;}
 .btn{padding:13px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;text-align:center;}
 .btn-save{background:var(--paper);color:var(--g5);border:1px solid var(--g3);font-weight:500;}
