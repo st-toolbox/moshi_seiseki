@@ -1187,6 +1187,12 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
   .qg-c b{font-size:8pt;height:auto;}
   .qg-c.st{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
+/* アプリ内ブラウザの案内（ログイン画面） */
+.inapp-note{max-width:360px;border:1px solid #E9DCBC;border-left:3px solid #B7791F;background:#FBF6EA;color:#5A4A2A;padding:12px 14px;font-size:13px;line-height:1.7;text-align:left;display:flex;flex-direction:column;gap:4px;}
+.inapp-note[hidden]{display:none!important;}
+.inapp-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.inapp-btn{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border:1px solid #B7791F;border-radius:4px;background:#fff;color:#7A5212;text-decoration:none;cursor:pointer;}
+.inapp-btn.sub{font-weight:500;border-color:#D8C9A6;color:#5A4A2A;}
 </style>
 </head>
 <body>
@@ -1206,8 +1212,35 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     </svg>
     Googleでログイン
   </button>
+  <div class="inapp-note" id="inappNote" hidden></div>
   </div>
 </div>
+<script>
+// LINE・Teams・Instagram などアプリの中のブラウザでは、Googleログインの窓の結果が元の画面に返らず、
+// アカウントを選んでもログイン画面に戻ることがある（2026-10-13 学生の報告）。ログインの仕組みは変えず、外のブラウザで開くよう案内だけ出す
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
+  const line = /\bLine\//i.test(ua);
+  const inApp = line || /FBAN|FBAV|FB_IAB|Instagram|MicroMessenger|KAKAOTALK|Teams\/|; wv\)/i.test(ua) || (ios && !/Safari\//.test(ua));
+  if (!inApp) return;
+  const box = document.getElementById('inappNote');
+  const url = location.href;
+  let act = '';
+  if (line) act = `<a class="inapp-btn" href="${url + (url.includes('?') ? '&' : '?')}openExternalBrowser=1">ブラウザで開き直す</a>`;
+  else if (android) act = `<a class="inapp-btn" href="intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end">Chromeで開く</a>`;
+  box.innerHTML = '<b>アプリの中のブラウザで開いています</b>'
+    + `<span>ここではGoogleのログインが終わらず、アカウントを選んでもこの画面に戻ることがあります。${ios ? 'Safari' : 'Chrome'}で開いてください。</span>`
+    + (ios && !line ? '<span>画面の「…」や共有ボタンから「Safariで開く」（または「ブラウザで開く」）を選びます。</span>' : '')
+    + `<div class="inapp-acts">${act}<button type="button" class="inapp-btn sub" id="inappCopy">URLをコピー</button></div>`;
+  box.hidden = false;
+  document.getElementById('inappCopy').addEventListener('click', e => {
+    const done = () => { e.target.textContent = 'コピーしました'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('このURLをコピーして、ブラウザに貼ってください', url));
+    else prompt('このURLをコピーして、ブラウザに貼ってください', url);
+  });
+})();
+</script>
 
 <!-- LOADING -->
 <div class="loading-overlay" id="loading">
