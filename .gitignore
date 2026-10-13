@@ -5,3 +5,7 @@
 *.xls
 *.pdf
 data/
+
+# Googleドライブ同期の一時フォルダ
+.tmp.driveupload/
+.tmp.drivedownload/
