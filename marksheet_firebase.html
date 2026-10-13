@@ -477,7 +477,7 @@ function checkAndLoad() {
     resubAt         = rs ? (rs.at || Date.now()) : null;
     resubRejAt      = data && data.status === 'submitted' && !rs && data.resubmitRejectedAt ? data.resubmitRejectedAt : null;
     approvedBy      = data && data.status === 'submitted' && data.approvedBy ? data.approvedBy : '';
-    paperMode       = !!data && (data.status === 'paper_pending' || (data.status === 'draft' && data.source === 'paper'));
+    paperMode       = !!data && data.source === 'paper' && (data.status === 'paper_pending' || data.status === 'draft');
     updateStatusUI();
     renderSheet();
     document.getElementById('sheetCard').classList.remove('hidden');
@@ -509,12 +509,14 @@ function updateStatusUI() {
     : approvedBy ? '<span>✓ 提出済<small>先生が許可済み</small></span>' : '<span>✓ 送信済み<small>提出済</small></span>';
   banner.classList.toggle('ret', currentStatus === 'draft' && !!returnedAt);
   banner.textContent = currentStatus === 'draft' && returnedAt
-    ? `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。まだ提出になっていません。`
+    ? (paperMode ? `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。用紙と見比べて直し、もう一度「先生の確認に回す」を押してください。まだ提出になっていません。`
+                 : `⚠ 先生から差し戻されました（${fmtTime(returnedAt)}）。直して、もう一度「解答を送信する」を押してください。まだ提出になっていません。`)
     : '⚠ 解答はまだ送信されていません（一時保存中）';
   if (currentStatus === 'paper_pending') {
     badge.classList.add('badge-draft'); badge.textContent = '先生の確認待ち';
     btn.textContent = '許可待ち';
-    banner.textContent = '先生の確認待ちです。先生が用紙と見比べて許可すると提出になります。それまでは直せません（直したいところがあれば先生に伝えてください）。';
+    banner.textContent = paperMode ? '先生の確認待ちです。先生が用紙と見比べて許可すると提出になります。それまでは直せません（直したいところがあれば先生に伝えてください）。'
+      : '先生の確認待ちです。先生が許可すると提出になり、点と正答が見られます。それまでは直せません（直したいところがあれば先生に伝えてください）。';
     banner.classList.add('show');
   } else if (currentStatus === 'submitted') {
     badge.classList.add(resubAt ? 'badge-draft' : 'badge-done'); badge.textContent = resubAt ? '再送信：先生の確認待ち' : '提出済';
@@ -642,28 +644,18 @@ async function handleSubmit() {
   // 提出の後の送り直しは、提出を上書きせず resubmit に置く＝先生が許可すると入れ替わる（提出後は正答が見えるため）
   if (currentStatus === 'submitted') return resubmit();
   if (paperMode) return submitPaper();
-  showConfirm('解答を送信します。\n送信した後に直すときは「再送信」で送り直せます（先生が確認して許可すると入れ替わります）。よろしいですか？', () => {
-    showLoading('送信・採点中...');
-    const ex = currentExam, part = currentPart;
-    const path = `responses/${ex}/${currentUser.uid}/${part}`;
+  // 初めての送信も先生の確認待ちに置く（2026-10-13〜）＝先生が許可すると提出（採点）になる。許可までは直せない・送れない
+  showConfirm('解答を送信します。\n先生が確認して許可すると提出になり、点と正答が見られます。許可されるまでは直せません。よろしいですか？', () => {
+    showLoading('送信中...');
+    const path = `responses/${currentExam}/${currentUser.uid}/${currentPart}`;
     db.ref(path).set({
-      answers, status: 'submitted',
+      answers, status: 'paper_pending', source: 'web',
       email: currentUser.email,
-      submittedAt: Date.now()
-    }).then(async () => {
-      // 正答は提出した後にだけ読める＝ここで読んで点を出す
-      let msg = '送信完了！';
-      try {
-        const sec = (await db.ref(`secret/${ex}/${part}/answers`).once('value')).val();
-        if (sec) {
-          const m = examMasterCache[ex] || (examMasterCache[ex] = {});
-          m.answers = { ...(m.answers || {}), ...Object.fromEntries(Object.entries(sec).filter(([, v]) => v != null)) };
-          msg += `\n得点：${calcScore(answers, ex, part).score}点`;
-        }
-      } catch (e) { /* 点が出せなくても提出は済んでいる */ }
+      paperAt: Date.now()
+    }).then(() => {
       hideLoading();
       returnedAt = null; loadReturned();
-      showAlert(msg, () => { currentStatus='submitted'; updateStatusUI(); });
+      showAlert('送信しました。\n先生が確認して許可すると提出になります。', () => { currentStatus = 'paper_pending'; updateStatusUI(); });
     }).catch(e => { hideLoading(); showAlert('送信に失敗しました: '+e.message); });
   });
 }

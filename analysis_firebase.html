@@ -1856,7 +1856,7 @@ function liveCheck() {
     if (!seen.has(ex + '|' + uid + '|' + p) && subSig(allData[ex].responses[uid][p])) changed++;   // 消えた提出
   const parts = [];
   if (changed) parts.push(`<span>この画面を開いた後に、提出が <b>${changed}件</b> 届いた・変わった（まだ集計に入っていない）</span><button data-live="reload">読み込み直す</button>`);
-  if (pend) parts.push(`<span>マークシートの確認待ち <b>${pend}件</b>（紙の送信・提出の後の送り直し）</span><button data-live="scan">確認する</button>`);
+  if (pend) parts.push(`<span>マークシートの確認待ち <b>${pend}件</b>（学生の送信・提出の後の送り直し）</span><button data-live="scan">確認する</button>`);
   box.innerHTML = parts.join('');
   box.hidden = !parts.length;
   box.querySelectorAll('[data-live]').forEach(b => b.addEventListener('click', () => b.dataset.live === 'reload' ? loadAllData() : showPage('paper_scan')));
@@ -2805,7 +2805,7 @@ function renderResponsesPage() {
       <td style="font-size:11px;color:var(--g4)">${esc(row.examName)}</td>
       <td style="font-weight:500">${esc(row.part)}</td>
       <td class="mono" style="${col}">${esc(row.score ?? '—')}</td>
-      <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':'下書き'}</span></td>
+      <td><span style="${stBg};padding:2px 8px;border-radius:10px;font-size:11px;">${row.status==='submitted'?'提出済':row.status==='paper_pending'?'確認待ち':'下書き'}</span></td>
       <td style="font-size:11px;color:var(--g4);white-space:nowrap;">${fmtTs(row.ts)}</td>
       <td style="font-size:10px;font-family:'DM Mono',monospace;">
         ${row.respEmail && row.studentEmail && row.respEmail !== row.studentEmail

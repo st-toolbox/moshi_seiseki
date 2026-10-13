@@ -158,7 +158,7 @@
       </div>
     </div>
     <div class="page ps" id="page-paper_scan">
-      <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が撮って送った解答・教員が撮った用紙は、まず確認待ちにたまる。用紙と見比べて許可すると提出になる</div></div><div class="ps-hr"><a class="ps-mslink" href="marksheet_firebase.html" target="_blank" rel="noopener">マークシートを開く ↗</a><div class="ps-counts" id="psCounts"></div></div></div>
+      <div class="page-header-row"><div><div class="page-title">マークシート取り込み</div><div class="page-sub">学生が送った解答（画面で塗った分・撮った用紙）・提出の後の送り直し・教員が撮った用紙は、まず確認待ちにたまる。確かめて許可すると提出になる</div></div><div class="ps-hr"><a class="ps-mslink" href="marksheet_firebase.html" target="_blank" rel="noopener">マークシートを開く ↗</a><div class="ps-counts" id="psCounts"></div></div></div>
       <div class="ps-card">
         <div class="ps-lb">模試</div>
         <div class="ps-exrow">
@@ -327,12 +327,9 @@
     return now;
   }
   const pendSheet = {};  // uid|part → 教員が撮った用紙（この画面を開いている間だけ写真を出す）
-  // 教員が撮って回した分のうち、学生の送信と食い違いがなく直してもいないもの＝まとめて許可してよい
-  function bulkable() {
-    return pendingList().filter(({ uid, part, r, rs, ans }) => !rs && r.scannedBy && !pendDiff(uid, part, ans).fixed
-      && !(r.prev && r.prev.status === 'submitted')   // 提出済みを置き換える分は1件ずつ見る
-      && !(r.prev && r.prev.answers && r.prev.status !== 'submitted' && ansDiff(r.prev.answers, r.answers, part).length));
-  }
+  // まとめて許可＝確認待ちを全部（画面の送信・紙・教員撮影・送り直し）。直した行は直した内容で許可する
+  function bulkable() { return pendingList(); }
+  function kindOf({ r, rs }) { return rs ? '提出の後の送り直し' : r.scannedBy ? '教員が撮った用紙' : r.source === 'web' ? '画面で塗って送った分' : '学生が撮って送った用紙'; }
   function ansDiff(a, b, part) {
     const start = part === 'PM' ? 101 : 1, out = [];
     for (let q = start; q < start + 100; q++) if (String((a || {})[q] ?? '') !== String((b || {})[q] ?? '')) out.push(q);
@@ -347,7 +344,7 @@
     const box = $('psPend'), list = pendingList();
     if (!list.length) { box.innerHTML = ''; return; }
     const nb = bulkable().length;
-    box.innerHTML = `<div class="ps-ph"><div class="ps-lb">確認待ち（${list.length}件）— 用紙と見比べて許可すると提出になる</div>${nb ? `<button class="ps-btn ps-reg" data-bulk="1">教員が撮った分をまとめて許可（${nb}件）</button>` : ''}</div><div class="ps-pl">` +
+    box.innerHTML = `<div class="ps-ph"><div class="ps-lb">確認待ち（${list.length}件）— 確かめて許可すると提出になる</div>${nb ? `<button class="ps-btn ps-reg" data-bulk="1">まとめて許可（${nb}件）</button>` : ''}</div><div class="ps-pl">` +
       list.map(({ uid, part, r, rs, ans, t: at }) => {
         const k = uid + '|' + part, { a, fixed } = pendDiff(uid, part, ans);
         const start = part === 'PM' ? 101 : 1, n = Object.keys(a).length;
@@ -356,7 +353,7 @@
           `<button class="bb${a[q] === v ? ' on' : ''}" data-pa="${esc(k)}" data-q="${q}" data-v="${v}">${v}</button>`).join('')}</div>`;
         const who = studs[uid] ? studentLabel(uid) : (r.email || uid);
         const t = at ? new Date(at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-        const byT = !rs && !!r.scannedBy, notes = [];
+        const byT = !rs && !!r.scannedBy, byW = !rs && !byT && r.source === 'web', notes = [];
         if (fixed) notes.push(`<b>${fixed}問直した</b>`);
         let rsNote = '';
         if (rs) {
@@ -375,10 +372,11 @@
         const sh = pendSheet[k];
         const note = rs ? rsNote : byT
           ? '教員が撮った用紙。違う所は押して直してから許可する。「取り消し」で撮る前の状態に戻る。' + (r.prev && r.prev.answers && r.prev.status !== 'submitted' ? `学生が送った内容と違う問：${(d => d.length ? d.slice(0, 20).join('・') + (d.length > 20 ? '…' : '') : 'なし')(ansDiff(r.prev.answers, r.answers, part))}` : '')
+          : byW ? '学生が画面で塗って送った解答（初めての送信）。許可すると提出になり、学生が点と正答を見られる。「差し戻し」で学生が直して出し直せる。'
           : '用紙と違う所は押して直してから許可する。用紙を撮ると、この内容との違いを自動で出す。';
         return `<details class="ps-pr" data-pend="${esc(k)}"${pendOpen[k] ? ' open' : ''}>
           <summary><svg class="tw" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-            <span class="nm">${esc(who)}・${partName(part)}</span>${byT ? '<span class="tg">教員撮影</span>' : rs ? '<span class="tg">再送信</span>' : ''}
+            <span class="nm">${esc(who)}・${partName(part)}</span>${byT ? '<span class="tg">教員撮影</span>' : rs ? '<span class="tg">再送信</span>' : byW ? '<span class="tg">画面</span>' : '<span class="tg">紙</span>'}
             <span class="inf">${n}問解答・空欄${100 - n}${notes.length ? '・' + notes.join('・') : ''}</span>
             <span class="tm">${esc(t)}</span>
             <button class="ps-btn ps-reg" data-approve="${esc(uid)}" data-part="${part}">許可</button>
@@ -418,7 +416,7 @@
     }
     const prev = now;
     data = { answers, status: 'submitted', score, categoryScores, wrongAnswers,
-      email: prev.email || (studs[uid] && studs[uid].email) || '', submittedAt: Date.now(), source: 'paper',
+      email: prev.email || (studs[uid] && studs[uid].email) || '', submittedAt: Date.now(), source: prev.source === 'web' ? 'web' : 'paper',
       paperAt: prev.paperAt || null, scannedBy: prev.scannedBy || null, approvedBy: (currentUser && currentUser.email) || '',
       ...(prev.prev ? { prev: prev.prev } : {}) };  // 教員撮影で置き換えた前の解答（学生の送信など）は残す
     await db.ref(`responses/${ex}/${uid}/${part}`).set(data);
@@ -429,7 +427,7 @@
   function approvePending(uid, part) {
     const ex = currentExamName();
     if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
-    confirmBox(`${studentLabel(uid) || uid}・${partName(part)}\n\n用紙と見比べた内容で提出にします。`, async () => {
+    confirmBox(`${studentLabel(uid) || uid}・${partName(part)}\n\nこの内容で提出にします。`, async () => {
       loading('登録中...');
       try {
         const score = await doApprove(ex, uid, part);
@@ -443,7 +441,13 @@
     const ex = currentExamName();
     if (!exams[ex] || !exams[ex].answers) return alertBox('この模試には正答が登録されていないため採点できません');
     const list = bulkable(); if (!list.length) return;
-    confirmBox(`教員が撮った ${list.length} 件を、読み取った内容のまま提出にします。\n（直した行・学生の送信と違う行・提出済みを置き換える行は含まない。1件ずつ許可する）`, async () => {
+    const cnt = {};
+    list.forEach(x => { const k = kindOf(x); cnt[k] = (cnt[k] || 0) + 1; });
+    const fixed = list.filter(({ uid, part, ans }) => pendDiff(uid, part, ans).fixed).length;
+    const repl = list.filter(({ r, rs }) => !rs && r.scannedBy && r.prev && r.prev.status === 'submitted').length;
+    confirmBox(`確認待ち ${list.length} 件を、いまの内容のまま提出にします。\n\n` + Object.entries(cnt).map(([k, v]) => `・${k} ${v}件`).join('\n')
+      + (fixed ? `\n\n先生が直した ${fixed} 件は直した内容で提出にする。` : '')
+      + (repl ? `\n提出済みを教員の用紙で置き換える ${repl} 件を含む。` : ''), async () => {
       let ok = 0; const ng = [];
       for (const { uid, part } of list) {
         loading(`登録中...（${ok + ng.length + 1}/${list.length}）`);
@@ -474,7 +478,7 @@
       try {
         const prev = await fresh(ex, uid, part);   // 古い画面のまま押しても、学生が送り直した分を上書きしない
         if (!prev || prev.status !== 'paper_pending' || prev.scannedBy) throw new Error('学生が送った確認待ちではなくなっています。');
-        const data = { ...prev, status: 'draft', source: 'paper', returnedAt: Date.now() };
+        const data = { ...prev, status: 'draft', source: prev.source === 'web' ? 'web' : 'paper', returnedAt: Date.now() };
         await db.ref(`responses/${ex}/${uid}/${part}`).set(data);
         resp[uid][part] = data; delete pend[uid + '|' + part];
         renderPending(); updateCounts(); syncApp(ex, uid, part, data);
