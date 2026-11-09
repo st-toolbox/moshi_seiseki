@@ -776,7 +776,8 @@ function showPaperResult(r, canvas) {
   const box = document.getElementById('paperResult');
   const n = Object.keys(r.answers).length, fl = Object.entries(r.flags);
   const myId = OMR_UI.idOfEmail(currentUser && currentUser.email);
-  const idNg = myId && r.id !== myId;
+  const nx = r.sheet === 'nexus';
+  const idNg = !nx && myId && r.id !== myId;   // ネクサスの番号欄はネクサスの番号＝学籍番号と比べない（ログイン中のアカウントに入る）
   const lines = [`<b>${n}</b> 問を読み取って入力しました。${100 - n} 問は空欄。`];
   if (idNg) lines.push(`<span style="color:var(--warn)">用紙の学籍番号 <b>${r.id}</b> が、ログイン中のアカウント（${myId}）と違います。自分の用紙か確かめてください。</span>`);
   let html = lines.join('<br>');

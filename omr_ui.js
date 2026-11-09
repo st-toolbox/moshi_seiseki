@@ -82,7 +82,7 @@
     x.lineWidth = Math.max(1.5, 2 * f * res.pxPerMm / 8);
     x.strokeStyle = 'rgba(31,77,69,.55)'; x.beginPath();
     res.corners.forEach((p, i) => i ? x.lineTo(p[0] * f, p[1] * f) : x.moveTo(p[0] * f, p[1] * f)); x.closePath(); x.stroke();
-    const idDigits = res.id.split('');
+    const idDigits = (res.idRaw || res.id).split('');   // ネクサスは11桁の欄そのまま
     for (const m of res.marks) {
       let color = null;
       if (m.kind === 'id') {
@@ -94,7 +94,10 @@
         else if (a === m.k + 1) color = '#1F8A5B';
       }
       if (!color) continue;
-      x.strokeStyle = color; x.beginPath(); x.arc(m.x * f, m.y * f, m.r * f * 1.35, 0, Math.PI * 2); x.stroke();
+      x.strokeStyle = color; x.beginPath();
+      if (m.ry) x.ellipse(m.x * f, m.y * f, m.rx * f * 1.35, m.ry * f * 1.35, m.ang || 0, 0, Math.PI * 2);   // ネクサスの楕円
+      else x.arc(m.x * f, m.y * f, m.r * f * 1.35, 0, Math.PI * 2);
+      x.stroke();
     }
     return c;
   }

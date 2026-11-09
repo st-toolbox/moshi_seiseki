@@ -89,14 +89,15 @@
   const pct = (arr, q) => { const s = arr.slice().sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
 
   // 丸の暗さ（中の平均 ÷ 外周の紙の白さ）
-  function bubbleDark(G, map, off, cx, cy, r) {
-    const ri = r * 0.62, st = ri / 3, inner = [], ring = [];
-    for (let dy = -ri; dy <= ri + 1e-9; dy += st) for (let dx = -ri; dx <= ri + 1e-9; dx += st) {
-      if (dx * dx + dy * dy > ri * ri + 1e-9) continue;
+  // ry を渡すと楕円（横の半径 r・縦の半径 ry）
+  function bubbleDark(G, map, off, cx, cy, r, ry) {
+    const R = ry || r, ri = r * 0.62, rj = R * 0.62, st = Math.min(ri, rj) / 3, inner = [], ring = [];
+    for (let dy = -rj; dy <= rj + 1e-9; dy += st) for (let dx = -ri; dx <= ri + 1e-9; dx += st) {
+      if ((dx / ri) ** 2 + (dy / rj) ** 2 > 1 + 1e-9) continue;
       const [u, v] = map(cx + dx, cy + dy); inner.push(sample(G, u + off[0], v + off[1]));
     }
     for (const rr of [1.35, 1.55]) for (let a = 0; a < 20; a++) {
-      const t = a * Math.PI / 10, [u, v] = map(cx + Math.cos(t) * r * rr, cy + Math.sin(t) * r * rr);
+      const t = a * Math.PI / 10, [u, v] = map(cx + Math.cos(t) * r * rr, cy + Math.sin(t) * R * rr);
       ring.push(sample(G, u + off[0], v + off[1]));
     }
     const m = inner.reduce((s, v) => s + v, 0) / inner.length, bg = Math.max(pct(ring, 0.75), 1);
@@ -144,13 +145,12 @@
   }
 
   // 四隅の■を探す（縮小画像で塊を拾い、用紙の形に合う4つの組を選ぶ）
-  function findCorners(G) {
+  function findCorners(G, ratio = 182 / 269, mark = 7 / 182, many = 0) {
     const S = downscale(G, 900), B = binarize(S, Math.max(15, Math.round(Math.max(S.w, S.h) / 14)) | 1, 0.72);
     const comp = components(B, S.w, S.h).filter(c => !c.edge && c.area >= 12 && c.area < S.w * S.h * 0.02
       && c.area / (c.bw * c.bh) >= 0.72 && c.bw / c.bh > 0.6 && c.bw / c.bh < 1.67)
       .sort((a, b) => b.area - a.area).slice(0, 18);
-    const ratio = 182 / 269, mark = 7 / 182;
-    let best = null;
+    let best = null; const cands = [];
     const n = comp.length;
     for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++) for (let d = c + 1; d < n; d++) {
       const q = [comp[a], comp[b], comp[c], comp[d]];
@@ -174,14 +174,27 @@
       const sz = Math.sqrt((ar.reduce((s, v) => s + v, 0) / 4)) / (short * mark);
       if (sz < 0.45 || sz > 2.2) continue;
       const score = Math.abs(asp - ratio) * 3 + (2 - o1 - o2) + Math.abs(Math.log(sz)) + (amax / amin - 1) * 0.3 - short / Math.max(S.w, S.h) * 0.5;
-      if (!best || score < best.score) best = { score, pts: q.map(p => [(p.cx + 0.5) * S.f, (p.cy + 0.5) * S.f]) };
+      const cand = { score, pts: q.map(p => [(p.cx + 0.5) * S.f, (p.cy + 0.5) * S.f]) };
+      if (many) cands.push(cand);
+      if (!best || score < best.score) best = cand;
     }
+    if (many) return cands.sort((a, b) => a.score - b.score).slice(0, many).map(c => c.pts);
     return best && best.pts;
   }
 
-  // 画像（ImageData）1枚を読む
+  // 画像（ImageData）1枚を読む。先に自前の用紙（v1）、だめならネクサスの用紙を試す
   function read(img) {
     const G = toGray(img);
+    const r1 = readV1(G);
+    if (r1.ok && r1.tracksFound >= r1.tracksTotal / 2) return r1;
+    if (!g.OMR_LAYOUT_NEXUS) return r1;
+    const r2 = readNexus(G);
+    if (r2.ok) return r2;
+    return r1.ok ? r1 : (r2.stage >= 2 ? r2 : r1);  // 向きが決まった＝ネクサスの用紙のときだけネクサスの理由
+  }
+
+  // 自前の用紙（v1）
+  function readV1(G) {
     const P = findCorners(G);
     if (!P) return { ok: false, reason: '四隅の■が見つからない' };
     const C = L.corner, src = [C.TL, C.TR, C.BR, C.BL];
@@ -247,7 +260,115 @@
     return {
       ok: true, part, partDark: { AM: pa, PM: pp }, id: idDigits.join(''), idFlags,
       answers, flags, marks, corners: dst2, tracksFound: found, tracksTotal: L.rows.length * 2, pxPerMm,
-      probe: best.sc,
+      probe: best.sc, sheet: 'v1',
+    };
+  }
+
+  // ===== ネクサスの用紙（SN-0310 午前・SN-0322 午後） =====
+  // 左右の目印が無いので、刷られた楕円の輪郭に区画ごとに合わせ直す
+  function rectDarkNear(G, map, x, y, w, h, span) {
+    let m = 0;
+    for (let dx = -span; dx <= span + 1e-9; dx += 0.5) for (const dy of [-0.5, 0, 0.5]) m = Math.max(m, rectDark(G, map, x + dx, y + dy, w, h));
+    return m;
+  }
+  // 区画の楕円の輪郭が一番濃く・すぐ外が一番白くなるずれ(mm)
+  function fitGroup(G, map, pts, rx, ry, start = [0, 0]) {
+    const A = 16, edge = [], out = [];
+    for (let a = 0; a < A; a++) { const t = a * 2 * Math.PI / A, c = Math.cos(t), s = Math.sin(t); edge.push([rx * c, ry * s]); out.push([rx * 1.6 * c, ry * 1.6 * s]); }
+    const use = pts.length > 30 ? pts.filter((_, i) => i % Math.ceil(pts.length / 30) === 0) : pts;
+    const score = (dx, dy) => {
+      let sc = 0;
+      for (const [x, y] of use) for (let a = 0; a < A; a++) {
+        const e = map(x + dx + edge[a][0], y + dy + edge[a][1]), o = map(x + dx + out[a][0], y + dy + out[a][1]);
+        sc += sample(G, o[0], o[1]) - sample(G, e[0], e[1]);
+      }
+      return sc;
+    };
+    let best = start, bs = -Infinity;
+    for (let dy = -1.5; dy <= 1.5 + 1e-9; dy += 0.25) for (let dx = -1.5; dx <= 1.5 + 1e-9; dx += 0.25) { const v = score(start[0] + dx, start[1] + dy); if (v > bs) { bs = v; best = [start[0] + dx, start[1] + dy]; } }
+    const [bx, by] = best;
+    for (let dy = by - 0.2; dy <= by + 0.2 + 1e-9; dy += 0.05) for (let dx = bx - 0.2; dx <= bx + 0.2 + 1e-9; dx += 0.05) { const v = score(dx, dy); if (v > bs) { bs = v; best = [dx, dy]; } }
+    return best;
+  }
+
+  function readNexus(G) {
+    const N = g.OMR_LAYOUT_NEXUS, C = N.corner, src = [C.TL, C.TR, C.BR, C.BL];
+    const W = C.TR[0] - C.TL[0], H = C.BL[1] - C.TL[1];
+    // 四隅の候補（塗った楕円が■に紛れることがある＝上の黒帯で向きが決まる組を採る）
+    const cands = findCorners(G, W / H, C.size / W, 6);
+    if (!cands.length) return { ok: false, stage: 0, reason: '四隅の■が見つからない' };
+    const cx = (C.TL[0] + C.TR[0]) / 2, cy = (C.TL[1] + C.BL[1]) / 2, B = N.bar;
+    // 向き：上の黒帯（午前・午後に共通の4本）が黒く、180°回した位置が白いもの
+    let best = null;
+    for (const P of cands) for (let k = 0; k < 4; k++) {
+      const dst = [0, 1, 2, 3].map(i => P[(k + i) % 4]);
+      const top = Math.hypot(dst[0][0] - dst[1][0], dst[0][1] - dst[1][1]) + Math.hypot(dst[3][0] - dst[2][0], dst[3][1] - dst[2][1]);
+      const side = Math.hypot(dst[0][0] - dst[3][0], dst[0][1] - dst[3][1]) + Math.hypot(dst[1][0] - dst[2][0], dst[1][1] - dst[2][1]);
+      if (top > side) continue;
+      const map = homography(src, dst); if (!map) continue;
+      const on = N.bars.common.map(x => rectDarkNear(G, map, x, B.y, B.w, B.h, 1.5));
+      const anti = N.bars.common.map(x => rectDarkNear(G, map, 2 * cx - x, 2 * cy - B.y, B.w, B.h, 1.5));
+      const sc = Math.min(...on) - Math.max(...anti);
+      if (!best || sc > best.sc) best = { sc, dst };
+      if (best.sc >= 0.45) break;
+    }
+    if (!best || best.sc < 0.3) return { ok: false, stage: 1, reason: '用紙の向きが分からない（ネクサスの用紙の上の黒帯が読めない）' };
+    let map = homography(src, best.dst);
+    const dst2 = src.map((p, i) => { const f = findMark(G, map, p[0], p[1], C.size, C.size, 4, 4); return f ? [best.dst[i][0] + f[0], best.dst[i][1] + f[1]] : best.dst[i]; });
+    map = homography(src, dst2) || map;
+    const a0 = map(cx, cy), ax = map(cx + 1, cy);
+    const pxPerMm = Math.hypot(ax[0] - a0[0], ax[1] - a0[1]), ang = Math.atan2(ax[1] - a0[1], ax[0] - a0[0]);
+
+    // 午前・午後：午前だけの黒帯（3本）と午後だけの黒帯（1本）
+    const am = N.bars.AM.map(x => rectDarkNear(G, map, x, B.y, B.w, B.h, 1.5)), pm = N.bars.PM.map(x => rectDarkNear(G, map, x, B.y, B.w, B.h, 1.5));
+    const part = Math.min(...am) - Math.max(...pm) >= 0.25 ? 'AM' : Math.min(...pm) - Math.max(...am) >= 0.25 ? 'PM' : null;
+    if (!part) return { ok: false, stage: 2, reason: 'ネクサスの用紙の午前・午後が見分けられない' };
+    const S = N.sheet[part], rx = S.rx, ry = S.ry;
+
+    const marks = [];
+    const mk = (b, d) => { const [u, v] = map(b.x + d[0], b.y + d[1]); return { x: u, y: v, r: Math.max(rx, ry) * pxPerMm, rx: rx * pxPerMm, ry: ry * pxPerMm, ang, o: [0, 0] }; };
+    // 番号欄（11桁）
+    const center = bs => [bs.reduce((s, b) => s + b.x, 0) / bs.length, bs.reduce((s, b) => s + b.y, 0) / bs.length];
+    const dId = fitGroup(G, map, S.id.map(b => [b.x, b.y]), rx, ry), idVals = {};
+    const done = [{ c: center(S.id), d: dId }];
+    for (const b of S.id) {
+      const dk = bubbleDark(G, map, [0, 0], b.x + dId[0], b.y + dId[1], rx, ry);
+      (idVals[b.c] ||= [])[b.d] = dk; marks.push({ kind: 'id', c: b.c, d: b.d, ...mk(b, dId), dark: dk });
+    }
+    const raw = [], idFlags = {};
+    for (let c = 0; c < 11; c++) {
+      const r = decide(idVals[c]); raw.push(r.v == null ? '?' : String(r.v));
+      if (r.flag) idFlags[c] = { flag: r.flag, alt: r.alt };
+    }
+    // 学籍番号：塗った桁がちょうど6つ続いていて、要確認が無ければその6桁
+    const filled = raw.map((v, i) => (v !== '?' || idFlags[i]) ? i : -1).filter(i => i >= 0);
+    const six = filled.length === 6 && filled[5] - filled[0] === 5 && !filled.some(i => idFlags[i]) ? filled.map(i => raw[i]).join('') : null;
+    // 解答（区画ごとに合わせ直す。紙のたわみに追いつくよう、上下の端に近い区画から順に、近くの済んだ区画のずれを始点にする）
+    const groups = {};
+    for (const b of S.ans) (groups[b.grp] ||= []).push(b);
+    const order = Object.keys(groups).map(gk => { const c = center(groups[gk]); return { gk, c, e: Math.min(c[1] - C.TL[1], C.BL[1] - c[1]) }; }).sort((a, b) => a.e - b.e);
+    const vals = {};
+    for (const o of order) {
+      const gk = o.gk;
+      let start = [0, 0], nd = 60;
+      for (const p of done) { const dd = Math.hypot(p.c[0] - o.c[0], p.c[1] - o.c[1]); if (dd < nd) { nd = dd; start = p.d; } }
+      const d = fitGroup(G, map, groups[gk].map(b => [b.x, b.y]), rx, ry, start);
+      done.push({ c: o.c, d });
+      for (const b of groups[gk]) {
+        const dk = bubbleDark(G, map, [0, 0], b.x + d[0], b.y + d[1], rx, ry);
+        (vals[b.q] ||= [])[b.k] = dk; marks.push({ kind: 'ans', q: b.q, k: b.k, ...mk(b, d), dark: dk });
+      }
+    }
+    const answers = {}, flags = {};
+    for (const q in vals) {
+      const r = decide(vals[q]);
+      if (r.v != null) answers[q] = r.v + 1;
+      if (r.flag) flags[q] = { flag: r.flag, alt: r.alt + 1 };
+    }
+    return {
+      ok: true, sheet: 'nexus', part, partDark: { AM: Math.min(...am), PM: Math.max(...pm) },
+      id: six || raw.join(''), idRaw: raw.join(''), idFlags, answers, flags, marks, corners: dst2,
+      tracksFound: 0, tracksTotal: 0, pxPerMm, probe: best.sc,
     };
   }
 

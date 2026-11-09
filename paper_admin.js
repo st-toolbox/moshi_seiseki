@@ -563,7 +563,7 @@
         s.part = o.res.part || 'AM';
         s.res = OMR_UI.withPart(o.res, s.part);
         s.answers = { ...s.res.answers };
-        s.uid = matchStudent(o.res.id);
+        s.uid = o.res.sheet === 'nexus' ? null : matchStudent(o.res.id);   // ネクサスの番号は学籍番号でない
       } else s.res = o.res;
     }
     sheets.unshift(s);
@@ -620,7 +620,8 @@
 
     const msgs = [];
     const id = r.id;
-    if (!s.uid) msgs.push(`<div class="m-warn">学籍番号 <b>OE${esc(id)}</b> ${id.includes('?') ? 'が読み切れない' : 'の学生が見つからない'}。学生を選んでください。</div>`);
+    if (r.sheet === 'nexus') msgs.push(s.uid ? '<div class="m-ok">ネクサスの用紙（番号欄はネクサスの番号）→ 選んだ学生に入れる</div>' : `<div class="m-warn">ネクサスの用紙：番号欄はネクサスの番号（${esc(r.idRaw || id)}）なので学生につながらない。学生を選んでください。</div>`);
+    else if (!s.uid) msgs.push(`<div class="m-warn">学籍番号 <b>OE${esc(id)}</b> ${id.includes('?') ? 'が読み切れない' : 'の学生が見つからない'}。学生を選んでください。</div>`);
     else if (OMR_UI.idOfEmail(studs[s.uid].email) !== id) msgs.push(`<div class="m-warn">用紙の学籍番号は OE${esc(id)}（手で選んだ学生と違う）</div>`);
     else msgs.push(`<div class="m-ok">学籍番号 OE${esc(id)} → 一致</div>`);
     if (!s.raw.part) msgs.push('<div class="m-warn">午前・午後が用紙から読めない。どちらか確かめてください。</div>');
