@@ -6,6 +6,20 @@
 *.pdf
 data/
 
+# 2026-11-14 安全点検：Firebase の書き出し・バックアップを置いてまとめて add しても入らないように（push＝即公開）
+# JSON は規則のファイルだけ通す（足したい JSON があれば下に ! で1つずつ足す）
+*.json
+!database.rules.json
+*.zip
+*.7z
+*.bak
+*backup*/
+*Backup*/
+_backup/
+backup/
+responses/
+students/
+
 # Googleドライブ同期の一時フォルダ
 .tmp.driveupload/
 .tmp.drivedownload/
