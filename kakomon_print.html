@@ -86,6 +86,19 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
 /* ===== 紙面（画面のプレビューと印刷で同じ） ===== */
 #out{--fs:10.5pt;color:#000;font-family:'Yu Mincho','YuMincho','Hiragino Mincho ProN','Noto Serif JP',serif;font-size:var(--fs);line-height:1.55;}
 #out.k-book,#out.k-expl,#out.k-key,#out.k-anal{width:210mm;padding:16mm 17mm;}
+#out.k-book{padding:12mm 13mm;}
+#out .pg4{height:271mm;display:flex;flex-direction:column;overflow:hidden;break-after:page;}
+#out .pg4:last-child{break-after:auto;}
+#out .pg4 .ph{margin-bottom:0;}
+#out .g4{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;grid-auto-flow:column;}
+#out .cell{overflow:hidden;min-width:0;min-height:0;padding:4mm 0 3mm 0;}
+#out .cell:nth-child(-n+2){padding-right:5mm;}
+#out .cell:nth-child(n+3){padding-left:5mm;border-left:0.2mm solid #999;}
+#out .cell:nth-child(even){border-top:0.2mm dashed #aaa;}
+#out .cell .q{margin:0;break-inside:auto;}
+#out .cell ol.st,#out .cell ol.ch{margin-left:1.7em;}
+#out .cell .qimg{max-height:var(--imgh,55mm);margin-left:0;}
+#printRoot .copy{break-before:page;}
 #out.k-eco{width:210mm;padding:9mm 9mm;}
 #out.k-sheet{width:210mm;padding:0;}
 #out .pg-sheet{width:210mm;height:296.5mm;overflow:hidden;break-after:page;}
@@ -210,7 +223,7 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
             <select class="sel" id="dist">
               <option value="none">分けない（条件に合う中から選ぶ）</option>
               <option value="subj-prop">科目ごと・問題数に比例</option>
-              <option value="subj-eq">科目ごと・同じ数ずつ</option>
+              <option value="subj-eq" selected>科目ごと・同じ数ずつ</option>
               <option value="year-eq">回ごと・同じ数ずつ</option>
               <option value="manual">科目ごとに数を入れる</option>
             </select></label>
@@ -232,14 +245,14 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
               <option value="new">新しい回から</option>
               <option value="old">古い回から</option>
               <option value="subj">科目ごと（国試の科目の順）</option>
-              <option value="random">ランダム</option>
+              <option value="random" selected>ランダム</option>
               <option value="easy">易しい順</option>
               <option value="hard">難しい順</option>
             </select></label>
           <label>選択肢の順番
             <select class="sel" id="shuf">
               <option value="0">過去問そのまま</option>
-              <option value="1">ランダム（正答の番号が変わる）</option>
+              <option value="1" selected>ランダム（正答の番号が変わる）</option>
             </select></label>
         </div>
         <div class="hint">選択肢をランダムにしても、「a,b」のような組合せの問題と図のある問題は並べ替えない（図や記号と合わなくなるため）。</div>
@@ -268,7 +281,7 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
         <div class="card">
           <h2>何を刷るか</h2>
           <div class="kinds" id="kinds">
-            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・1段・明朝</span></button>
+            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・2段・1ページ4問</span></button>
             <button class="kind" data-kind="eco"><b>問題（節約）</b><span>2段・小さい字・余白少なめ</span></button>
             <button class="kind" data-kind="key"><b>正答の一覧</b><span>正答・出典・科目・正答率</span></button>
             <button class="kind" data-kind="sheet"><b>マークシート</b><span>あとで読み取れる用紙</span></button>
@@ -280,6 +293,7 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
             <label>字の大きさ <select class="sel" id="oFs"><option value="s">小</option><option value="m" selected>標準</option><option value="l">大</option></select></label>
           </div>
           <div class="row">
+            <label>部数 <input type="number" class="num" id="oCopies" min="1" max="100" value="1"> 部</label>
             <button class="btn pri" id="btnPrint">印刷する</button>
             <span class="hint" id="printHint"></span>
           </div>

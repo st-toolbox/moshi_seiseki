@@ -175,7 +175,8 @@
   }
 
   function initCondUI() {
-    $('years').innerHTML = YEARS.slice().reverse().map(y => `<span class="chip on" data-y="${y}">第${y}回</span>`).join('');
+    const top5 = YEARS.slice().sort((a, b) => b - a).slice(0, 5);   // 最初は直近5回
+    $('years').innerHTML = YEARS.slice().reverse().map(y => `<span class="chip${top5.includes(y) ? ' on' : ''}" data-y="${y}">第${y}回</span>`).join('');
     const cntAll = {}; ALL.forEach(q => cntAll[q.s] = 1);
     const others = Object.keys(cntAll).filter(s => !SUBJ_ORDER.includes(s));
     const grp = (name, list, id) => `<div class="grp"><div class="grp-h">${name} <button class="btn sm" data-gq="${id}" data-on="1">全部</button><button class="btn sm" data-gq="${id}" data-on="0">外す</button></div>
@@ -345,7 +346,7 @@
     const note = `この問題は選択肢を並べ替えてある。${reordered ? '選択肢ごとの解説は今の番号に直してあるが、' : ''}文の中に出てくる選択肢の番号は過去問の元の番号（元→今：${mapTxt}）。`;
     return `<div class="ex"><div class="note">${esc(note)}</div>${md(body)}</div>`;
   }
-  const PAGE = { book: '16mm 17mm', expl: '16mm 17mm', key: '14mm 15mm', anal: '12mm 12mm', eco: '9mm', sheet: '0' };
+  const PAGE = { book: '12mm 13mm', expl: '16mm 17mm', key: '14mm 15mm', anal: '12mm 12mm', eco: '9mm', sheet: '0' };
   function setPage(k) {
     $('pageStyle').textContent = `@page{size:A4;margin:${PAGE[k]};${k === 'sheet' ? '' : '@bottom-center{content:counter(page);font-size:8pt;font-family:sans-serif;}'}}`;
   }
@@ -365,7 +366,7 @@
     $('oSrc').parentElement.style.display = kind === 'expl' ? 'none' : '';
     setPage(kind);
     $('printHint').textContent = kind === 'sheet' ? 'A4・倍率100％（「用紙に合わせる」にしない）・余白なしで刷る。ずれると読み取れない。'
-      : kind === 'eco' ? `2段組。おおよそ ${Math.ceil(its.length / 16)} 枚前後。` : 'A4・倍率100％。ブラウザの印刷画面で「ヘッダーとフッター」は外す。';
+      : kind === 'eco' ? `2段組。おおよそ ${Math.ceil(its.length / 16)} 枚前後。` : kind === 'book' ? `1ページに4問（2段）。${Math.ceil(its.length / 4) + (o.cover ? 1 : 0)} ページ。A4・倍率100％・「ヘッダーとフッター」は外す。` : 'A4・倍率100％。ブラウザの印刷画面で「ヘッダーとフッター」は外す。';
     if (kind === 'sheet') {
       const parts = its.length > 100 ? ['AM', 'PM'] : ['AM'];
       out.innerHTML = parts.map(p => `<div class="pg-sheet">${OMR_LAYOUT.svg({ part: p, exam: cur.title + (parts.length > 1 ? (p === 'AM' ? '（問1〜100）' : `（問101〜${its.length}）`) : `（${its.length}問）`) })}</div>`).join('');
@@ -391,17 +392,31 @@
       }).join('');
       return;
     }
-    const qs = its.map((it, i) => `<div class="q">${qHtml(it, i, o)}</div>`).join('');
-    if (kind === 'eco') { out.innerHTML = header(`${its.length}問　　学籍番号（　　　　　　）氏名（　　　　　　　　　　）`) + `<div class="cols">${qs}</div>`; return; }
+    if (kind === 'eco') {
+      const qs = its.map((it, i) => `<div class="q">${qHtml(it, i, o)}</div>`).join(''); out.innerHTML = header(`${its.length}問　　学籍番号（　　　　　　）氏名（　　　　　　　　　　）`) + `<div class="cols">${qs}</div>`; return; }
     const cover = o.cover ? `<div class="cover"><div><h1>${esc(cur.title)}</h1><div class="cn">問題数　${its.length}問</div></div>
       <div class="notes"><h3>注意事項</h3><ol><li>指示があるまで開かないこと。</li><li>答えは問題ごとに1つ選び、マークシートの番号を塗りつぶすこと。</li><li>マークシートには学籍番号を数字とマークの両方で書くこと。</li></ol></div>
-      <div class="namebox"><div>学籍番号 <span></span></div><div>氏名 <span></span></div></div></div>` : header(`${its.length}問`);
-    out.innerHTML = cover + qs;
+      <div class="namebox"><div>学籍番号 <span></span></div><div>氏名 <span></span></div></div></div>` : '';
+    // 冊子風＝1ページに2段・4問（左の上下→右の上下）。枠に入りきらない問題はその問題だけ字を小さくする
+    const cells = its.map((it, i) => `<div class="cell"><div class="q">${qHtml(it, i, o)}</div></div>`);
+    let pgs = '';
+    for (let i = 0; i < cells.length; i += 4) pgs += `<div class="pg4">${header(`問${i + 1}〜${Math.min(i + 4, cells.length)}（全${its.length}問）`)}<div class="g4">${cells.slice(i, i + 4).join('')}</div></div>`;
+    out.innerHTML = (o.cover ? cover : '') + pgs;
+    await fitCells(out);
   }
-  function doPrint(node) {
+  async function fitCells(root) {
+    await Promise.all([...root.querySelectorAll('.cell img')].map(im => im.decode ? im.decode().catch(() => {}) : 0));
+    root.querySelectorAll('.cell').forEach(c => {
+      if (!c.clientHeight) return;   // 見えていないときは測れない（刷る直前にもう一度呼ぶ）
+      let f = 100; c.style.fontSize = ''; c.style.removeProperty('--imgh');
+      while (c.scrollHeight > c.clientHeight + 1 && f > 56) { f -= 3; c.style.fontSize = f + '%'; c.style.setProperty('--imgh', Math.round(55 * f / 100) + 'mm'); }
+    });
+  }
+  function doPrint(node, copies) {
     const root = $('printRoot'), wrap = node.parentElement, next = node.nextSibling;
     root.appendChild(node);
-    const back = () => { wrap.insertBefore(node, next); window.removeEventListener('afterprint', back); };
+    for (let i = 1; i < (copies || 1); i++) { const c = node.cloneNode(true); c.classList.add('copy'); root.appendChild(c); }   // 部数ぶん並べる
+    const back = () => { root.querySelectorAll('.copy').forEach(c => c.remove()); wrap.insertBefore(node, next); window.removeEventListener('afterprint', back); };
     window.addEventListener('afterprint', back);
     window.print();
   }
@@ -601,7 +616,7 @@
   document.querySelectorAll('.tab').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('kinds').addEventListener('click', e => { const b = e.target.closest('.kind'); if (b) { kind = b.dataset.kind; renderOut(); } });
   ['oSrc', 'oSubj', 'oCover', 'oFs'].forEach(id => $(id).addEventListener('change', renderOut));
-  $('btnPrint').onclick = () => doPrint($('out'));
+  $('btnPrint').onclick = async () => { if (kind === 'book') await fitCells($('out')); doPrint($('out'), Math.max(1, Math.min(100, +$('oCopies').value || 1))); };
   $('files').addEventListener('change', e => { addFiles([...e.target.files]); e.target.value = ''; });
   const drop = $('drop');
   drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
@@ -628,5 +643,5 @@
       start((user.email || '').split('@')[0]);
     });
   }
-  window.KP = { build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
+  window.KP = { fitCells, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
 })();
