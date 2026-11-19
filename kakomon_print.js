@@ -366,7 +366,7 @@
     $('oSrc').parentElement.style.display = kind === 'expl' ? 'none' : '';
     setPage(kind);
     $('printHint').textContent = kind === 'sheet' ? 'A4・倍率100％（「用紙に合わせる」にしない）・余白なしで刷る。ずれると読み取れない。'
-      : kind === 'eco' ? `2段組。おおよそ ${Math.ceil(its.length / 16)} 枚前後。` : kind === 'book' ? `1ページに4問（2段）。${Math.ceil(its.length / 4) + (o.cover ? 1 : 0)} ページ。A4・倍率100％・「ヘッダーとフッター」は外す。` : 'A4・倍率100％。ブラウザの印刷画面で「ヘッダーとフッター」は外す。';
+      : kind === 'eco' ? `2段組。おおよそ ${Math.ceil(its.length / 16)} 枚前後。` : kind === 'book' ? `1ページに6問（2段）。${Math.ceil(its.length / 6) + (o.cover ? 1 : 0)} ページ。A4・倍率100％・「ヘッダーとフッター」は外す。` : 'A4・倍率100％。ブラウザの印刷画面で「ヘッダーとフッター」は外す。';
     if (kind === 'sheet') {
       const parts = its.length > 100 ? ['AM', 'PM'] : ['AM'];
       out.innerHTML = parts.map(p => `<div class="pg-sheet">${OMR_LAYOUT.svg({ part: p, exam: cur.title + (parts.length > 1 ? (p === 'AM' ? '（問1〜100）' : `（問101〜${its.length}）`) : `（${its.length}問）`) })}</div>`).join('');
@@ -397,10 +397,10 @@
     const cover = o.cover ? `<div class="cover"><div><h1>${esc(cur.title)}</h1><div class="cn">問題数　${its.length}問</div></div>
       <div class="notes"><h3>注意事項</h3><ol><li>指示があるまで開かないこと。</li><li>答えは問題ごとに1つ選び、マークシートの番号を塗りつぶすこと。</li><li>マークシートには学籍番号を数字とマークの両方で書くこと。</li></ol></div>
       <div class="namebox"><div>学籍番号 <span></span></div><div>氏名 <span></span></div></div></div>` : '';
-    // 冊子風＝1ページに2段・4問（左の上下→右の上下）。枠に入りきらない問題はその問題だけ字を小さくする
+    // 冊子風＝1ページに2段・6問（左の上中下→右の上中下）。枠に入りきらない問題はその問題だけ字を小さくする
     const cells = its.map((it, i) => `<div class="cell"><div class="q">${qHtml(it, i, o)}</div></div>`);
     let pgs = '';
-    for (let i = 0; i < cells.length; i += 4) pgs += `<div class="pg4">${header(`問${i + 1}〜${Math.min(i + 4, cells.length)}（全${its.length}問）`)}<div class="g4">${cells.slice(i, i + 4).join('')}</div></div>`;
+    for (let i = 0; i < cells.length; i += 6) pgs += `<div class="pgb">${header(`問${i + 1}〜${Math.min(i + 6, cells.length)}（全${its.length}問）`)}<div class="gb">${cells.slice(i, i + 6).join('')}</div></div>`;
     out.innerHTML = (o.cover ? cover : '') + pgs;
     await fitCells(out);
   }
@@ -409,7 +409,7 @@
     root.querySelectorAll('.cell').forEach(c => {
       if (!c.clientHeight) return;   // 見えていないときは測れない（刷る直前にもう一度呼ぶ）
       let f = 100; c.style.fontSize = ''; c.style.removeProperty('--imgh');
-      while (c.scrollHeight > c.clientHeight + 1 && f > 56) { f -= 3; c.style.fontSize = f + '%'; c.style.setProperty('--imgh', Math.round(55 * f / 100) + 'mm'); }
+      while (c.scrollHeight > c.clientHeight + 1 && f > 56) { f -= 3; c.style.fontSize = f + '%'; c.style.setProperty('--imgh', Math.round(36 * f / 100) + 'mm'); }
     });
   }
   function doPrint(node, copies) {

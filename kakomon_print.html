@@ -87,17 +87,17 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
 #out{--fs:10.5pt;color:#000;font-family:'Yu Mincho','YuMincho','Hiragino Mincho ProN','Noto Serif JP',serif;font-size:var(--fs);line-height:1.55;}
 #out.k-book,#out.k-expl,#out.k-key,#out.k-anal{width:210mm;padding:16mm 17mm;}
 #out.k-book{padding:12mm 13mm;}
-#out .pg4{height:271mm;display:flex;flex-direction:column;overflow:hidden;break-after:page;}
-#out .pg4:last-child{break-after:auto;}
-#out .pg4 .ph{margin-bottom:0;}
-#out .g4{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;grid-auto-flow:column;}
-#out .cell{overflow:hidden;min-width:0;min-height:0;padding:4mm 0 3mm 0;}
-#out .cell:nth-child(-n+2){padding-right:5mm;}
-#out .cell:nth-child(n+3){padding-left:5mm;border-left:0.2mm solid #999;}
-#out .cell:nth-child(even){border-top:0.2mm dashed #aaa;}
+#out .pgb{height:271mm;display:flex;flex-direction:column;overflow:hidden;break-after:page;}
+#out .pgb:last-child{break-after:auto;}
+#out .pgb .ph{margin-bottom:0;}
+#out .gb{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr;grid-auto-flow:column;}
+#out .cell{overflow:hidden;min-width:0;min-height:0;padding:3mm 0 2mm 0;}
+#out .cell:nth-child(-n+3){padding-right:5mm;}
+#out .cell:nth-child(n+4){padding-left:5mm;border-left:0.2mm solid #999;}
+#out .cell:not(:nth-child(3n+1)){border-top:0.2mm dashed #aaa;}
 #out .cell .q{margin:0;break-inside:auto;}
 #out .cell ol.st,#out .cell ol.ch{margin-left:1.7em;}
-#out .cell .qimg{max-height:var(--imgh,55mm);margin-left:0;}
+#out .cell .qimg{max-height:var(--imgh,36mm);margin-left:0;}
 #printRoot .copy{break-before:page;}
 #out.k-eco{width:210mm;padding:9mm 9mm;}
 #out.k-sheet{width:210mm;padding:0;}
@@ -281,7 +281,7 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
         <div class="card">
           <h2>何を刷るか</h2>
           <div class="kinds" id="kinds">
-            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・2段・1ページ4問</span></button>
+            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・2段・1ページ6問</span></button>
             <button class="kind" data-kind="eco"><b>問題（節約）</b><span>2段・小さい字・余白少なめ</span></button>
             <button class="kind" data-kind="key"><b>正答の一覧</b><span>正答・出典・科目・正答率</span></button>
             <button class="kind" data-kind="sheet"><b>マークシート</b><span>あとで読み取れる用紙</span></button>
