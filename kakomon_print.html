@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>過去問プリント</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{--g1:#F5F6F4;--g2:#DFE2DD;--g3:#B9BEB8;--g4:#6B716C;--g5:#171A18;--accent:#1F4D45;--accent-bg:#E8F0EE;--ok:#2F6B4F;--ok-bg:#DCFCE7;--warn:#B45309;--warn-bg:#FEF3C7;--ng:#C4432B;--ng-bg:#FEE2E2;--r:8px;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'IBM Plex Sans JP',sans-serif;background:var(--g1);color:var(--g5);font-size:14px;line-height:1.6;}
+button,select,input{font-family:inherit;font-size:13px;color:var(--g5);}
+.mono{font-family:'DM Mono',monospace;}
+#login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;}
+#login h1{font-size:22px;margin:0;}
+#login p{color:var(--g4);margin:0;max-width:420px;}
+.btn{padding:8px 14px;border:1.5px solid var(--g2);border-radius:var(--r);background:#fff;cursor:pointer;font-weight:600;}
+.btn:hover{border-color:var(--accent);}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.sm{padding:3px 9px;font-size:12px;font-weight:500;}
+.btn.ng{color:var(--ng);}
+.btn:disabled{opacity:.45;cursor:default;}
+header.top{background:#fff;border-bottom:1px solid var(--g2);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:5;}
+header.top h1{font-size:16px;margin:0;}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.tab{padding:7px 14px;border:0;border-radius:var(--r);background:transparent;cursor:pointer;font-weight:600;color:var(--g4);}
+.tab.on{background:var(--accent-bg);color:var(--accent);}
+.who{margin-left:auto;font-size:12px;color:var(--g4);display:flex;gap:8px;align-items:center;}
+#curBar{background:var(--accent);color:#fff;padding:6px 20px;font-size:13px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#curBar .none{opacity:.8;}
+main{max-width:1180px;margin:0 auto;padding:18px 20px 80px;}
+.card{background:#fff;border:1px solid var(--g2);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;}
+.card h2{font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.card h2 .sub{font-weight:400;color:var(--g4);font-size:12px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1.5px solid var(--g2);border-radius:16px;background:#fff;cursor:pointer;font-size:13px;user-select:none;}
+.chip input{display:none;}
+.chip.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.chip .c{font-size:11px;color:var(--g4);font-family:'DM Mono',monospace;}
+.chip .mq{width:44px;padding:1px 4px;border:1px solid var(--g3);border-radius:4px;font-size:12px;margin-left:2px;}
+.grp{margin-top:8px;}
+.grp-h{font-size:12px;font-weight:700;color:var(--g4);margin:8px 0 4px;display:flex;gap:8px;align-items:center;}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:6px 0;}
+.row label{display:inline-flex;gap:6px;align-items:center;}
+.num{width:64px;padding:5px 7px;border:1.5px solid var(--g2);border-radius:6px;}
+select.sel,input.txt{padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;background:#fff;}
+input.txt{min-width:280px;}
+.hint{font-size:12px;color:var(--g4);}
+.poolN{font-family:'DM Mono',monospace;font-size:20px;font-weight:600;color:var(--accent);}
+.warn{background:var(--warn-bg);color:var(--warn);padding:6px 10px;border-radius:6px;font-size:13px;margin:6px 0;}
+.err{background:var(--ng-bg);color:var(--ng);padding:6px 10px;border-radius:6px;font-size:13px;margin:6px 0;}
+.okmsg{background:var(--ok-bg);color:var(--ok);padding:6px 10px;border-radius:6px;font-size:13px;margin:6px 0;}
+table.t{border-collapse:collapse;width:100%;font-size:13px;}
+table.t th,table.t td{border-bottom:1px solid var(--g2);padding:5px 8px;text-align:left;vertical-align:top;}
+table.t th{font-size:12px;color:var(--g4);font-weight:600;white-space:nowrap;background:var(--g1);position:sticky;top:0;}
+table.t td.n,table.t th.n{text-align:right;font-family:'DM Mono',monospace;white-space:nowrap;}
+table.t td.c{text-align:center;font-family:'DM Mono',monospace;white-space:nowrap;}
+.bar{display:inline-block;height:9px;background:var(--accent);border-radius:2px;vertical-align:middle;}
+.bar.lo{background:var(--ng);}
+.cell-ok{background:var(--ok-bg);font-weight:700;}
+.cell-hot{color:var(--ng);font-weight:700;}
+.stat{display:flex;gap:26px;flex-wrap:wrap;}
+.stat div b{display:block;font-family:'DM Mono',monospace;font-size:24px;line-height:1.2;}
+.stat div span{font-size:12px;color:var(--g4);}
+.kinds{display:flex;gap:8px;flex-wrap:wrap;}
+.kind{padding:10px 14px;border:1.5px solid var(--g2);border-radius:var(--r);background:#fff;cursor:pointer;text-align:left;min-width:150px;}
+.kind b{display:block;font-size:14px;}
+.kind span{font-size:11px;color:var(--g4);}
+.kind.on{border-color:var(--accent);background:var(--accent-bg);}
+#outWrap{background:#8a8f8a;padding:18px;border-radius:var(--r);overflow:auto;max-height:80vh;}
+#out{background:#fff;margin:0 auto;box-shadow:0 2px 10px rgba(0,0,0,.3);}
+.scroll{max-height:460px;overflow:auto;border:1px solid var(--g2);border-radius:6px;}
+.sheetrow{display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--g2);padding:8px 0;flex-wrap:wrap;}
+.sheetrow .fl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.sheetrow select{padding:2px 4px;border:1px solid var(--g3);border-radius:4px;}
+.flagq{background:var(--warn-bg);border-radius:4px;padding:1px 5px;font-size:12px;display:inline-flex;gap:3px;align-items:center;}
+dialog{border:0;border-radius:var(--r);padding:14px;max-width:96vw;max-height:94vh;}
+dialog::backdrop{background:rgba(0,0,0,.5);}
+#drop{border:2px dashed var(--g3);border-radius:var(--r);padding:22px;text-align:center;color:var(--g4);background:#fff;}
+#drop.over{border-color:var(--accent);background:var(--accent-bg);}
+
+/* ===== 紙面（画面のプレビューと印刷で同じ） ===== */
+#out{--fs:10.5pt;color:#000;font-family:'Yu Mincho','YuMincho','Hiragino Mincho ProN','Noto Serif JP',serif;font-size:var(--fs);line-height:1.55;}
+#out.k-book,#out.k-expl,#out.k-key,#out.k-anal{width:210mm;padding:16mm 17mm;}
+#out.k-eco{width:210mm;padding:9mm 9mm;}
+#out.k-sheet{width:210mm;padding:0;}
+#out .pg-sheet{width:210mm;height:296.5mm;overflow:hidden;break-after:page;}
+#out .pg-sheet:last-child{break-after:auto;}
+#out .pg-sheet svg{width:210mm;height:297mm;display:block;}
+#out .cover{height:262mm;display:flex;flex-direction:column;justify-content:space-between;break-after:page;}
+#out .cover h1{font-size:22pt;text-align:center;margin:38mm 0 6mm;letter-spacing:.08em;}
+#out .cover .cn{text-align:center;font-size:12pt;}
+#out .cover .notes{border:0.4mm solid #000;padding:6mm 8mm;margin:0 8mm;font-size:10.5pt;}
+#out .cover .notes h3{margin:0 0 2mm;font-size:11pt;text-align:center;letter-spacing:.3em;}
+#out .cover .notes ol{margin:0;padding-left:1.4em;}
+#out .namebox{display:flex;justify-content:center;gap:10mm;font-size:11pt;margin-bottom:8mm;}
+#out .namebox span{display:inline-block;border-bottom:0.3mm solid #000;min-width:52mm;height:9mm;}
+#out .ph{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:0.4mm solid #000;padding-bottom:1.5mm;margin-bottom:4mm;font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;}
+#out .ph b{font-size:1.25em;}
+#out .ph span{font-size:.85em;}
+#out .q{break-inside:avoid;margin:0 0 5.5mm;}
+#out .qh{display:flex;gap:.6em;}
+#out .qno{font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;font-weight:700;white-space:nowrap;}
+#out .qt{flex:1;white-space:pre-wrap;}
+#out .src{font-size:.78em;color:#444;white-space:nowrap;font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;}
+#out .qimg{display:block;max-width:100%;max-height:95mm;margin:2mm auto 2mm 2.4em;}
+#out ol.st,#out ol.ch{list-style:none;margin:1mm 0 0 2.4em;padding:0;}
+#out ol.st li,#out ol.ch li{display:flex;gap:.5em;}
+#out ol.st li i,#out ol.ch li i{font-style:normal;white-space:nowrap;min-width:1.3em;}
+#out ol.ch.inline{display:flex;flex-wrap:wrap;gap:0 1.6em;}
+#out.k-eco{--fs:8.6pt;line-height:1.38;}
+#out.k-eco .cols{column-count:2;column-gap:7mm;column-rule:0.2mm solid #999;}
+#out.k-eco .q{margin-bottom:3mm;}
+#out.k-eco ol.st,#out.k-eco ol.ch{margin-left:1.9em;margin-top:.3mm;}
+#out.k-eco .qimg{max-height:60mm;margin-left:1.9em;}
+#out.k-eco .ph{margin-bottom:2.5mm;}
+#out .ans{margin:2mm 0 1mm 2.4em;font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;font-weight:700;}
+#out .ans small{font-weight:400;margin-left:1em;}
+#out .ex{margin:0 0 0 2.4em;font-size:.9em;line-height:1.5;border-left:0.6mm solid #bbb;padding-left:3mm;}
+#out .ex p{margin:0 0 1.6mm;}
+#out .ex .eh{font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;font-weight:700;margin:2mm 0 1mm;}
+#out .ex hr{border:0;border-top:0.2mm dashed #999;margin:2mm 0;}
+#out .ex table{border-collapse:collapse;margin:1mm 0 2mm;font-size:.95em;}
+#out .ex td,#out .ex th{border:0.2mm solid #666;padding:.6mm 2mm;}
+#out .ex .note{font-size:.9em;color:#333;border:0.2mm solid #999;padding:1mm 2mm;margin-bottom:1.6mm;}
+#out.k-expl .q{break-inside:auto;margin-bottom:8mm;}
+#out.k-expl .qbody{break-inside:avoid;}
+#out table.key{border-collapse:collapse;width:100%;font-size:9.5pt;font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;}
+#out table.key th,#out table.key td{border:0.2mm solid #555;padding:.8mm 2mm;}
+#out table.key th{background:#eee;}
+#out table.key td.c{text-align:center;}
+#out table.key td.a{text-align:center;font-weight:700;font-size:11pt;}
+#out .keygrid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;font-family:'DM Mono','Yu Gothic',monospace;font-size:10.5pt;margin-bottom:6mm;border-top:0.2mm solid #555;border-left:0.2mm solid #555;}
+#out .keygrid div{border-right:0.2mm solid #555;border-bottom:0.2mm solid #555;padding:.8mm 2.5mm;display:flex;justify-content:space-between;}
+#out .keygrid div b{font-size:11.5pt;}
+#out.fs-s{--fs:9.5pt;} #out.fs-l{--fs:12pt;}
+#out.k-eco.fs-s{--fs:7.8pt;} #out.k-eco.fs-l{--fs:9.6pt;}
+#out.k-anal{font-family:'Yu Gothic','YuGothic','Hiragino Sans',sans-serif;font-size:9.5pt;}
+#out.k-anal table.key td.n{text-align:right;}
+#out.k-anal h3{font-size:11pt;margin:5mm 0 2mm;}
+
+@media print{
+  body{background:#fff;}
+  body > *:not(#printRoot){display:none!important;}
+  #printRoot{display:block!important;}
+  #printRoot #out{box-shadow:none;margin:0;padding:0!important;width:auto!important;}
+  #printRoot #out.k-sheet{width:210mm!important;}
+}
+#printRoot{display:none;}
+</style>
+<style id="pageStyle">@page{size:A4;margin:16mm 17mm;}</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>過去問プリント</h1>
+  <p>国家試験の過去問を条件で選んで、冊子・解説・マークシートを印刷します。先生のアカウントでログインしてください。</p>
+  <button class="btn pri" id="btnLogin">Googleでログイン</button>
+  <div id="loginMsg" class="hint"></div>
+</div>
+
+<div id="app" style="display:none;">
+  <header class="top">
+    <h1>過去問プリント</h1>
+    <nav class="tabs">
+      <button class="tab on" data-tab="make">① 問題を選ぶ</button>
+      <button class="tab" data-tab="print">② 印刷</button>
+      <button class="tab" data-tab="scan">③ 読み取り・分析</button>
+      <button class="tab" data-tab="hist">作成履歴</button>
+    </nav>
+    <div class="who"><span id="who"></span><button class="btn sm" id="btnLogout">ログアウト</button></div>
+  </header>
+  <div id="curBar"></div>
+  <main>
+    <!-- ① 作る -->
+    <section id="tab-make">
+      <div class="card">
+        <h2>回（年代） <span class="sub">押して選ぶ・いくつでも</span>
+          <button class="btn sm" data-yq="all">全部</button><button class="btn sm" data-yq="5">直近5回</button><button class="btn sm" data-yq="10">直近10回</button><button class="btn sm" data-yq="none">外す</button></h2>
+        <div class="chips" id="years"></div>
+      </div>
+      <div class="card">
+        <h2>科目 <span class="sub">押して選ぶ・いくつでも。数字は今の条件に合う問題数</span>
+          <button class="btn sm" data-sq="all">全部</button><button class="btn sm" data-sq="none">外す</button></h2>
+        <div id="subjects"></div>
+      </div>
+      <div class="card">
+        <h2>難易度 <span class="sub">サイトの利用者が初めて解いたときの正答率（低いほど難しい）</span></h2>
+        <div class="row">
+          <label>正答率 <input type="number" class="num" id="rLo" min="0" max="100" value="0">％ 〜 <input type="number" class="num" id="rHi" min="0" max="100" value="100">％</label>
+          <button class="btn sm" data-rq="0,100">指定なし</button>
+          <button class="btn sm" data-rq="70,100">易しい（70％以上）</button>
+          <button class="btn sm" data-rq="50,69">ふつう（50〜69％）</button>
+          <button class="btn sm" data-rq="0,49">難しい（50％未満）</button>
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="cImg" checked> 図のある問題を入れる</label>
+          <label><input type="checkbox" id="cSp"> 採点除外・正答が2つある問題を入れる <span class="hint">（全部で20問）</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>問題数と分け方</h2>
+        <div class="row">
+          <label>全部で <input type="number" class="num" id="nTotal" min="1" max="200" value="50"> 問 <span class="hint">（最大200問＝マークシート2枚）</span></label>
+          <label>分け方
+            <select class="sel" id="dist">
+              <option value="none">分けない（条件に合う中から選ぶ）</option>
+              <option value="subj-prop">科目ごと・問題数に比例</option>
+              <option value="subj-eq">科目ごと・同じ数ずつ</option>
+              <option value="year-eq">回ごと・同じ数ずつ</option>
+              <option value="manual">科目ごとに数を入れる</option>
+            </select></label>
+          <label>足りないときに選ぶ基準
+            <select class="sel" id="pri">
+              <option value="random">ランダム</option>
+              <option value="new">新しい回を先に</option>
+              <option value="hard">難しい問題を先に</option>
+              <option value="easy">易しい問題を先に</option>
+            </select></label>
+        </div>
+        <div class="hint" id="distHint"></div>
+      </div>
+      <div class="card">
+        <h2>並び方</h2>
+        <div class="row">
+          <label>出題の順番
+            <select class="sel" id="order">
+              <option value="new">新しい回から</option>
+              <option value="old">古い回から</option>
+              <option value="subj">科目ごと（国試の科目の順）</option>
+              <option value="random">ランダム</option>
+              <option value="easy">易しい順</option>
+              <option value="hard">難しい順</option>
+            </select></label>
+          <label>選択肢の順番
+            <select class="sel" id="shuf">
+              <option value="0">過去問そのまま</option>
+              <option value="1">ランダム（正答の番号が変わる）</option>
+            </select></label>
+        </div>
+        <div class="hint">選択肢をランダムにしても、「a,b」のような組合せの問題と図のある問題は並べ替えない（図や記号と合わなくなるため）。</div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <label>名前 <input class="txt" id="title" placeholder="例：聴覚系 小テスト 1回目"></label>
+          <span>条件に合う問題 <span class="poolN" id="poolN">0</span> 問</span>
+          <button class="btn pri" id="btnMake">この条件で選ぶ</button>
+        </div>
+        <div id="makeMsg"></div>
+      </div>
+      <div class="card" id="draftCard" style="display:none;">
+        <h2>選んだ問題 <span class="sub" id="draftSum"></span>
+          <button class="btn sm" id="btnReroll">選び直す（別の組み合わせ）</button>
+          <button class="btn pri" id="btnFix">これで決める（履歴に残す）→ 印刷へ</button></h2>
+        <div class="hint">決める前なら、1問ずつ「替える」「外す」ができる。決めたあとは変えられない（刷った紙と正答がずれないように）。</div>
+        <div class="scroll"><table class="t" id="draftTbl"></table></div>
+      </div>
+    </section>
+
+    <!-- ② 印刷 -->
+    <section id="tab-print" style="display:none;">
+      <div class="card" id="printNone"><div class="warn">先に「① 問題を選ぶ」で問題を決めるか、「作成履歴」から開く。</div></div>
+      <div id="printBody" style="display:none;">
+        <div class="card">
+          <h2>何を刷るか</h2>
+          <div class="kinds" id="kinds">
+            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・1段・明朝</span></button>
+            <button class="kind" data-kind="eco"><b>問題（節約）</b><span>2段・小さい字・余白少なめ</span></button>
+            <button class="kind" data-kind="expl"><b>問題＋解説（冊子風）</b><span>1問ごとに正答と解説</span></button>
+            <button class="kind" data-kind="key"><b>正答の一覧</b><span>正答・出典・科目・正答率</span></button>
+            <button class="kind" data-kind="sheet"><b>マークシート</b><span>あとで読み取れる用紙</span></button>
+          </div>
+          <div class="row" id="printOpts">
+            <label><input type="checkbox" id="oSrc"> 問題に出典（第◯回 問◯）を付ける</label>
+            <label><input type="checkbox" id="oSubj"> 科目名を付ける</label>
+            <label><input type="checkbox" id="oCover" checked> 表紙を付ける</label>
+            <label>字の大きさ <select class="sel" id="oFs"><option value="s">小</option><option value="m" selected>標準</option><option value="l">大</option></select></label>
+          </div>
+          <div class="row">
+            <button class="btn pri" id="btnPrint">印刷する</button>
+            <span class="hint" id="printHint"></span>
+          </div>
+        </div>
+        <div id="outWrap"><div id="out" class="k-book"></div></div>
+      </div>
+    </section>
+
+    <!-- ③ 読み取り・分析 -->
+    <section id="tab-scan" style="display:none;">
+      <div class="card" id="scanNone"><div class="warn">先に「① 問題を選ぶ」で問題を決めるか、「作成履歴」から開く。</div></div>
+      <div id="scanBody" style="display:none;">
+        <div class="card">
+          <h2>マークシートを読み込む <span class="sub">スキャンしたPDF（何ページでも）か写真。いくつでもまとめて入れられる</span></h2>
+          <div id="drop">ここにファイルを落とす　または　<label class="btn">ファイルを選ぶ<input type="file" id="files" accept="application/pdf,image/*" multiple style="display:none;"></label></div>
+          <div id="scanMsg"></div>
+          <div id="sheets"></div>
+          <div class="row" id="scanAct" style="display:none;">
+            <button class="btn pri" id="btnSaveScan">読み取った分を採点に入れる</button>
+            <button class="btn" id="btnClearScan">やめる（消す）</button>
+            <span class="hint">学籍番号が同じ紙をもう一度入れると、新しい方で置き換える。氏名は扱わない（学籍番号だけ）。</span>
+          </div>
+        </div>
+        <div id="anal"></div>
+      </div>
+    </section>
+
+    <!-- 履歴 -->
+    <section id="tab-hist" style="display:none;">
+      <div class="card">
+        <h2>作成履歴 <span class="sub">先生どうしで共通。開くと、同じ問題・同じ並びで刷り直しや読み取りができる</span></h2>
+        <div id="hist"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="dlg"><div id="dlgBody"></div><div style="text-align:right;margin-top:8px;"><button class="btn" onclick="document.getElementById('dlg').close()">閉じる</button></div></dialog>
+<div id="printRoot"></div>
+
+<script src="omr_layout.js"></script>
+<script src="omr_reader.js"></script>
+<script src="omr_ui.js"></script>
+<script src="kakomon_print.js"></script>
+</body>
+</html>
