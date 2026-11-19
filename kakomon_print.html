@@ -158,7 +158,7 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
 
 <div id="login">
   <h1>過去問プリント</h1>
-  <p>国家試験の過去問を条件で選んで、冊子・解説・マークシートを印刷します。先生のアカウントでログインしてください。</p>
+  <p>国家試験の過去問を条件で選んで、冊子・正答の一覧・マークシートを印刷します。先生のアカウントでログインしてください。</p>
   <button class="btn pri" id="btnLogin">Googleでログイン</button>
   <div id="loginMsg" class="hint"></div>
 </div>
@@ -270,7 +270,6 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
           <div class="kinds" id="kinds">
             <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・1段・明朝</span></button>
             <button class="kind" data-kind="eco"><b>問題（節約）</b><span>2段・小さい字・余白少なめ</span></button>
-            <button class="kind" data-kind="expl"><b>問題＋解説（冊子風）</b><span>1問ごとに正答と解説</span></button>
             <button class="kind" data-kind="key"><b>正答の一覧</b><span>正答・出典・科目・正答率</span></button>
             <button class="kind" data-kind="sheet"><b>マークシート</b><span>あとで読み取れる用紙</span></button>
           </div>
