@@ -80,7 +80,16 @@
   // 画面上の番号での正答。null＝採点除外（全員正解）
   // a〜e の文＋「a,b」の組合せの問題：文を並べ替え、組合せの字を付け替えて、選択肢を字の順に並べ直す
   const canShufSt = q => q.st && q.st.length === 5 && !q.im && !q.raw && q.c && q.c.length === 5 && q.c.every(c => /^[a-e](,[a-e])*$/.test(c));
-  const makeP = (q, rnd) => canShufSt(q) ? 's' + shuffle([1, 2, 3, 4, 5], rnd).join('') : canShuffle(q) ? shuffle([1, 2, 3, 4, 5], rnd).join('') : '';
+  // a,b 型は、並べ替えても組合せの形（a,b／a,e／b,c／c,d／d,e など）が元と同じになる並べ方だけから選ぶ＝国試の形のまま
+  const PERMS5 = (() => { const r = []; const go = (a, rest) => rest.length ? rest.forEach((x, i) => go(a.concat(x), rest.filter((_, k) => k !== i))) : r.push(a); go([], [1, 2, 3, 4, 5]); return r; })();
+  const keepForm = q => {
+    const key = cs => cs.map(c => c.split(',').sort().join(',')).sort().join('|'), k0 = key(q.c);
+    return PERMS5.filter(sp => { if (sp.join('') === '12345') return false; const pos = {}; sp.forEach((o, i) => pos['abcde'[o - 1]] = 'abcde'[i]); return key(q.c.map(c => c.split(',').map(x => pos[x]).join(','))) === k0; });
+  };
+  const makeP = (q, rnd) => {
+    if (canShufSt(q)) { const ok = keepForm(q); return ok.length ? 's' + ok[Math.min(ok.length - 1, Math.floor(rnd() * ok.length))].join('') : ''; }
+    return canShuffle(q) ? shuffle([1, 2, 3, 4, 5], rnd).join('') : '';
+  };
   // 紙面に出す形 {st: 文, ch: 選択肢, org: 出した順→元の選択肢の番号}
   function view(it) {
     const q = qOf(it), id = [1, 2, 3, 4, 5];
@@ -661,5 +670,5 @@
       start((user.email || '').split('@')[0]);
     });
   }
-  window.KP = { fitCells, view, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
+  window.KP = { fitCells, view, makeP, keepForm, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
 })();
