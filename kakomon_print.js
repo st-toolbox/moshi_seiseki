@@ -607,12 +607,13 @@
     box.innerHTML = '<table class="t"><tr><th>作った日</th><th>名前</th><th class="n">問題数</th><th>条件</th><th>作った人</th><th class="n">採点した人数</th><th></th></tr>' + list.map(s => {
       const d = new Date(s.at), c = JSON.parse(s.cond);
       return `<tr><td class="mono" style="white-space:nowrap">${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}</td><td><b>${esc(s.title)}</b></td><td class="n">${s.n}</td><td class="hint">${esc(condText(c))}</td><td class="hint">${esc(s.by || '')}</td><td class="n">${s.rc || 0}</td>
-        <td style="white-space:nowrap"><button class="btn sm pri" data-open="${s.id}">開く</button> <button class="btn sm" data-xlsx="${s.id}">Excel</button> <button class="btn sm" data-again="${s.id}">同じ条件で新しく作る</button> <button class="btn sm ng" data-kill="${s.id}">消す</button></td></tr>`;
+        <td style="white-space:nowrap"><button class="btn sm pri" data-open="${s.id}">開く</button> <button class="btn sm" data-pdf="${s.id}">PDF</button> <button class="btn sm" data-xlsx="${s.id}">Excel</button> <button class="btn sm" data-again="${s.id}">同じ条件で新しく作る</button> <button class="btn sm ng" data-kill="${s.id}">消す</button></td></tr>`;
     }).join('') + '</table>';
     box.onclick = async e => {
-      const t = e.target, s = sets[t.dataset.open || t.dataset.again || t.dataset.kill || t.dataset.xlsx];
+      const t = e.target, s = sets[t.dataset.open || t.dataset.again || t.dataset.kill || t.dataset.xlsx || t.dataset.pdf];
       if (!s) return;
       if (t.dataset.open) { await openSet(s); showTab('print'); }
+      if (t.dataset.pdf) { try { await exportPdf(s); } catch (er) { $('pdfBusy').style.display = 'none'; alert('PDF にできなかった：' + er.message); } return; }
       if (t.dataset.xlsx) { t.disabled = true; try { await exportXlsx(s); } catch (er) { alert('Excel にできなかった：' + er.message); } t.disabled = false; }
       if (t.dataset.again) { applyCond(JSON.parse(s.cond)); $('title').value = s.title; showTab('make'); makeDraft(); }
       if (t.dataset.kill && confirm(`「${s.title}」を消す？${s.rc ? `\n採点した ${s.rc}人分の結果も消える。` : ''}\n元に戻せない。`)) {
@@ -640,6 +641,35 @@
     info['!cols'] = [{ wch: 10 }, { wch: 90 }];
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '問題'); XLSX.utils.book_append_sheet(wb, info, '条件');
     XLSX.writeFile(wb, s.title.replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+  }
+
+  // 作った問題を PDF で保存（冊子風の紙面をそのまま画像にして並べる＝図も入る。最後のページに正答の一覧）
+  function loadLib(url, ok) {
+    if (ok()) return Promise.resolve();
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = () => rej(new Error('PDF 用の部品を読めない（ネットワーク）')); document.head.appendChild(s); });
+  }
+  async function exportPdf(s) {
+    const busy = $('pdfBusy'), say = m => { busy.textContent = m; busy.style.display = ''; };
+    say('PDF を用意している…');
+    await loadLib('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js', () => window.html2canvas);
+    await loadLib('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', () => window.jspdf);
+    await openSet(s); if (!cur) { busy.style.display = 'none'; return; }
+    kind = 'book'; showTab('print'); await renderOut(); await fitCells($('out'));
+    const out = $('out'), its = cur.items;
+    const key = document.createElement('div'); key.className = 'pgb'; key.style.height = 'auto';
+    key.innerHTML = header(`正答の一覧（${its.length}問）`) + `<div class="keygrid">${its.map((it, i) => `<div><span>${i + 1}</span><b>${ansLabel(it)}</b></div>`).join('')}</div>`;
+    out.appendChild(key);
+    try {
+      const pdf = new jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true }), pages = [...out.children];
+      for (let i = 0; i < pages.length; i++) {
+        say(`PDF を作っている… ${i + 1} / ${pages.length} ページ`);
+        const el = pages[i], cv = await html2canvas(el, { scale: 2.5, backgroundColor: '#ffffff', logging: false });
+        const w = 184, h = Math.min(273, w * cv.height / cv.width);
+        if (i) pdf.addPage();
+        pdf.addImage(cv.toDataURL('image/png'), 'PNG', 13, 12, w, h, undefined, 'FAST');
+      }
+      pdf.save(cur.title.replace(/[\/:*?"<>|]/g, '_') + '.pdf');
+    } finally { key.remove(); busy.style.display = 'none'; }
   }
 
   // ===== 画面の切り替え・起動 =====
@@ -692,5 +722,5 @@
       start((user.email || '').split('@')[0]);
     });
   }
-  window.KP = { fitCells, view, makeP, keepForm, exportXlsx, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
+  window.KP = { fitCells, view, makeP, keepForm, exportXlsx, exportPdf, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
 })();
