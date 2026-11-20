@@ -395,8 +395,8 @@
     $('oCover').parentElement.style.display = kind === 'book' ? '' : 'none';
     $('oSrc').parentElement.style.display = kind === 'expl' ? 'none' : '';
     setPage(kind);
-    $('printHint').textContent = kind === 'sheet' ? 'A4・倍率100％（「用紙に合わせる」にしない）・余白なしで刷る。ずれると読み取れない。'
-      : kind === 'eco' ? `2段組。おおよそ ${Math.ceil(its.length / 16)} 枚前後。` : kind === 'book' ? `1ページに6問（2段）。${Math.ceil(its.length / 6) + (o.cover ? 1 : 0)} ページ。A4・倍率100％・「ヘッダーとフッター」は外す。` : 'A4・倍率100％。ブラウザの印刷画面で「ヘッダーとフッター」は外す。';
+    $('printHint').textContent = kind === 'sheet' ? '余白なしで刷る。ずれると読み取れない。'
+      : kind === 'eco' ? `2段組。おおよそ ${Math.ceil(its.length / 16)} 枚前後。` : kind === 'book' ? `1ページに6問（2段）。${Math.ceil(its.length / 6) + (o.cover ? 1 : 0)} ページ。` : '';
     if (kind === 'sheet') {
       const parts = its.length > 100 ? ['AM', 'PM'] : ['AM'];
       out.innerHTML = parts.map(p => `<div class="pg-sheet">${OMR_LAYOUT.svg({ part: p, exam: cur.title + (parts.length > 1 ? (p === 'AM' ? '（問1〜100）' : `（問101〜${its.length}）`) : `（${its.length}問）`) })}</div>`).join('');
