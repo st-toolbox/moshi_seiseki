@@ -607,17 +607,39 @@
     box.innerHTML = '<table class="t"><tr><th>作った日</th><th>名前</th><th class="n">問題数</th><th>条件</th><th>作った人</th><th class="n">採点した人数</th><th></th></tr>' + list.map(s => {
       const d = new Date(s.at), c = JSON.parse(s.cond);
       return `<tr><td class="mono" style="white-space:nowrap">${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}</td><td><b>${esc(s.title)}</b></td><td class="n">${s.n}</td><td class="hint">${esc(condText(c))}</td><td class="hint">${esc(s.by || '')}</td><td class="n">${s.rc || 0}</td>
-        <td style="white-space:nowrap"><button class="btn sm pri" data-open="${s.id}">開く</button> <button class="btn sm" data-again="${s.id}">同じ条件で新しく作る</button> <button class="btn sm ng" data-kill="${s.id}">消す</button></td></tr>`;
+        <td style="white-space:nowrap"><button class="btn sm pri" data-open="${s.id}">開く</button> <button class="btn sm" data-xlsx="${s.id}">Excel</button> <button class="btn sm" data-again="${s.id}">同じ条件で新しく作る</button> <button class="btn sm ng" data-kill="${s.id}">消す</button></td></tr>`;
     }).join('') + '</table>';
     box.onclick = async e => {
-      const t = e.target, s = sets[t.dataset.open || t.dataset.again || t.dataset.kill];
+      const t = e.target, s = sets[t.dataset.open || t.dataset.again || t.dataset.kill || t.dataset.xlsx];
       if (!s) return;
       if (t.dataset.open) { await openSet(s); showTab('print'); }
+      if (t.dataset.xlsx) { t.disabled = true; try { await exportXlsx(s); } catch (er) { alert('Excel にできなかった：' + er.message); } t.disabled = false; }
       if (t.dataset.again) { applyCond(JSON.parse(s.cond)); $('title').value = s.title; showTab('make'); makeDraft(); }
       if (t.dataset.kill && confirm(`「${s.title}」を消す？${s.rc ? `\n採点した ${s.rc}人分の結果も消える。` : ''}\n元に戻せない。`)) {
         await Store.delSet(s.id); if (cur && cur.id === s.id) { cur = null; renderCur(); } renderHist();
       }
     };
+  }
+
+  // 作った問題を Excel で保存（並べ替えたあとの形＝紙と同じ。図は入らない）
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise((ok, ng) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload = ok; s.onerror = () => ng(new Error('Excel 用の部品を読めない（ネットワーク）')); document.head.appendChild(s); });
+  }
+  async function exportXlsx(s) {
+    const its = unpackItems(s.items);
+    if (its.some(it => !BY[it.k])) throw new Error('このセットの問題の一部が今のデータに無い');
+    await loadXlsx();
+    const pad = a => [0, 1, 2, 3, 4].map(i => (a && a[i]) ?? '');
+    const rows = its.map((it, i) => { const q = qOf(it), v = view(it); return [i + 1, src(q), q.s, q.r ?? '', stem(q), ...pad(q.st && v.st), ...pad(q.c && v.ch), ansLabel(it), q.im ? '図あり（Excel には入らない）' : '']; });
+    const ws = XLSX.utils.aoa_to_sheet([['問', '出典', '科目', '国試の正答率（％）', '問題文', 'a', 'b', 'c', 'd', 'e', '選択肢1', '選択肢2', '選択肢3', '選択肢4', '選択肢5', '正答', '図'], ...rows]);
+    ws['!cols'] = [5, 14, 16, 10, 60, 24, 24, 24, 24, 24, 20, 20, 20, 20, 20, 8, 12].map(w => ({ wch: w }));
+    const d = new Date(s.at), c = typeof s.cond === 'string' ? JSON.parse(s.cond) : s.cond;
+    const info = XLSX.utils.aoa_to_sheet([['名前', s.title], ['作った日', `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`], ['問題数', its.length], ['条件', condText(c)], ['作った人', s.by || ''],
+      ['メモ', '文と選択肢は並べ替えたあとの形（刷った紙と同じ並び・同じ正答の番号）。図は入らない。国試の正答率＝演習サイトの利用者が初めて解いたときの正答率。']]);
+    info['!cols'] = [{ wch: 10 }, { wch: 90 }];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '問題'); XLSX.utils.book_append_sheet(wb, info, '条件');
+    XLSX.writeFile(wb, s.title.replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
   }
 
   // ===== 画面の切り替え・起動 =====
@@ -670,5 +692,5 @@
       start((user.email || '').split('@')[0]);
     });
   }
-  window.KP = { fitCells, view, makeP, keepForm, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
+  window.KP = { fitCells, view, makeP, keepForm, exportXlsx, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
 })();
