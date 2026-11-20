@@ -234,8 +234,18 @@
     const od = { new: '新しい回から', old: '古い回から', subj: '科目ごと', random: 'ランダム', easy: '易しい順', hard: '難しい順' }[c.order];
     return `${yr}／${sb}${rt}／${od}${c.shuf ? '／選択肢ランダム' : ''}`;
   }
+  // 名前を入れなかったときの名前（回・科目・正答率の幅・問題数）
+  function autoName(c, n) {
+    const ys = c.years.slice().sort((a, b) => a - b), run = ys.length > 1 && ys[ys.length - 1] - ys[0] === ys.length - 1;
+    const yr = ys.length === YEARS.length ? '全回' : ys.length === 1 ? `第${ys[0]}回` : run ? `第${ys[0]}〜${ys[ys.length - 1]}回` : ys.length <= 3 ? `第${ys.join('・')}回` : `${ys.length}回分`;
+    const nSub = document.querySelectorAll('#subjects .chip').length;
+    const sb = c.subj.length >= nSub ? '全科目' : c.subj.length <= 2 ? c.subj.join('・') : `${c.subj[0]}ほか${c.subj.length - 1}科目`;
+    const rt = c.lo <= 0 && c.hi >= 100 ? '' : ` 正答率${c.lo}〜${c.hi}％`;
+    return `${yr} ${sb}${rt} ${n}問`;
+  }
   function renderDraft() {
     $('draftCard').style.display = '';
+    $('title').placeholder = '空なら：' + autoName(draft.cond, draft.items.length);
     const its = draft.items, rs = its.map(qOf).filter(q => q.r != null);
     const avg = rs.length ? Math.round(rs.reduce((a, q) => a + q.r, 0) / rs.length) : '-';
     const bySub = {}; its.forEach(it => { const s = qOf(it).s; bySub[s] = (bySub[s] || 0) + 1; });
@@ -261,7 +271,7 @@
   });
   async function fixDraft() {
     if (!draft || !draft.items.length) return;
-    const title = $('title').value.trim() || `過去問 ${draft.items.length}問`;
+    const title = $('title').value.trim() || autoName(draft.cond, draft.items.length);
     const now = new Date(), id = 's' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 5);
     const s = { id, title, at: now.getTime(), by: me, n: draft.items.length, cond: JSON.stringify(draft.cond), seed: draft.seed, items: packItems(draft.items), rc: 0 };
     $('btnFix').disabled = true;
