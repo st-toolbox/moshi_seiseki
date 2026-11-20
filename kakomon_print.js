@@ -541,7 +541,7 @@
     const stRows = S.st.slice().sort((a, b) => b.s - a.s).map(x => `<tr><td class="mono">${esc(x.id)}</td><td class="n">${x.s} / ${N}</td><td class="n">${pct(x.s, N)}％</td><td><span class="bar${pct(x.s, N) < 60 ? ' lo' : ''}" style="width:${pct(x.s, N) * 1.6}px"></span></td><td><button class="btn sm" data-one="${esc(x.id)}">間違えた問題</button> <button class="btn sm ng" data-rdel="${esc(x.id)}">消す</button></td></tr>`).join('');
     box.innerHTML = `<div class="card"><h2>分析 <span class="sub">${esc(cur.title)}</span>
         <button class="btn sm" id="btnAnalPrint">この分析を印刷</button><button class="btn sm" id="btnCsv">表を保存（CSV）</button></h2>
-      <div class="stat"><div><b>${S.n}</b><span>人</span></div><div><b>${avg.toFixed(1)}<small style="font-size:13px"> / ${N}</small></b><span>平均点</span></div><div><b>${pct(avg, N)}％</b><span>平均の正答率</span></div><div><b>${Math.max(...sc)}</b><span>最高</span></div><div><b>${Math.min(...sc)}</b><span>最低</span></div></div></div>
+      <div class="stat"><div><b>${S.n}</b><span>人</span></div><div><b>${avg.toFixed(1)}<small style="font-size:15px"> / ${N}</small></b><span>平均点</span></div><div><b>${pct(avg, N)}％</b><span>平均の正答率</span></div><div><b>${Math.max(...sc)}</b><span>最高</span></div><div><b>${Math.min(...sc)}</b><span>最低</span></div></div></div>
       <div class="card"><h2>科目ごとの正答率 <span class="sub">右端＝同じ問題の国試の正答率（比べる用）</span></h2><table class="t"><tr><th>科目</th><th class="n">問題数</th><th class="n">正答率</th><th></th><th class="n">国試</th></tr>${subRows}</table></div>
       <div class="card"><h2>問題ごと・選択肢ごと <span class="sub">${S.n > 1 ? '緑＝正答・赤字＝30％以上が選んだ誤答' : '●＝選んだ番号・緑＝正答'}</span>
         <button class="btn sm" data-as="no">番号の順</button><button class="btn sm" data-as="low">正答率の低い順</button></h2>
