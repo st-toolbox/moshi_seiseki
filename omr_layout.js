@@ -160,5 +160,15 @@
       },
     },
   };
+  // 見分け用の略図（取り込み画面の「使う用紙」に出す・印刷はしない＝業者の用紙をそのまま使う）。■・上の黒帯・丸の並びだけを描く
+  N.svg = (part = 'AM') => {
+    const S = N.sheet[part] || N.sheet.AM, C = N.corner, o = [];
+    const rect = (cx, cy, w, h) => o.push(`<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" fill="#171A18"/>`);
+    for (const k of ['TL', 'TR', 'BR', 'BL']) rect(C[k][0], C[k][1], C.size, C.size);
+    for (const x of N.bars.common.concat(N.bars[part] || [])) rect(x, N.bar.y, N.bar.w, N.bar.h);
+    const el = m => o.push(`<ellipse cx="${m.x}" cy="${m.y}" rx="${S.rx}" ry="${S.ry}" fill="#fff" stroke="#6B716C" stroke-width="0.3"/>`);
+    S.id.forEach(el); S.ans.forEach(el);
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297">${o.join('')}</svg>`;
+  };
   g.OMR_LAYOUT_NEXUS = N;
 })(typeof window !== 'undefined' ? window : globalThis);

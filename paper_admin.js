@@ -104,6 +104,16 @@
 .ps .ps-prev{display:flex;gap:14px;flex-wrap:wrap;}
 .ps .ps-prev>div{flex:1 1 280px;max-width:420px;border:1px solid var(--g2);box-shadow:0 1px 6px rgba(23,26,24,.08);}
 .ps .ps-prev svg{display:block;width:100%;height:auto;}
+.ps .ps-use{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--g2);}
+.ps .ps-use[hidden]{display:none;}
+.ps .ps-use-tx{flex:1 1 260px;font-size:12.5px;line-height:1.75;color:var(--g5);}
+.ps .ps-use-tx b.t{display:block;font-size:13.5px;color:var(--ink,#171A18);margin-bottom:2px;}
+.ps .ps-use-tx a{color:var(--ps-am);cursor:pointer;text-decoration:underline;}
+.ps .ps-use-im{display:flex;gap:10px;flex-wrap:wrap;}
+.ps .ps-use-im figure{margin:0;width:118px;text-align:center;font-size:11px;line-height:1.6;color:var(--g4);cursor:zoom-in;}
+.ps .ps-use-im figure>div{border:1px solid var(--g2);background:#fff;box-shadow:0 1px 4px rgba(23,26,24,.08);margin-bottom:3px;}
+.ps .ps-use-im svg{display:block;width:100%;height:auto;}
+.ps .ps-use.big .ps-use-im figure{width:320px;max-width:100%;cursor:zoom-out;}
 .ps-modal-bg{position:fixed;inset:0;background:rgba(23,26,24,.35);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px;}
 .ps-modal-bg[hidden]{display:none;}
 .ps-modal{background:#fff;border-radius:10px;padding:24px 20px 16px;width:100%;max-width:360px;font-family:'IBM Plex Sans JP',sans-serif;}
@@ -166,6 +176,7 @@
           <button class="ps-btn ps-cam" data-pick="psCam">${CAM}撮る</button>
           <button class="ps-btn ps-sub" data-pick="psFile">画像・PDF</button>
         </div>
+        <div class="ps-use" id="psUse" hidden></div>
       </div>
       <div id="psPend"></div>
       <div id="psList">${EMPTY}</div>
@@ -191,6 +202,10 @@
 
     // 取り込みページ
     $('psExam').addEventListener('change', examChanged);
+    $('psUse').addEventListener('click', e => {
+      if (e.target.closest('[data-go]')) return showPage('paper_print');
+      if (e.target.closest('figure')) $('psUse').classList.toggle('big');
+    });
     document.querySelectorAll('#page-paper_scan [data-pick]').forEach(b => b.addEventListener('click', () => pick(b.dataset.pick)));
     $('psCam').addEventListener('change', e => takeFiles(e.target));
     $('psFile').addEventListener('change', e => takeFiles(e.target));
@@ -290,8 +305,22 @@
     unloading();
     await examChanged();
   }
+  // この模試で使う用紙の見本（模試の名前にネクサスがあれば業者の用紙・それ以外は学校の用紙）
+  function renderUse() {
+    const ex = currentExamName(), box = $('psUse');
+    if (!ex) { box.hidden = true; box.innerHTML = ''; return; }
+    const NX = window.OMR_LAYOUT_NEXUS, nx = /ネクサス/.test(ex) && NX && NX.svg;
+    const fig = (svg, cap) => `<figure title="押すと大きくなる"><div>${svg}</div><figcaption>${cap}</figcaption></figure>`;
+    box.innerHTML = nx
+      ? `<div class="ps-use-tx"><b class="t">この模試で使う用紙：ネクサスの用紙</b>業者から届いた用紙をそのまま使う（こちらでは刷らない）。午前は横組み（20問ずつ5段）、午後は縦組み（25問ずつ4列）。番号の欄はネクサスの番号なので、取り込むときに学生を選ぶ。<br>学校の用紙（<a data-go="1">マークシート印刷</a>で刷った用紙）で受けた分も読める。</div>
+         <div class="ps-use-im">${fig(NX.svg('AM'), '午前（問1〜100）')}${fig(NX.svg('PM'), '午後（問101〜200）')}</div>`
+      : `<div class="ps-use-tx"><b class="t">この模試で使う用紙：学校の用紙</b><a data-go="1">マークシート印刷</a>で刷った用紙（四隅に■・左右に目印・右上に午前／午後）。学籍番号の欄から学生を自動で選び、午前・午後も用紙から判定する。<br>ほかの形の用紙は読めない（読めるのはこの用紙とネクサスの用紙だけ）。</div>
+         <div class="ps-use-im">${fig(OMR_LAYOUT.svg({ part: 'AM', exam: ex }), '午前（問1〜100）')}${fig(OMR_LAYOUT.svg({ part: 'PM', exam: ex }), '午後（問101〜200）')}</div>`;
+    box.hidden = false;
+  }
   async function examChanged() {
     const ex = currentExamName();
+    renderUse();
     resp = {};
     if (ex) {
       try { resp = (await db.ref('responses/' + ex).once('value')).val() || {}; }
