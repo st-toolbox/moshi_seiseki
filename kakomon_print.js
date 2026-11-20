@@ -623,37 +623,90 @@
   }
 
   // 作った問題を Excel で保存（並べ替えたあとの形＝紙と同じ。図は入らない）
-  function loadXlsx() {
-    if (window.XLSX) return Promise.resolve();
-    return new Promise((ok, ng) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload = ok; s.onerror = () => ng(new Error('Excel 用の部品を読めない（ネットワーク）')); document.head.appendChild(s); });
-  }
+  // 作った問題を Excel で保存。1枚目「問題」はそのまま印刷して配れる形（A4縦・問題の途中でページが切れない・図入り）
+  const XL = { A: 5, B: 66, C: 12.5, PER: 33, LINE: 14.5, CAP: 730, FONT: 'ＭＳ 明朝', GOTH: 'ＭＳ ゴシック' };
+  const xlLines = (s, per) => String(s).split('\n').reduce((n, ln) => { let w = 0; for (const ch of ln) w += ch.charCodeAt(0) < 0x2000 ? 0.55 : 1; return n + Math.max(1, Math.ceil(w / per)); }, 0);
+  const xlPng = url => new Promise(res => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0); res({ url: c.toDataURL('image/png'), w: c.width, h: c.height }); }; im.onerror = () => res(null); im.src = url; });
   async function exportXlsx(s) {
-    const its = unpackItems(s.items);
+    const its = s === cur ? cur.items : unpackItems(s.items);
     if (its.some(it => !BY[it.k])) throw new Error('このセットの問題の一部が今のデータに無い');
-    await loadXlsx();
-    const pad = a => [0, 1, 2, 3, 4].map(i => (a && a[i]) ?? '');
-    const rows = its.map((it, i) => { const q = qOf(it), v = view(it); return [i + 1, src(q), q.s, q.r ?? '', stem(q), ...pad(q.st && v.st), ...pad(q.c && v.ch), ansLabel(it), q.im ? '図あり（Excel には入らない）' : '']; });
-    const ws = XLSX.utils.aoa_to_sheet([['問', '出典', '科目', '国試の正答率（％）', '問題文', 'a', 'b', 'c', 'd', 'e', '選択肢1', '選択肢2', '選択肢3', '選択肢4', '選択肢5', '正答', '図'], ...rows]);
-    ws['!cols'] = [5, 14, 16, 10, 60, 24, 24, 24, 24, 24, 20, 20, 20, 20, 20, 8, 12].map(w => ({ wch: w }));
-    const d = new Date(s.at), c = typeof s.cond === 'string' ? JSON.parse(s.cond) : s.cond;
-    const info = XLSX.utils.aoa_to_sheet([['名前', s.title], ['作った日', `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`], ['問題数', its.length], ['条件', condText(c)], ['作った人', s.by || ''],
-      ['メモ', '文と選択肢は並べ替えたあとの形（刷った紙と同じ並び・同じ正答の番号）。図は入らない。国試の正答率＝演習サイトの利用者が初めて解いたときの正答率。']]);
-    info['!cols'] = [{ wch: 10 }, { wch: 90 }];
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '問題'); XLSX.utils.book_append_sheet(wb, info, '条件');
-    XLSX.writeFile(wb, s.title.replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+    await loadLib('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js', () => window.ExcelJS);
+    await Promise.all(its.filter(it => qOf(it).im).map(it => Store.loadImg(it.k)));
+    const d = new Date(s.at), day = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`, c = typeof s.cond === 'string' ? JSON.parse(s.cond) : s.cond;
+    const wb = new ExcelJS.Workbook(), hf = s.title.replace(/&/g, '&&');
+    const page = { paperSize: 9, orientation: 'portrait', horizontalCentered: true, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.6, right: 0.6, top: 0.7, bottom: 0.6, header: 0.3, footer: 0.3 } };
+    // ---- 問題（印刷用） ----
+    const ws = wb.addWorksheet('問題', { pageSetup: { ...page }, headerFooter: { oddHeader: `&L&9${hf}&R&9&P / &N` } });
+    ws.columns = [{ width: XL.A }, { width: XL.B }, { width: XL.C }];
+    const F = (o = {}) => ({ name: XL.FONT, size: 11, ...o }), AL = (o = {}) => ({ vertical: 'top', wrapText: true, ...o });
+    let r = 0, used = 0;
+    const put = (h, a, b, cc, opt = {}) => {
+      const row = ws.getRow(++r); row.height = h;
+      if (a != null) { const x = row.getCell(1); x.value = a; x.font = { name: XL.GOTH, size: 11, bold: true }; x.alignment = { vertical: 'top' }; }
+      if (b != null) { const x = row.getCell(2); x.value = b; x.font = F(opt.font); x.alignment = AL(opt.al); }
+      if (cc != null) { const x = row.getCell(3); x.value = cc; x.font = F({ size: 8, color: { argb: 'FF555555' } }); x.alignment = AL({ horizontal: 'right' }); }
+      return row;
+    };
+    ws.mergeCells(1, 1, 1, 3); put(24); ws.getCell(1, 1).value = s.title; ws.getCell(1, 1).font = { name: XL.GOTH, size: 14, bold: true }; ws.getCell(1, 1).alignment = { vertical: 'middle' };
+    ws.mergeCells(2, 1, 2, 3); put(24); ws.getCell(2, 1).value = `${its.length}問　${day}　　　学籍番号（　　　　　　　　）　氏名（　　　　　　　　　　　　）`; ws.getCell(2, 1).font = F({ size: 10 }); ws.getCell(2, 1).alignment = { vertical: 'middle', horizontal: 'right' };
+    [1, 2, 3].forEach(i => ws.getCell(2, i).border = { bottom: { style: 'medium' } });
+    used = 48;
+    for (let i = 0; i < its.length; i++) {
+      const it = its[i], q = qOf(it), v = view(it), parts = [];   // parts＝[高さ, A, B, C, opt, 図]
+      const t = stem(q); parts.push([xlLines(t, XL.PER) * XL.LINE + 3, `問${i + 1}`, t, src(q)]);
+      const img = q.im && cache.img[q.k] ? await xlPng(cache.img[q.k]) : null;
+      if (img) { const k = Math.min(1, 330 / img.w, 200 / img.h); img.pw = Math.round(img.w * k); img.ph = Math.round(img.h * k); parts.push([Math.round(img.ph * 0.75 * 1.08) + 12, null, null, null, {}, img]); }
+      const ind = { al: { indent: 1 } };
+      if (q.st) v.st.forEach((x, k) => { const tx = `${LET[k]}. ${x}`; parts.push([xlLines(tx, XL.PER - 2) * XL.LINE + 2, null, tx, null, ind]); });
+      if (q.c) {
+        if (q.st) { const tx = v.ch.map((x, k) => `${k + 1}. ${x}`).join('　　'); parts.push([xlLines(tx, XL.PER - 2) * XL.LINE + 5, null, tx, null, { al: { indent: 1, vertical: 'bottom' } }]); }
+        else v.ch.forEach((x, k) => { const tx = `${k + 1}. ${x}`; parts.push([xlLines(tx, XL.PER - 2) * XL.LINE + 2, null, tx, null, ind]); });
+      }
+      const H = parts.reduce((n, p) => n + p[0], 0) + 16;
+      if (used + H > XL.CAP && r > 2) { ws.getRow(r).addPageBreak(); used = 0; }
+      put(8);
+      for (const p of parts) { put(p[0], p[1], p[2], p[3], p[4] || {}); if (p[5]) ws.addImage(wb.addImage({ base64: p[5].url, extension: 'png' }), { tl: { col: 1.15, row: r - 1 + 3 / p[0] }, ext: { width: p[5].pw, height: p[5].ph } }); }
+      put(8); [1, 2, 3].forEach(k => ws.getCell(r, k).border = { bottom: { style: 'hair' } });
+      used += H;
+    }
+    ws.pageSetup.printArea = `A1:C${r}`;
+    // ---- 正答（印刷用） ----
+    const wk = wb.addWorksheet('正答', { pageSetup: { ...page }, headerFooter: { oddHeader: `&L&9${hf}　正答&R&9&P / &N` } });
+    wk.columns = Array.from({ length: 10 }, (_, k) => ({ width: k % 2 ? 9.5 : 7.5 }));
+    wk.mergeCells(1, 1, 1, 10); wk.getCell(1, 1).value = `${s.title}　正答の一覧（${its.length}問）　${day}`; wk.getCell(1, 1).font = { name: XL.GOTH, size: 12, bold: true }; wk.getRow(1).height = 26;
+    const thin = { style: 'thin' };
+    its.forEach((it, i) => {
+      const row = wk.getRow(2 + Math.floor(i / 5)), k = (i % 5) * 2 + 1; row.height = 21;
+      const n = row.getCell(k), an = row.getCell(k + 1);
+      n.value = i + 1; n.font = { name: XL.GOTH, size: 10, color: { argb: 'FF444444' } }; n.alignment = { vertical: 'middle', horizontal: 'center' }; n.border = { top: thin, bottom: thin, left: thin };
+      an.value = ansLabel(it); an.font = { name: XL.GOTH, size: 12, bold: true }; an.alignment = { vertical: 'middle', horizontal: 'center' }; an.border = { top: thin, bottom: thin, right: thin };
+    });
+    // ---- データ（並べ替えや加工に使う表） ----
+    const pad = x => [0, 1, 2, 3, 4].map(i => (x && x[i]) ?? '');
+    const wd = wb.addWorksheet('データ', { views: [{ state: 'frozen', ySplit: 1 }] });
+    wd.columns = [5, 14, 16, 10, 60, 24, 24, 24, 24, 24, 20, 20, 20, 20, 20, 8, 8].map(w => ({ width: w }));
+    wd.addRow(['問', '出典', '科目', '国試の正答率（％）', '問題文', 'a', 'b', 'c', 'd', 'e', '選択肢1', '選択肢2', '選択肢3', '選択肢4', '選択肢5', '正答', '図']).font = { bold: true };
+    its.forEach((it, i) => { const q = qOf(it), v = view(it); wd.addRow([i + 1, src(q), q.s, q.r ?? '', stem(q), ...pad(q.st && v.st), ...pad(q.c && v.ch), ansLabel(it), q.im ? 'あり' : '']); });
+    // ---- 条件 ----
+    const wi = wb.addWorksheet('条件'); wi.columns = [{ width: 10 }, { width: 90 }];
+    [['名前', s.title], ['作った日', day], ['問題数', its.length], ['条件', condText(c)], ['作った人', s.by || ''],
+      ['メモ', '「問題」のシートはそのまま印刷して配れる形（A4縦）。文と選択肢は並べ替えたあとの形（刷った紙と同じ並び・同じ正答の番号）。文を書き換えて行が増えたら、その行の高さを広げる。国試の正答率＝演習サイトの利用者が初めて解いたときの正答率。']].forEach(x => wi.addRow(x));
+    wi.getColumn(2).alignment = { wrapText: true, vertical: 'top' };
+    const blob = new Blob([await wb.xlsx.writeBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const al = document.createElement('a'); al.href = URL.createObjectURL(blob); al.download = s.title.replace(/[\\/:*?"<>|]/g, '_') + '.xlsx'; document.body.appendChild(al); al.click(); al.remove(); setTimeout(() => URL.revokeObjectURL(al.href), 5000);
   }
 
   // 作った問題を PDF で保存（冊子風の紙面をそのまま画像にして並べる＝図も入る。最後のページに正答の一覧）
   function loadLib(url, ok) {
     if (ok()) return Promise.resolve();
-    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = () => rej(new Error('PDF 用の部品を読めない（ネットワーク）')); document.head.appendChild(s); });
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = () => rej(new Error('部品を読めない（ネットワーク）')); document.head.appendChild(s); });
   }
   async function exportPdf(s) {
     const busy = $('pdfBusy'), say = m => { busy.textContent = m; busy.style.display = ''; };
     say('PDF を用意している…');
     await loadLib('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js', () => window.html2canvas);
     await loadLib('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', () => window.jspdf);
-    await openSet(s); if (!cur) { busy.style.display = 'none'; return; }
+    if (s !== cur) await openSet(s); if (!cur) { busy.style.display = 'none'; return; }
     kind = 'book'; showTab('print'); await renderOut(); await fitCells($('out'));
     const out = $('out'), its = cur.items;
     const key = document.createElement('div'); key.className = 'pgb'; key.style.height = 'auto';
@@ -696,6 +749,8 @@
   $('kinds').addEventListener('click', e => { const b = e.target.closest('.kind'); if (b) { kind = b.dataset.kind; renderOut(); } });
   ['oSrc', 'oSubj', 'oCover', 'oFs'].forEach(id => $(id).addEventListener('change', renderOut));
   $('btnPrint').onclick = async () => { if (kind === 'book') await fitCells($('out')); doPrint($('out'), Math.max(1, Math.min(100, +$('oCopies').value || 1))); };
+    $('btnPdf').onclick = async e => { if (!cur) return; e.target.disabled = true; try { await exportPdf(cur); } catch (er) { $('pdfBusy').style.display = 'none'; alert('PDF にできなかった：' + er.message); } e.target.disabled = false; };
+    $('btnXlsx').onclick = async e => { if (!cur) return; e.target.disabled = true; try { await exportXlsx(cur); } catch (er) { alert('Excel にできなかった：' + er.message); } e.target.disabled = false; };
   $('files').addEventListener('change', e => { addFiles([...e.target.files]); e.target.value = ''; });
   const drop = $('drop');
   drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });

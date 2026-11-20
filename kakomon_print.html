@@ -295,6 +295,8 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
           <div class="row">
             <label>部数 <input type="number" class="num" id="oCopies" min="1" max="100" value="1"> 部</label>
             <button class="btn pri" id="btnPrint">印刷する</button>
+            <button class="btn" id="btnPdf" title="冊子風の紙面（図入り）＋最後に正答の一覧">PDFで保存</button>
+            <button class="btn" id="btnXlsx" title="Excel からそのまま印刷できる形＋正答のシート">Excelで保存</button>
             <span class="hint" id="printHint"></span>
           </div>
           <div class="warn"><b>印刷は倍率100％で。</b>ブラウザの印刷画面で「倍率」を100（「用紙に合わせる」にしない）、用紙はA4、「ヘッダーとフッター」は外す。倍率が違うと、ページが崩れたりマークシートが読み取れなくなる。</div>
