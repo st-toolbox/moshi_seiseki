@@ -281,15 +281,15 @@ dialog::backdrop{background:rgba(0,0,0,.5);}
         <div class="card">
           <h2>何を刷るか</h2>
           <div class="kinds" id="kinds">
-            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>表紙つき・2段・1ページ6問</span></button>
+            <button class="kind on" data-kind="book"><b>問題（冊子風）</b><span>2段・1ページ6問</span></button>
             <button class="kind" data-kind="eco"><b>問題（節約）</b><span>2段・小さい字・余白少なめ</span></button>
             <button class="kind" data-kind="key"><b>正答の一覧</b><span>正答・出典・科目・正答率</span></button>
             <button class="kind" data-kind="sheet"><b>マークシート</b><span>あとで読み取れる用紙</span></button>
           </div>
           <div class="row" id="printOpts">
-            <label><input type="checkbox" id="oSrc"> 問題に出典（第◯回 問◯）を付ける</label>
+            <label><input type="checkbox" id="oSrc" checked> 問題に出典（第◯回 問◯）を付ける</label>
             <label><input type="checkbox" id="oSubj"> 科目名を付ける</label>
-            <label><input type="checkbox" id="oCover" checked> 表紙を付ける</label>
+            <label><input type="checkbox" id="oCover"> 表紙を付ける</label>
             <label>字の大きさ <select class="sel" id="oFs"><option value="s">小</option><option value="m" selected>標準</option><option value="l">大</option></select></label>
           </div>
           <div class="row">
