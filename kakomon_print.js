@@ -395,10 +395,7 @@
     }
     if (kind === 'key') {
       const grid = its.map((it, i) => `<div><span>${i + 1}</span><b>${ansLabel(it)}</b></div>`).join('');
-      const rows = its.map((it, i) => { const q = qOf(it); return `<tr><td class="c">${i + 1}</td><td class="a">${ansLabel(it)}${q.a.length > 1 ? '<br><small style="font-size:7pt;font-weight:400">どちらも正解</small>' : ''}</td><td class="c">${src(q)}</td><td>${esc(q.s)}</td><td class="c">${q.r ?? '-'}％</td><td class="c">${it.p ? it.p.split('').join(' ') : 'そのまま'}</td></tr>`; }).join('');
-      out.innerHTML = header(`正答の一覧（${its.length}問）`) + `<div class="keygrid">${grid}</div>
-        <table class="key"><tr><th>問</th><th>正答</th><th>出典</th><th>科目</th><th>国試の正答率</th><th>選択肢の並び（元の番号）</th></tr>${rows}</table>
-        <p style="font-size:8pt;margin-top:3mm;font-family:sans-serif">国試の正答率＝過去問の演習サイトの利用者が初めて解いたときの正答率（回答30件以上）。</p>`;
+      out.innerHTML = header(`正答の一覧（${its.length}問）`) + `<div class="keygrid">${grid}</div>`;
       return;
     }
     out.innerHTML = '<p style="padding:10mm;font-family:sans-serif">用意している…</p>';
