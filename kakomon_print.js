@@ -78,12 +78,25 @@
   const special = q => q.a === '0' || q.a.length > 1;
   const canShuffle = q => !q.st && !q.im && !q.raw && q.c && q.c.length === 5;
   // 画面上の番号での正答。null＝採点除外（全員正解）
+  // a〜e の文＋「a,b」の組合せの問題：文を並べ替え、組合せの字を付け替えて、選択肢を字の順に並べ直す
+  const canShufSt = q => q.st && q.st.length === 5 && !q.im && !q.raw && q.c && q.c.length === 5 && q.c.every(c => /^[a-e](,[a-e])*$/.test(c));
+  const makeP = (q, rnd) => canShufSt(q) ? 's' + shuffle([1, 2, 3, 4, 5], rnd).join('') : canShuffle(q) ? shuffle([1, 2, 3, 4, 5], rnd).join('') : '';
+  // 紙面に出す形 {st: 文, ch: 選択肢, org: 出した順→元の選択肢の番号}
+  function view(it) {
+    const q = qOf(it), id = [1, 2, 3, 4, 5];
+    if (!it.p) return { st: q.st, ch: q.c, org: (q.c || id).map((_, i) => i + 1) };
+    if (it.p[0] !== 's') { const o = it.p.split('').map(Number); return { st: q.st, ch: o.map(i => q.c[i - 1]), org: o }; }
+    const sp = it.p.slice(1).split('').map(Number), pos = {};   // sp[j]＝j番目に出す元の文
+    sp.forEach((o, j) => pos['abcde'[o - 1]] = 'abcde'[j]);
+    const cs = q.c.map((c, i) => ({ t: c.split(',').map(x => pos[x]).sort().join(','), o: i + 1 })).sort((x, y) => x.t < y.t ? -1 : x.t > y.t ? 1 : 0);
+    return { st: sp.map(o => q.st[o - 1]), ch: cs.map(x => x.t), org: cs.map(x => x.o) };
+  }
   function correctOf(it) {
     const q = qOf(it);
     if (q.a === '0') return null;
     const org = q.a.split('').map(Number);
     if (!it.p) return org;
-    return it.p.split('').map((o, i) => org.includes(+o) ? i + 1 : 0).filter(Boolean);
+    return view(it).org.map((o, i) => org.includes(o) ? i + 1 : 0).filter(Boolean);
   }
   const ansLabel = it => { const c = correctOf(it); return c === null ? '全員正解' : c.join('・'); };
   const packItems = items => items.map(it => it.k + (it.p ? ':' + it.p : '')).join('|');
@@ -154,7 +167,7 @@
       for (const g of groups) picked.push(...byPri(map[g.k], c.pri, rnd).slice(0, qt[g.k] || 0));
     }
     const ordered = sortItems(picked, c.order, rnd);
-    return ordered.map(q => ({ k: q.k, p: c.shuf && canShuffle(q) ? shuffle([1, 2, 3, 4, 5], rnd).join('') : '' }));
+    return ordered.map(q => ({ k: q.k, p: c.shuf ? makeP(q, rnd) : '' }));
   }
 
   function renderCondCounts() {
@@ -265,7 +278,7 @@
       const same = P.filter(q => q.s === old.s), cand = same.length ? same : P;
       if (!cand.length) { alert('替えられる問題が残っていない（条件に合う問題を全部使っている）'); return; }
       const q = cand[Math.floor(rnd() * cand.length)];
-      draft.items[i] = { k: q.k, p: draft.cond.shuf && canShuffle(q) ? shuffle([1, 2, 3, 4, 5], rnd).join('') : '' };
+      draft.items[i] = { k: q.k, p: draft.cond.shuf ? makeP(q, rnd) : '' };
       renderDraft();
     }
   });
@@ -306,11 +319,9 @@
     const tag = [o.src ? src(q) : '', o.subj ? q.s : ''].filter(Boolean).join('・');
     let h = `<div class="qbody"><div class="qh"><span class="qno">問${i + 1}</span><span class="qt">${esc(stem(q))}</span>${tag ? `<span class="src">（${esc(tag)}）</span>` : ''}</div>`;
     if (img) h += `<img class="qimg" src="${img}" alt="">`;
-    if (q.st) h += `<ol class="st">${q.st.map((s, j) => `<li><i>${LET[j]}.</i><span>${esc(s)}</span></li>`).join('')}</ol>`;
-    if (q.c) {
-      const order = it.p ? it.p.split('').map(Number) : [1, 2, 3, 4, 5];
-      h += `<ol class="ch${q.st ? ' inline' : ''}">${order.map((oi, j) => `<li><i>${j + 1}.</i><span>${esc(q.c[oi - 1])}</span></li>`).join('')}</ol>`;
-    }
+    const v = view(it);
+    if (q.st) h += `<ol class="st">${v.st.map((s, j) => `<li><i>${LET[j]}.</i><span>${esc(s)}</span></li>`).join('')}</ol>`;
+    if (q.c) h += `<ol class="ch${q.st ? ' inline' : ''}">${v.ch.map((c, j) => `<li><i>${j + 1}.</i><span>${esc(c)}</span></li>`).join('')}</ol>`;
     return h + '</div>';
   }
   function inline(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
@@ -337,7 +348,7 @@
   // 選択肢を並べ替えた問題の解説：選択肢ごとの段落を今の順に並べ直し、正答の行を今の番号に直す
   function explHtml(it, ex) {
     if (!ex) return '<div class="ex"><p>（解説なし）</p></div>';
-    if (!it.p) return `<div class="ex">${md(ex)}</div>`;
+    if (!it.p || it.p[0] === 's') return `<div class="ex">${md(ex)}</div>`;
     const p = it.p.split('').map(Number);
     let body = ex, reordered = false;
     const HEAD = '【各選択肢の解説】', i = ex.indexOf(HEAD);
@@ -653,5 +664,5 @@
       start((user.email || '').split('@')[0]);
     });
   }
-  window.KP = { fitCells, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
+  window.KP = { fitCells, view, build, quotas, rng, correctOf, explHtml, md, get cur() { return cur; }, get all() { return ALL; }, score, sheetsRef: () => sheets, addFiles };
 })();
