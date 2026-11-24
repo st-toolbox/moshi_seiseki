@@ -962,6 +962,23 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .v2-tbl th.ex-h span{display:block;font-weight:400;color:var(--g3);letter-spacing:0;margin-top:2px;}
 .v2-tbl td.hi{color:var(--ok);font-weight:600;}
 .v2-tbl td.lo{color:var(--ng);}
+/* 点の段（6段）：合格ライン120点との差で。午前・午後は半分の点で同じ段 */
+.v2-tbl td.b5{background:rgba(47,107,79,.24);color:var(--ok);font-weight:800;}
+.v2-tbl td.b4{background:rgba(47,107,79,.11);color:var(--ok);font-weight:700;}
+.v2-tbl td.b3{color:var(--ok);font-weight:400;}
+.v2-tbl td.b2{color:var(--warn);font-weight:400;}
+.v2-tbl td.b1{background:rgba(180,83,9,.11);color:var(--warn);font-weight:700;}
+.v2-tbl td.b0{background:rgba(196,67,43,.14);color:var(--ng);font-weight:800;}
+.v2-tbl td.b3 b,.v2-tbl td.b2 b{font-weight:inherit;}
+.v2-tbl td.b0,.v2-tbl td.b1,.v2-tbl td.b4,.v2-tbl td.b5{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.band-lg{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 0;font-size:11px;}
+.band-lg span{padding:1px 7px;border-radius:3px;font-family:'DM Mono',monospace;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.band-lg .b5{background:rgba(47,107,79,.24);color:var(--ok);font-weight:800;}
+.band-lg .b4{background:rgba(47,107,79,.11);color:var(--ok);font-weight:700;}
+.band-lg .b3{color:var(--ok);border:1px solid var(--g2);}
+.band-lg .b2{color:var(--warn);border:1px solid var(--g2);}
+.band-lg .b1{background:rgba(180,83,9,.11);color:var(--warn);font-weight:700;}
+.band-lg .b0{background:rgba(196,67,43,.14);color:var(--ng);font-weight:800;}
 .v2-tbl td.gap{color:var(--ng);}
 .v2-tbl tr.avg-row td{background:var(--g1);font-weight:600;border-bottom:1px solid var(--g3);}
 .v2-tbl td.sec-cell{font-size:12px;}
@@ -3342,6 +3359,18 @@ async function deletePendingTeacher(key) {
 // ===== 見る：この模試（クラス）／学生一覧／学生カルテ =====
 // クラスの数字は教員が開いたときに exams/<模試>/stats へ集計を置く（名前は入れない）。学生はそれを読んで自分の位置を見る
 const PASS_LINE = 120;
+// 点の段：合格ライン（120点）との差で6段。模試と国試の点は±10点くらい動くので、10点きざみ。
+// 130以上＝余裕あり／120〜129＝到達／110〜119＝あと10点以内／100〜109＝あと20点以内／90〜99＝あと30点以内／89以下＝30点以上足りない
+// 午前・午後（100点満点）は半分の点で同じ段（65・60・55・50・45）
+const BAND_CUT = [130, 120, 110, 100, 90];
+function bandCls(v, pass) {
+  if (v == null) return '';
+  const k = pass / PASS_LINE, i = BAND_CUT.findIndex(c => v >= c * k);
+  return ' b' + (i < 0 ? 0 : 5 - i);
+}
+function bandLegend() {
+  return '<div class="band-lg"><span class="b5">130〜 余裕あり</span><span class="b4">120〜129 到達</span><span class="b3">110〜119 あと10点</span><span class="b2">100〜109 あと20点</span><span class="b1">90〜99 あと30点</span><span class="b0">〜89 30点以上足りない</span></div>';
+}
 let karteScope   = 'exam';   // 節の範囲 'exam' | 'all'
 let karteKqN     = 0;        // 節ごとに出す国試の類題（復習リストをカルテから外したので読まない）
 let karteShowAll = false;    // 優先節 上位10 ／ すべて
@@ -3836,7 +3865,7 @@ function examStudentsHtml(ex) {
   // クラス平均（両方の時限を出した学生で）。平均より下＝赤、120点以上（午前・午後は60点以上）＝緑
   const fr = rows.filter(r => r.t && r.t.full), mean = f => fr.length ? Math.round(fr.reduce((a, r) => a + f(r.t), 0) / fr.length * 10) / 10 : null;
   const av = { total: mean(t => t.total), am: mean(t => t.am || 0), pm: mean(t => t.pm || 0) };
-  const sc = (v, a, pass) => v == null ? '' : v >= pass ? ' hi' : a != null && v < a ? ' lo' : '';
+  const sc = (v, a, pass) => bandCls(v, pass);  // 段の色（クラス平均は表の上の行で見る）
   return `<section class="v2-block"><div class="v2-h"><h2>学生ごとの点</h2><span class="v2-note">受験 ${took} / ${list.length}人</span></div><div class="tbl-wrap"><table class="v2-tbl"><thead><tr>
       ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', '苦手分野')}<th>推移（直近5回）</th>
     </tr></thead><tbody><tr class="avg-row"><td></td><td>クラス平均</td><td class="r mn">${av.total ?? '—'}</td><td class="r mn">${av.am ?? '—'}</td><td class="r mn">${av.pm ?? '—'}</td><td></td><td class="r mn">${av.total == null ? '—' : Math.max(0, Math.round((PASS_LINE - av.total) * 10) / 10)}</td><td></td><td></td></tr>${rows.map(r => {
@@ -3849,7 +3878,7 @@ function examStudentsHtml(ex) {
         <td class="r mn${t && t.total < PASS_LINE ? ' gap' : ''}">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
         <td>${r.weak.length ? r.weak.map(w => esc(w.c)).join('、') : '—'}</td>
         <td class="nw">${histChips(r.hist)}</td></tr>`;
-    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。赤＝クラス平均より下、緑＝120点以上（午前・午後は60点以上）。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。</div></section>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。色＝合格ライン120点との差（下の6段・午前・午後は半分の点で同じ段）。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。${bandLegend()}</div></section>`;
 }
 function openKarte(uid) {
   const sel = document.getElementById('sidebarStudentSel');
@@ -4322,8 +4351,8 @@ function renderRosterTrend(box) {
     if (k === 'gain') return r.gain;
     const t = r.ts[Number(k.slice(1))]; return t ? t.total : null;  // 'e0'…
   });
-  // 色は「この模試」の表と同じ：緑＝120点以上・赤＝その回のクラス平均より下
-  const sc = (v, i) => v >= PASS_LINE ? ' hi' : avg[i] != null && v < avg[i] ? ' lo' : '';
+  // 色は「この模試」の表と同じ：合格ライン120点との差で6段（bandCls）
+  const sc = (v, i) => bandCls(v, PASS_LINE);
   const cell = (t, i) => !t ? '<td class="r mn muted hs-s">—</td>' : `<td class="r mn hs-s${t.full ? sc(t.total, i) : ''}">${t.total}${t.full ? '' : '<span class="muted">*</span>'}</td>`;
   let h = `<section class="v2-block"><div class="trend-scroll">${trendAllSvg(exs, rows.map(r => r.ts.map(t => t && t.full ? t.total : null)), avg, rows.map(r => ({ uid: r.s.uid, label: r.s.name || stuNo(r.s) })), navg)}</div>` +
     '<div class="legend"><span><i class="cls"></i>クラス平均</span>' + (navg ? '<span class="nat-t"><i class="nat"></i>全国平均</span>' : '') + '<span><i class="stu"></i>学生1人ずつ</span><span><i class="hl"></i>強調した学生</span><span><i class="pl"></i>120点</span><button class="linkbtn" id="hlClear" hidden onclick="trendHl.clear();applyTrendHl(document.getElementById(\'roBody\'))"></button></div>' +
@@ -4335,7 +4364,7 @@ function renderRosterTrend(box) {
     (navg ? `<tr class="avg-row nat-row hs-avg"><td></td><td>全国平均</td>${navg.map(v => `<td class="r mn hs-s">${v ?? '—'}</td>`).join('')}${pad}<td class="hs-all"></td><td></td><td></td></tr>` : '') +
     rows.map(r => `<tr class="click" data-uid="${esc(r.s.uid)}"><td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>${r.ts.map(cell).join('')}${pad}<td class="r mn hs-all${r.last == null ? '' : sc(r.last, r.li)}">${r.last ?? '—'}</td>` +
       `<td class="r mn ${r.gain > 0 ? 'up' : r.gain < 0 ? 'dn' : ''}">${r.gain == null ? '—' : signed(r.gain)}</td><td class="r"><button class="ka-go" data-go="${esc(r.s.uid)}">カルテ</button></td></tr>`).join('') +
-    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（押すたびに切り替え・同じ行でもう一度押すと解除）。右端の「カルテ」でその学生のカルテへ。赤＝その回のクラス平均より下、緑＝120点以上。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。</div>';
+    '</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでグラフに強調（押すたびに切り替え・同じ行でもう一度押すと解除）。右端の「カルテ」でその学生のカルテへ。色＝合格ライン120点との差（下の6段）。* は片方の時限だけ提出（グラフ・最新・初回からには入れない）。「最新」＝両方の時限を出した最後の模試の点。「初回から」＝最初に受けた模試から最新までの差。' + bandLegend() + '</div>';
   h += allMapHtml(exs);
   box.innerHTML = h;
   roBindSort(box, 'trend');
