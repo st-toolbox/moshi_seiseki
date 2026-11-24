@@ -1419,6 +1419,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
         <select class="exam-inline-sel" id="respExamSel" onchange="renderResponsesPage()" style="min-width:200px;">
           <option value="">（全模試）</option>
         </select>
+        <button class="modal-cancel-btn" onclick="showAnonClass()" title="選んだ模試の提出済みの全員分を、名前なしの表（Excelに貼れる形）で出す">📋 全員分を名前なしでコピー</button>
       </div>
       <div class="card" style="padding:0;">
         <div class="tbl-wrap">
@@ -1551,6 +1552,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
       <div id="respDetailTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
       <div style="display:flex;gap:8px;">
+        <button class="modal-cancel-btn" onclick="showAnonOne()" title="この回答を名前なしの表（Excelに貼れる形）で出す">📋 名前なしでコピー</button>
         <button class="modal-cancel-btn" onclick="printRespDetail()">🖨 印刷</button>
         <button class="modal-cancel-btn" onclick="closeRespDetail()">✕ 閉じる</button>
       </div>
@@ -1562,6 +1564,25 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
         <tbody id="respDetailBody"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- 名前なしのコピー用（タブ区切り＝Excel・スプレッドシートにそのまま貼れる） -->
+<div class="modal-overlay hidden" id="anonModal" onclick="if(event.target===this)closeAnon()">
+  <div class="modal-box-wide">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div id="anonTitle" style="font-size:15px;font-weight:700;color:var(--g5);"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span id="anonModeWrap" style="font-size:13px;color:var(--g4);">中身：
+          <label><input type="radio" name="anonMode" value="ans" checked onchange="renderAnon()"> 回答の番号</label>
+          <label><input type="radio" name="anonMode" value="ok" onchange="renderAnon()"> 正誤（1／0）</label>
+        </span>
+        <button class="modal-cancel-btn" onclick="copyAnon()">📋 コピー</button>
+        <button class="modal-cancel-btn" onclick="closeAnon()">✕ 閉じる</button>
+      </div>
+    </div>
+    <div id="anonNote" style="font-size:12px;color:var(--g4);"></div>
+    <textarea id="anonText" readonly style="flex:1;min-height:50vh;width:100%;font-family:'DM Mono',monospace;font-size:11px;white-space:pre;overflow:auto;border:1px solid var(--g3);border-radius:var(--rs);padding:8px;"></textarea>
   </div>
 </div>
 
@@ -2924,6 +2945,7 @@ function showRespDetail(examName, uid, part) {
     </tr>`
   ).join('');
 
+  lastRespDetail = { examName, uid, part };
   const modal = document.getElementById('respDetailModal');
   modal.classList.remove('hidden'); modal.classList.add('show');
 }
@@ -2980,6 +3002,98 @@ function printRespDetail() {
     st.remove();
     printDiv.remove();
   }, 1500);
+}
+
+// ===== 名前なしでコピー（分析用）：名前・メール・UIDは出さない。学生は「学生01〜」で、並びは毎回ばらばら（名前の順や得点の順から人を当てられないように） =====
+let lastRespDetail = null, anonCtx = null;
+function anonIsOk(correctAns, ans) {
+  if (!correctAns || correctAns === '解なし' || !ans) return false;
+  return correctAns.includes(',') ? correctAns.split(',').map(v => v.trim()).includes(ans) : ans === correctAns;
+}
+function showAnonOne() {
+  if (!lastRespDetail) return;
+  anonCtx = { kind: 'one', ...lastRespDetail };
+  openAnon();
+}
+function showAnonClass() {
+  const examName = document.getElementById('respExamSel')?.value || '';
+  if (!examName) { alert('模試を1つ選んでから押してください'); return; }
+  anonCtx = { kind: 'class', examName };
+  openAnon();
+}
+function openAnon() {
+  document.getElementById('anonModeWrap').style.display = anonCtx.kind === 'class' ? '' : 'none';
+  // 全員分は開くたびに並びを決め直す（回答の番号／正誤を切り替えても同じ並び）
+  if (anonCtx.kind === 'class') {
+    const resp = allData[anonCtx.examName]?.responses || {};
+    const uids = Object.keys(resp).filter(u => ['AM','PM'].some(p => resp[u]?.[p]?.status === 'submitted'));
+    for (let i = uids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [uids[i], uids[j]] = [uids[j], uids[i]]; }
+    anonCtx.uids = uids;
+  }
+  renderAnon();
+  const m = document.getElementById('anonModal');
+  m.classList.remove('hidden'); m.classList.add('show');
+}
+function renderAnon() {
+  const master = allData[anonCtx.examName]?.master;
+  if (!master) return;
+  const answers = master.answers || {}, cats = master.categories || {};
+  const clean = v => String(v ?? '').replace(/[\t\r\n]+/g, ' ');
+  let lines = [], note = '';
+  if (anonCtx.kind === 'one') {
+    const [start, end] = anonCtx.part === 'AM' ? [1, 100] : [101, 200];
+    const my = allData[anonCtx.examName]?.responses?.[anonCtx.uid]?.[anonCtx.part]?.answers || {};
+    lines.push(['問題', '科目', '正解', '回答', '正誤'].join('\t'));
+    let ok = 0, n = 0;
+    for (let q = start; q <= end; q++) {
+      const c = String(answers[q] || ''); if (!c) continue;
+      const a = String(my[q] || '');
+      const scored = c !== '解なし';
+      const isOk = anonIsOk(c, a);
+      if (scored) { n++; if (isOk) ok++; }
+      lines.push([q, clean(cats[q] || ''), clean(c), a, scored ? (isOk ? '○' : '✕') : ''].join('\t'));
+    }
+    document.getElementById('anonTitle').textContent = `${anonCtx.examName}　${anonCtx.part}（名前なし）`;
+    note = `正答 ${ok} / ${n} 問。タブ区切り＝Excelやスプレッドシートの1マスに貼ると表になる。`;
+  } else {
+    const mode = document.querySelector('input[name="anonMode"]:checked')?.value || 'ans';
+    const qs = [];
+    for (let q = 1; q <= 200; q++) if (answers[q]) qs.push(q);
+    const resp = allData[anonCtx.examName]?.responses || {};
+    lines.push(['問題', '得点', ...qs].join('\t'));
+    lines.push(['科目', '', ...qs.map(q => clean(cats[q] || ''))].join('\t'));
+    lines.push(['正解', '', ...qs.map(q => clean(answers[q]))].join('\t'));
+    anonCtx.uids.forEach((uid, i) => {
+      const r = resp[uid] || {};
+      let score = 0;
+      const cells = qs.map(q => {
+        const part = q <= 100 ? 'AM' : 'PM';
+        if (r[part]?.status !== 'submitted') return '';   // その時間帯を出していない＝空欄
+        const a = String(r[part]?.answers?.[q] || '');
+        const c = String(answers[q]);
+        const isOk = anonIsOk(c, a);
+        if (isOk) score++;
+        if (mode === 'ok') return c === '解なし' ? '' : (isOk ? 1 : 0);
+        return a;
+      });
+      lines.push([`学生${String(i + 1).padStart(2, '0')}`, score, ...cells].join('\t'));
+    });
+    document.getElementById('anonTitle').textContent = `${anonCtx.examName}　全員分（名前なし）`;
+    note = `提出済み ${anonCtx.uids.length} 人。並びは開くたびに変わる（名前の順・得点の順ではない）。片方の時間帯だけ出した人は、出していない方が空欄。未回答も空欄。タブ区切り＝Excelやスプレッドシートの1マスに貼ると表になる。`;
+  }
+  document.getElementById('anonNote').textContent = note;
+  document.getElementById('anonText').value = lines.join('\n');
+}
+async function copyAnon() {
+  const ta = document.getElementById('anonText');
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch (e) { ta.focus(); ta.select(); document.execCommand('copy'); }
+  const n = document.getElementById('anonNote');
+  if (!n.textContent.startsWith('コピーした。')) n.textContent = 'コピーした。' + n.textContent;
+}
+function closeAnon() {
+  const m = document.getElementById('anonModal');
+  m.classList.remove('show'); m.classList.add('hidden');
 }
 
 function closeRespDetail() {
