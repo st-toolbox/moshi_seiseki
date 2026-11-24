@@ -561,6 +561,9 @@ function updateStatusUI() {
     } else if (resubRejAt) {
       banner.textContent = `⚠ 送り直した解答を、先生が受け付けませんでした（${fmtTime(resubRejAt)}）。前に提出した解答のままです。`;
       banner.classList.add('show', 'ret');
+    } else if (examMasterCache[currentExam]?.hidden) {
+      banner.textContent = '提出は受け付けました。結果（点・正誤・正答）は、先生が公開するまで見られません。';
+      banner.classList.add('show');
     } else banner.classList.remove('show');
   } else if (currentStatus === 'draft') {
     badge.classList.add('badge-draft'); badge.textContent = returnedAt ? '差し戻し' : '一時保存中';

@@ -1374,7 +1374,7 @@ body.sm-measuring .sm-fit .sm-row>*{white-space:nowrap;}
       </div>
       <div class="card" id="examListCard">
         <div class="card-title">模試一覧</div>
-        <div class="tbl-wrap"><table><thead><tr><th title="チェックした模試を実施日の順に今年度の第1回・第2回…と数える。通算・推移はこの模試だけで出す">今年度</th><th>回</th><th>模試名</th><th>実施日</th><th>受付状態</th><th>操作</th></tr></thead><tbody id="adminExamTable"></tbody></table></div>
+        <div class="tbl-wrap"><table><thead><tr><th title="チェックした模試を実施日の順に今年度の第1回・第2回…と数える。通算・推移はこの模試だけで出す">今年度</th><th>回</th><th>模試名</th><th>実施日</th><th>受付状態</th><th title="非公開の間は、提出した学生にも点・正誤・正答を見せない（DBのルールで止める）">学生への結果</th><th>操作</th></tr></thead><tbody id="adminExamTable"></tbody></table></div>
       </div>
     </div>
 
@@ -1835,10 +1835,14 @@ async function loadAllData() {
       // 正答・問題文は、提出済みの時間帯だけ読める
       const need = [];
       examList.forEach(e => ['AM', 'PM'].forEach(p => {
-        if (allData[e.name]?.responses?.[uid]?.[p]?.status === 'submitted') need.push([e.name, p]);
+        if (!e.hidden && allData[e.name]?.responses?.[uid]?.[p]?.status === 'submitted') need.push([e.name, p]);
       }));
       const secs = await Promise.all(need.map(([n, p]) => db.ref(`secret/${n}/${p}`).once('value').then(s => s.val()).catch(() => null)));
       need.forEach(([n, p], i) => { if (secs[i]) mergeSecret(allData[n].master, { [p]: secs[i] }); });
+      // 先生が結果を非公開にしている模試は、学生の画面に出さない
+      const hid = new Set(examList.filter(e => e.hidden).map(e => e.name));
+      examList = examList.filter(e => !hid.has(e.name));
+      hid.forEach(n => { delete allData[n]; });
     }
 
     // ソート（新しい順）
@@ -2195,6 +2199,9 @@ function renderAdminExamTable() {
         <option value="1" ${e.active?'selected':''}>受付中</option>
         <option value="0" ${!e.active?'selected':''}>締切</option>
       </select></td>
+      <td style="white-space:nowrap">${e.hidden
+        ? '<span style="color:#b45309;font-weight:600">非公開</span> <button class="btn-admin-save" style="padding:4px 10px;font-size:12px;" data-action="toggle-hidden">公開する</button>'
+        : '<span style="color:var(--g4)">公開中</span> <button class="btn-admin-del" style="padding:4px 10px;font-size:12px;" data-action="toggle-hidden">非公開にする</button>'}</td>
       <td style="display:flex;gap:6px;">
         <button class="btn-admin-save" style="padding:4px 10px;font-size:12px;" data-action="rename-exam">名前変更</button>
         <button class="btn-admin-del" data-action="delete-exam">削除</button>
@@ -2210,6 +2217,7 @@ function renderAdminExamTable() {
     const action = ev.target.closest('[data-action]')?.dataset.action;
     if (action === 'delete-exam') deleteExam(name);
     if (action === 'rename-exam') renameExam(name);
+    if (action === 'toggle-hidden') toggleExamHidden(name);
   };
   tbody.onchange = (ev) => {
     const tr = ev.target.closest('tr[data-exam]');
@@ -2239,6 +2247,20 @@ function updateExamYear(name, on) {
   if (allData[name]?.master) allData[name].master.thisYear = on;
   ctxMemo = {};
   buildExamSel();
+  renderAdminExamTable();
+}
+// 学生への結果の公開（exams/<name>/hidden＝true の間は、学生は secret（正答・問題文）を読めない＝DBのルール）
+async function toggleExamHidden(name) {
+  if (!isTeacher) return;
+  const e = examList.find(x => x.name === name); if (!e) return;
+  const hide = !e.hidden;
+  if (!confirm(hide
+    ? `「${name}」の結果を非公開にしますか？\n提出した学生にも、点・正誤・正答が見えなくなります（先生の分析はこれまでどおり）。`
+    : `「${name}」の結果を学生に公開しますか？\n提出済みの学生が、点・正誤・正答を見られるようになります。`)) return;
+  try { await db.ref('exams/' + name + '/hidden').set(hide ? true : null); }
+  catch (err) { return alert('切り替えられませんでした：' + err.message); }
+  e.hidden = hide;
+  if (allData[name]?.master) allData[name].master.hidden = hide;
   renderAdminExamTable();
 }
 function updateExamActive(name, val) {

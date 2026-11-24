@@ -26,7 +26,7 @@
       ".write": "auth != null && root.child('teachers').child(auth.uid).exists()",
       "$examId": {
         "$part": {
-          ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && ($part === 'AM' || $part === 'PM') && root.child('responses').child($examId).child(auth.uid).child($part).child('status').val() === 'submitted'"
+          ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && ($part === 'AM' || $part === 'PM') && root.child('responses').child($examId).child(auth.uid).child($part).child('status').val() === 'submitted' && root.child('exams').child($examId).child('hidden').val() !== true"
         }
       }
     },
