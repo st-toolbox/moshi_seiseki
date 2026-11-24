@@ -554,7 +554,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .v2-tbl th.r,.v2-tbl td.r{text-align:right;}
 .v2-tbl td.nm{font-weight:500;}
 .v2-tbl tr.click{cursor:pointer;}
-.v2-tbl tr.click:hover td{background:var(--g1);}
+.v2-tbl tr.click:hover td{background-color:var(--g1);}  /* 色だけ変える＝点の段の地（background-image）は消さない */
 .v2-tbl .dn{color:var(--ng);}
 .v2-tbl .up{color:var(--ok);}
 .v2-tbl td.nw{white-space:nowrap;}
@@ -824,7 +824,7 @@ thead th{border-bottom:1px solid var(--g5);}
 .trend-all .stu-g.on .hl-n{display:block;font-size:11.5px;fill:var(--ng);font-weight:600;}
 .legend i.hl{border-top:2.5px solid var(--ng);}
 .legend .linkbtn{margin-left:auto;}
-.v2-tbl tr.hl-on td{background:rgba(196,67,43,.08);}
+.v2-tbl tr.hl-on td{background-color:rgba(196,67,43,.08);}
 .v2-tbl tr.hl-on td.nm{color:var(--ng);font-weight:600;}
 .ka-go{font:inherit;font-size:11px;padding:1px 8px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--g5);cursor:pointer;white-space:nowrap;}
 .ka-go:hover{background:var(--g1);}
@@ -962,23 +962,23 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .v2-tbl th.ex-h span{display:block;font-weight:400;color:var(--g3);letter-spacing:0;margin-top:2px;}
 .v2-tbl td.hi{color:var(--ok);font-weight:600;}
 .v2-tbl td.lo{color:var(--ng);}
-/* 点の段（6段・地の色なし＝字の色と太さだけ）：合格ライン120点との差で。午前・午後は半分の点で同じ段 */
-.v2-tbl td.b5{color:var(--ok);font-weight:800;}
-.v2-tbl td.b4{color:var(--ok);font-weight:700;}
-.v2-tbl td.b3{color:var(--ok);font-weight:400;}
-.v2-tbl td.b2{color:var(--warn);font-weight:400;}
-.v2-tbl td.b1{color:var(--warn);font-weight:700;}
-.v2-tbl td.b0{color:var(--ng);font-weight:800;}
+/* 点の段（6段・地の色は緑→橙→赤の濃淡・マウスを乗せても消えない）：合格ライン120点との差で。午前・午後は半分の点で同じ段 */
+.v2-tbl td.b5{background-image:linear-gradient(rgba(47,107,79,.28),rgba(47,107,79,.28));color:var(--ok);font-weight:800;}
+.v2-tbl td.b4{background-image:linear-gradient(rgba(47,107,79,.15),rgba(47,107,79,.15));color:var(--ok);font-weight:700;}
+.v2-tbl td.b3{background-image:linear-gradient(rgba(47,107,79,.06),rgba(47,107,79,.06));color:var(--ok);font-weight:400;}
+.v2-tbl td.b2{background-image:linear-gradient(rgba(180,83,9,.07),rgba(180,83,9,.07));color:var(--warn);font-weight:400;}
+.v2-tbl td.b1{background-image:linear-gradient(rgba(180,83,9,.15),rgba(180,83,9,.15));color:var(--warn);font-weight:700;}
+.v2-tbl td.b0{background-image:linear-gradient(rgba(196,67,43,.20),rgba(196,67,43,.20));color:var(--ng);font-weight:800;}
 .v2-tbl td.b3 b,.v2-tbl td.b2 b{font-weight:inherit;}
 .v2-tbl td.b0,.v2-tbl td.b1,.v2-tbl td.b2,.v2-tbl td.b3,.v2-tbl td.b4,.v2-tbl td.b5{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .band-lg{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 0;font-size:11px;}
 .band-lg span{padding:1px 7px;border-radius:3px;font-family:'DM Mono',monospace;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-.band-lg .b5{border:1px solid var(--g2);color:var(--ok);font-weight:800;}
-.band-lg .b4{border:1px solid var(--g2);color:var(--ok);font-weight:700;}
-.band-lg .b3{color:var(--ok);border:1px solid var(--g2);}
-.band-lg .b2{color:var(--warn);border:1px solid var(--g2);}
-.band-lg .b1{border:1px solid var(--g2);color:var(--warn);font-weight:700;}
-.band-lg .b0{border:1px solid var(--g2);color:var(--ng);font-weight:800;}
+.band-lg .b5{background-image:linear-gradient(rgba(47,107,79,.28),rgba(47,107,79,.28));color:var(--ok);font-weight:800;}
+.band-lg .b4{background-image:linear-gradient(rgba(47,107,79,.15),rgba(47,107,79,.15));color:var(--ok);font-weight:700;}
+.band-lg .b3{background-image:linear-gradient(rgba(47,107,79,.06),rgba(47,107,79,.06));color:var(--ok);}
+.band-lg .b2{background-image:linear-gradient(rgba(180,83,9,.07),rgba(180,83,9,.07));color:var(--warn);}
+.band-lg .b1{background-image:linear-gradient(rgba(180,83,9,.15),rgba(180,83,9,.15));color:var(--warn);font-weight:700;}
+.band-lg .b0{background-image:linear-gradient(rgba(196,67,43,.20),rgba(196,67,43,.20));color:var(--ng);font-weight:800;}
 .v2-tbl td.gap{color:var(--ng);}
 .v2-tbl tr.avg-row td{background:var(--g1);font-weight:600;border-bottom:1px solid var(--g3);}
 .v2-tbl td.sec-cell{font-size:12px;}
