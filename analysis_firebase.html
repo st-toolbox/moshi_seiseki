@@ -3870,15 +3870,16 @@ function examStudentsHtml(ex) {
       ${roTh('exam', 'num', '学生番号')}${roTh('exam', 'name', '名前')}${roTh('exam', 'total', '合計', 'r')}${roTh('exam', 'am', '午前', 'r')}${roTh('exam', 'pm', '午後', 'r')}${roTh('exam', 'diff', '前回比', 'r')}${roTh('exam', 'gap', '120まで', 'r')}${roTh('exam', 'weak', '苦手分野')}<th>推移（直近5回）</th>
     </tr></thead><tbody><tr class="avg-row"><td></td><td>クラス平均</td><td class="r mn">${av.total ?? '—'}</td><td class="r mn">${av.am ?? '—'}</td><td class="r mn">${av.pm ?? '—'}</td><td></td><td class="r mn">${av.total == null ? '—' : Math.max(0, Math.round((PASS_LINE - av.total) * 10) / 10)}</td><td></td><td></td></tr>${rows.map(r => {
       const t = r.t, d = t && r.pt ? t.total - r.pt.total : null;
+      const tb = t && t.full ? sc(t.total, av.total, PASS_LINE) : '';  // 午前・午後も合計点の段の色でそろえる
       return `<tr class="click" data-uid="${esc(r.s.uid)}">
         <td class="mn sno">${esc(stuNo(r.s))}</td><td class="nm">${esc(r.s.name || (r.s.email || '').split('@')[0])}</td>
-        <td class="r mn${t && t.full ? sc(t.total, av.total, PASS_LINE) : ''}"><b>${t ? t.total : '—'}</b>${t && !t.full ? '<span class="muted">*</span>' : ''}</td>
-        <td class="r mn${sc(t?.am, av.am, PASS_LINE / 2)}">${t?.am ?? '—'}</td><td class="r mn${sc(t?.pm, av.pm, PASS_LINE / 2)}">${t?.pm ?? '—'}</td>
+        <td class="r mn${tb}"><b>${t ? t.total : '—'}</b>${t && !t.full ? '<span class="muted">*</span>' : ''}</td>
+        <td class="r mn${tb}">${t?.am ?? '—'}</td><td class="r mn${tb}">${t?.pm ?? '—'}</td>
         <td class="r mn ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d == null ? '—' : signed(d)}</td>
         <td class="r mn${t && t.total < PASS_LINE ? ' gap' : ''}">${!t ? '—' : t.total >= PASS_LINE ? '<span class="tag-reach">到達</span>' : PASS_LINE - t.total}</td>
         <td>${r.weak.length ? r.weak.map(w => esc(w.c)).join('、') : '—'}</td>
         <td class="nw">${histChips(r.hist)}</td></tr>`;
-    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。色＝合格ライン120点との差（下の6段・午前・午後は半分の点で同じ段）。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。${bandLegend()}</div></section>`;
+    }).join('')}</tbody></table></div><div class="v2-cap">見出しをクリックで並べ替え（もう一度で逆順）。行をクリックでカルテ。色＝合計点と合格ライン120点との差（下の6段・午前・午後も合計点の色）。* は片方の時限だけ提出。前回比は、この学生が直前に受けた模試との差。苦手分野＝クラス平均と比べて多く落とした分野を、差の大きい順に最大3つ。${bandLegend()}</div></section>`;
 }
 function openKarte(uid) {
   const sel = document.getElementById('sidebarStudentSel');
