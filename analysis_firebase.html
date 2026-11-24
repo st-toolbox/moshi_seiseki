@@ -962,23 +962,23 @@ body:not(.pg-allpr) .pr-all{display:none!important;}
 .v2-tbl th.ex-h span{display:block;font-weight:400;color:var(--g3);letter-spacing:0;margin-top:2px;}
 .v2-tbl td.hi{color:var(--ok);font-weight:600;}
 .v2-tbl td.lo{color:var(--ng);}
-/* 点の段（6段）：合格ライン120点との差で。午前・午後は半分の点で同じ段 */
-.v2-tbl td.b5{background:rgba(47,107,79,.24);color:var(--ok);font-weight:800;}
-.v2-tbl td.b4{background:rgba(47,107,79,.11);color:var(--ok);font-weight:700;}
+/* 点の段（6段・地の色なし＝字の色と太さだけ）：合格ライン120点との差で。午前・午後は半分の点で同じ段 */
+.v2-tbl td.b5{color:var(--ok);font-weight:800;}
+.v2-tbl td.b4{color:var(--ok);font-weight:700;}
 .v2-tbl td.b3{color:var(--ok);font-weight:400;}
 .v2-tbl td.b2{color:var(--warn);font-weight:400;}
-.v2-tbl td.b1{background:rgba(180,83,9,.11);color:var(--warn);font-weight:700;}
-.v2-tbl td.b0{background:rgba(196,67,43,.14);color:var(--ng);font-weight:800;}
+.v2-tbl td.b1{color:var(--warn);font-weight:700;}
+.v2-tbl td.b0{color:var(--ng);font-weight:800;}
 .v2-tbl td.b3 b,.v2-tbl td.b2 b{font-weight:inherit;}
-.v2-tbl td.b0,.v2-tbl td.b1,.v2-tbl td.b4,.v2-tbl td.b5{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.v2-tbl td.b0,.v2-tbl td.b1,.v2-tbl td.b2,.v2-tbl td.b3,.v2-tbl td.b4,.v2-tbl td.b5{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .band-lg{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 0;font-size:11px;}
 .band-lg span{padding:1px 7px;border-radius:3px;font-family:'DM Mono',monospace;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-.band-lg .b5{background:rgba(47,107,79,.24);color:var(--ok);font-weight:800;}
-.band-lg .b4{background:rgba(47,107,79,.11);color:var(--ok);font-weight:700;}
+.band-lg .b5{border:1px solid var(--g2);color:var(--ok);font-weight:800;}
+.band-lg .b4{border:1px solid var(--g2);color:var(--ok);font-weight:700;}
 .band-lg .b3{color:var(--ok);border:1px solid var(--g2);}
 .band-lg .b2{color:var(--warn);border:1px solid var(--g2);}
-.band-lg .b1{background:rgba(180,83,9,.11);color:var(--warn);font-weight:700;}
-.band-lg .b0{background:rgba(196,67,43,.14);color:var(--ng);font-weight:800;}
+.band-lg .b1{border:1px solid var(--g2);color:var(--warn);font-weight:700;}
+.band-lg .b0{border:1px solid var(--g2);color:var(--ng);font-weight:800;}
 .v2-tbl td.gap{color:var(--ng);}
 .v2-tbl tr.avg-row td{background:var(--g1);font-weight:600;border-bottom:1px solid var(--g3);}
 .v2-tbl td.sec-cell{font-size:12px;}
