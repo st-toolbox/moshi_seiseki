@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>一歩ずつ</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div id="scrLogin" class="login hidden">
+  <h1>一歩ずつ</h1>
+  <p>説明を2〜4行読む → 問いに答える → 次へ。終わりにその範囲の過去問が出ます。</p>
+  <p>大学のGoogleアカウント（OEで始まるメール）でログインしてください。</p>
+  <button class="btn" onclick="signIn()">Googleでログイン</button>
+  <div class="alert" id="inappNote" hidden></div>
+</div>
+
+<div id="scrApply" class="login hidden">
+  <h1>一歩ずつ</h1>
+  <div id="applyBody"></div>
+  <p><button class="btn sub sm" onclick="signOut()">ログアウト</button></p>
+</div>
+
+<div id="scrMain" class="hidden">
+  <div class="top">
+    <h1>一歩ずつ</h1>
+    <span class="who"><span id="who"></span>　<a href="#" onclick="signOut();return false">ログアウト</a></span>
+  </div>
+  <div class="tabs" id="tabs">
+    <button data-t="home">ホーム</button>
+    <button data-t="ippo">一歩ずつ</button>
+    <button data-t="kq">過去問</button>
+    <button data-t="quiz">小テスト</button>
+    <button data-t="rec">記録</button>
+  </div>
+  <div class="wrap">
+    <div id="tab-home"></div>
+    <div id="tab-ippo" class="hidden"></div>
+    <div id="tab-kq" class="hidden"></div>
+    <div id="tab-quiz" class="hidden"></div>
+    <div id="tab-rec" class="hidden"></div>
+  </div>
+</div>
+
+<div id="viewer" class="viewer hidden">
+  <div class="vbar"><button class="btn sub sm" id="vBack">← 一覧</button><span class="tt" id="vTitle"></span></div>
+  <iframe id="frame" title="一歩ずつ"></iframe>
+</div>
+
+<script src="common.js"></script>
+<script src="student.js"></script>
+</body>
+</html>

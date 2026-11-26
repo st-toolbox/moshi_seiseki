@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>一歩ずつ（先生）</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div id="scrLogin" class="login hidden">
+  <h1>一歩ずつ（先生）</h1>
+  <p>先生のGoogleアカウントでログインしてください。</p>
+  <button class="btn" onclick="signIn()">Googleでログイン</button>
+  <div class="alert" id="inappNote" hidden></div>
+</div>
+
+<div id="scrMain" class="hidden">
+  <div class="top">
+    <h1>一歩ずつ（先生）</h1>
+    <a href="index.html" class="mut">学生の画面</a>
+    <span class="who"><span id="who"></span>　<a href="#" onclick="signOut();return false">ログアウト</a></span>
+  </div>
+  <div class="tabs" id="tabs">
+    <button data-t="mem">参加者</button>
+    <button data-t="act">取り組み</button>
+    <button data-t="gain">伸び</button>
+    <button data-t="task">課題</button>
+    <button data-t="cfg">設定</button>
+  </div>
+  <div class="wrap">
+    <div id="tab-mem"></div>
+    <div id="tab-act" class="hidden"></div>
+    <div id="tab-gain" class="hidden"></div>
+    <div id="tab-task" class="hidden"></div>
+    <div id="tab-cfg" class="hidden"></div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script src="teacher.js"></script>
+</body>
+</html>
