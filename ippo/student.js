@@ -448,7 +448,7 @@ function kqKey(e) {
 // ===== 紙で解いた過去問を入れる =====
 // 回と範囲を選び、①選んだ番号を入れる（答え合わせはここで）か ②○×だけ入れる（間違えた番号を書く）。
 // 記録は ev:'kq'・paper:1・on（解いた日）。過去問の画面と同じ地図・記録・先生の集計に入る。
-const PP = { y: '', part: 'am', from: 1, to: 100, mode: 'ans', on: '', ans: {}, graded: false };
+const PP = { y: '', part: 'am', from: 1, to: 100, mode: 'ans', on: '', ans: {}, graded: false, cam: null };
 async function renderPaper() {
   const box = $('#tab-paper');
   if (!KS.ready) {
@@ -464,12 +464,12 @@ async function renderPaper() {
     <span class="seg" id="pPart"><button data-p="am" class="${PP.part === 'am' ? 'on' : ''}">午前 1〜100</button><button data-p="pm" class="${PP.part === 'pm' ? 'on' : ''}">午後 101〜200</button><button data-p="rg" class="${PP.part === 'rg' ? 'on' : ''}">番号で指定</button></span>
     <span id="pRg" ${PP.part === 'rg' ? '' : 'hidden'}><input id="pFrom" type="number" min="1" max="200" value="${PP.from}" style="width:5em"> 〜 <input id="pTo" type="number" min="1" max="200" value="${PP.to}" style="width:5em"></span>
     <label>解いた日 <input id="pOn" type="date" value="${esc(PP.on)}"></label></div>
-    <div class="row"><span class="seg" id="pMode"><button data-m="ans" class="${PP.mode === 'ans' ? 'on' : ''}">選んだ番号を入れる</button><button data-m="ox" class="${PP.mode === 'ox' ? 'on' : ''}">○×だけ入れる</button></span>
-    <span class="mut">${PP.mode === 'ans' ? '答え合わせはここでします。' : '自分で答え合わせした人向け：間違えた番号だけ書きます。'}</span></div></div>
+    <div class="row"><span class="seg" id="pMode"><button data-m="ans" class="${PP.mode === 'ans' ? 'on' : ''}">選んだ番号を入れる</button><button data-m="ox" class="${PP.mode === 'ox' ? 'on' : ''}">○×だけ入れる</button><button data-m="cam" class="${PP.mode === 'cam' ? 'on' : ''}">マークシートを写真で読む</button></span>
+    <span class="mut">${PP.mode === 'ans' ? '答え合わせはここでします。' : PP.mode === 'ox' ? '自分で答え合わせした人向け：間違えた番号だけ書きます。' : '専用の用紙に塗って、スマホで撮ります。写真はこの端末の中で読むだけで、どこにも送りません。'}</span></div></div>
   <div id="pBody"></div>`;
   h += paperHistory();
   box.innerHTML = h;
-  const re = () => { PP.ans = {}; PP.graded = false; renderPaper(); };
+  const re = () => { PP.ans = {}; PP.graded = false; PP.cam = null; renderPaper(); };
   $('#pY').onchange = () => { PP.y = $('#pY').value; re(); };
   $$('#pPart button').forEach(b => b.onclick = () => { PP.part = b.dataset.p; if (PP.part === 'am') { PP.from = 1; PP.to = 100; } if (PP.part === 'pm') { PP.from = 101; PP.to = 200; } re(); });
   if ($('#pFrom')) { $('#pFrom').onchange = $('#pTo').onchange = () => { PP.from = Math.max(1, +$('#pFrom').value || 1); PP.to = Math.min(200, Math.max(PP.from, +$('#pTo').value || PP.from)); re(); }; }
@@ -484,6 +484,7 @@ function paperQs() {
 function drawPaper() {
   const qs = paperQs(), b = $('#pBody');
   if (!qs.length) { b.innerHTML = '<p>この範囲に問題がありません。</p>'; return; }
+  if (PP.mode === 'cam') { drawCam(qs); return; }
   if (PP.mode === 'ox') {
     b.innerHTML = `<div class="card"><p>第${PP.y}回 問${qs[0].n}〜${qs[qs.length - 1].n}（${qs.length}問）</p>
       <div class="row"><label style="flex:1">間違えた番号 <input id="pNg" style="width:100%" placeholder="例：3, 15, 27  ／  103 108"></label></div>
@@ -502,12 +503,15 @@ function drawPaper() {
     return;
   }
   // 選んだ番号を入れる
-  let h = `<div class="card"><p>第${PP.y}回 問${qs[0].n}〜${qs[qs.length - 1].n}（${qs.length}問）。丸を押すか、下の欄に番号を続けて打ちます（解かなかった問題は 0 か -）。</p>
+  const fl = (PP.cam && PP.cam.flags) || {};
+  let h = PP.cam ? `<div class="card hl"><div class="row" style="margin-top:0;align-items:flex-start"><img src="${PP.cam.img}" style="width:180px;max-width:100%;border:1px solid var(--line);cursor:zoom-in" alt="" title="押すと大きく" onclick="this.style.width=this.style.width==='180px'?'640px':'180px'">
+    <div style="flex:1"><b>写真から ${PP.cam.n} 問を読みました</b>${PP.cam.nf ? `<p>橙の ${PP.cam.nf} 問は2つ塗りか薄い塗りです。用紙を見て、丸を押して直してください。</p>` : '<p>用紙と見比べて、違う所は丸を押して直してください。</p>'}<p class="mut">緑の丸＝読んだ答え（左の写真）。直したら「答え合わせ」へ。</p></div></div></div>` : '';
+  h += `<div class="card"><p>第${PP.y}回 問${qs[0].n}〜${qs[qs.length - 1].n}（${qs.length}問）。丸を押すか、下の欄に番号を続けて打ちます（解かなかった問題は 0 か -）。</p>
     <div class="row"><input id="pType" style="flex:1;font-family:var(--n);letter-spacing:.1em" placeholder="例：3142 5213 …（問${qs[0].n}から順に）" autocomplete="off"><button class="btn sub sm" id="pFill">入れる</button></div>
     <div class="sheet" id="pSheet">`;
   qs.forEach(q => {
     const a = PP.ans[q.n], g = PP.graded && a != null ? (kqOk(q.a, a) ? ' ok' : ' ng') : '';
-    h += `<div class="sh${g}" data-n="${q.n}"><b>${q.n}</b>` + [1, 2, 3, 4, 5].map(i => `<button data-c="${i}" class="${a === i ? 'on' : ''}${PP.graded && a != null && !kqOk(q.a, a) && kqOk(q.a, i) ? ' a' : ''}">${i}</button>`).join('') + '</div>';
+    h += `<div class="sh${g}${fl[q.n] && !PP.graded ? ' fl' : ''}" data-n="${q.n}"><b>${q.n}</b>` + [1, 2, 3, 4, 5].map(i => `<button data-c="${i}" class="${a === i ? 'on' : ''}${PP.graded && a != null && !kqOk(q.a, a) && kqOk(q.a, i) ? ' a' : ''}">${i}</button>`).join('') + '</div>';
   });
   const nIn = Object.keys(PP.ans).length;
   h += `</div><div class="row"><button class="btn" id="pGrade"${nIn ? '' : ' disabled'}>答え合わせ（${nIn}問）</button><button class="btn sub sm" id="pClear">消す</button><span id="pSum"></span></div></div><div id="pOut"></div>`;
@@ -516,6 +520,7 @@ function drawPaper() {
     const bt = e.target.closest('button[data-c]'); if (!bt) return;
     const n = +bt.parentNode.dataset.n, c = +bt.dataset.c;
     if (PP.ans[n] === c) delete PP.ans[n]; else PP.ans[n] = c;
+    if (PP.cam && PP.cam.flags) delete PP.cam.flags[n];
     PP.graded = false; drawPaper();
   };
   $('#pFill').onclick = () => {
@@ -525,8 +530,12 @@ function drawPaper() {
     PP.graded = false; drawPaper();
   };
   $('#pType').onkeydown = e => { if (e.key === 'Enter') $('#pFill').click(); };
-  $('#pClear').onclick = () => { if (confirm('入れた答えを消しますか？')) { PP.ans = {}; PP.graded = false; drawPaper(); } };
-  $('#pGrade').onclick = () => { PP.graded = true; drawPaper(); };
+  $('#pClear').onclick = () => { if (confirm('入れた答えを消しますか？')) { PP.ans = {}; PP.graded = false; PP.cam = null; drawPaper(); } };
+  $('#pGrade').onclick = () => {
+    const left = Object.keys(fl).filter(n => qs.some(q => +q.n === +n)).length;
+    if (left && !confirm(`橙の ${left} 問がまだ確かめられていません（2つ塗り・薄い塗り）。このまま答え合わせしますか？`)) return;
+    PP.graded = true; drawPaper();
+  };
   if (PP.graded) {
     const rows = qs.filter(q => PP.ans[q.n] != null).map(q => ({ q, ch: PP.ans[q.n], ok: kqOk(q.a, PP.ans[q.n]) }));
     const okn = rows.filter(r => r.ok).length;
@@ -537,6 +546,43 @@ function drawPaper() {
       <div class="row"><button class="btn" id="pSave">記録する</button><span class="mut">記録すると地図と記録に入ります（あとで消すことはできません）。</span></div></div>`;
     $('#pSave').onclick = () => savePaper(rows);
   }
+}
+// マークシートを写真で読む（成績分析アプリの自作用紙と同じ用紙・同じ読み取り＝../omr_*.js）
+// 写真は端末の中で読むだけ（送らない・残さない）。読んだ答えは「選んだ番号を入れる」の表に入れて、本人が見比べて直す
+function drawCam(qs) {
+  const ok = window.OMR_UI && window.OMR_LAYOUT;
+  const part = PP.part === 'pm' ? 'PM' : 'AM';
+  $('#pBody').innerHTML = `<div class="card"><p><b>1. 用紙を刷る</b>（A4・1枚で午前か午後の100問）。<span class="mut">学籍番号の欄は塗らなくてよい。</span></p>
+    <div class="row"><button class="btn sub" id="cPrAM">午前の用紙を刷る</button><button class="btn sub" id="cPrPM">午後の用紙を刷る</button><span class="mut">一度刷れば、どの回にも使えます（回はここで選びます）。</span></div>
+    <p style="margin-top:14px"><b>2. 塗った用紙を撮る</b>　回（上で選ぶ）＝第${esc(PP.y)}回。午前か午後かは用紙から読みます。</p>
+    <div class="row"><label class="btn" style="cursor:pointer">カメラで撮る／写真を選ぶ<input id="cFile" type="file" accept="image/*,application/pdf" capture="environment" hidden></label>
+    <span class="mut">四隅の■が4つとも写るように、明るい所で真上から。</span></div><div id="cMsg"></div></div>`;
+  if (!ok) { $('#cMsg').innerHTML = '<p class="hot">読み取りの部品を読み込めませんでした。ページを開き直してください。</p>'; return; }
+  const pr = p => { const w = window.open('', '_blank'); if (!w) { alert('新しい窓を開けませんでした（ポップアップを許可してください）'); return; }
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>マークシート（${p === 'PM' ? '午後' : '午前'}）</title><style>@page{size:A4 portrait;margin:0}html,body{margin:0}svg{display:block;width:210mm;height:297mm}@media screen{body{background:#888}svg{background:#fff;margin:10px auto;box-shadow:0 0 6px #0004;width:min(210mm,96vw);height:auto}}</style>${OMR_LAYOUT.svg({ part: p, exam: '国試の過去問（回は画面で選ぶ）' })}<script>setTimeout(function(){print()},300)<\/script>`);
+    w.document.close(); };
+  $('#cPrAM').onclick = () => pr('AM'); $('#cPrPM').onclick = () => pr('PM');
+  $('#cFile').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const m = $('#cMsg'); m.innerHTML = '<p class="mut">読んでいます…</p>';
+    try {
+      const pages = await OMR_UI.fileToPages(f), pg = pages[0];
+      const res = OMR_UI.readCanvas(pg.canvas);
+      if (!res.ok) { m.innerHTML = `<p class="hot">読めませんでした：${esc(res.reason)}</p><p class="mut">${esc(res.tip || OMR_UI.TIPS)}</p>`; return; }
+      if (res.sheet && res.sheet !== 'v1') { m.innerHTML = '<p class="hot">この用紙は過去問用の用紙ではありません。「1. 用紙を刷る」の用紙を使ってください。</p>'; return; }
+      const p = res.part || part;
+      const R = OMR_UI.withPart(res, p);
+      PP.part = p === 'PM' ? 'pm' : 'am'; PP.from = p === 'PM' ? 101 : 1; PP.to = p === 'PM' ? 200 : 100;
+      PP.ans = {}; const flags = {};
+      for (const n in R.answers) PP.ans[n] = R.answers[n];
+      for (const n in R.flags) flags[n] = R.flags[n];
+      const img = OMR_UI.overlay(pg.canvas, res, 700).toDataURL('image/jpeg', .7);
+      PP.cam = { img, n: Object.keys(PP.ans).length, nf: Object.keys(flags).length, flags, part: p, partRead: !!res.part };
+      PP.mode = 'ans'; PP.graded = false;
+      renderPaper();
+      if (!res.part) $('#pBody').insertAdjacentHTML('afterbegin', `<div class="notice">午前か午後かを用紙から読めなかったので、${p === 'PM' ? '午後' : '午前'}として入れました。違えば上で選び直してください。</div>`);
+    } catch (err) { m.innerHTML = `<p class="hot">読めませんでした：${esc(err.message)}</p>`; }
+  };
 }
 const numSet = s => {
   const out = new Set();
@@ -555,9 +601,9 @@ async function savePaper(rows) {
   if (dup && !confirm(`このうち ${dup} 問は、同じ日の紙の記録がもうあります。重ねて記録しますか？`)) return;
   $('#pSave').disabled = true; $('#pSave').textContent = '記録中…';
   try {
-    await Promise.all(rows.map(r => log({ ev: 'kq', page: 'kq', qid: PP.y + '-' + r.q.n, ok: r.ok ? 1 : 0, ch: r.ch, s: r.q.s, paper: 1, on: PP.on })));
+    await Promise.all(rows.map(r => log(Object.assign({ ev: 'kq', page: 'kq', qid: PP.y + '-' + r.q.n, ok: r.ok ? 1 : 0, ch: r.ch, s: r.q.s, paper: 1, on: PP.on }, PP.cam && r.ch ? { cam: 1 } : {}))));
     const okn = rows.filter(r => r.ok).length;
-    PP.ans = {}; PP.graded = false; KS.list = [];
+    PP.ans = {}; PP.graded = false; PP.cam = null; KS.list = [];
     renderPaper(); renderSide(); renderFacts();
     $('#pBody').insertAdjacentHTML('afterbegin', `<div class="notice">第${PP.y}回の ${rows.length} 問（正解 ${okn}）を記録しました。<a href="#kq/miss">間違えた問題を解き直す</a></div>`);
   } catch (e) { alert('記録できませんでした：' + e.message); $('#pSave').disabled = false; $('#pSave').textContent = '記録する'; }

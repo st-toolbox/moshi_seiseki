@@ -180,6 +180,7 @@ div.kq-ch .ch{cursor:default}
 .sh button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .sh.ok button.on{background:var(--ok);border-color:var(--ok)}
 .sh.ng button.on{background:var(--ng);border-color:var(--ng)}
+.sh.fl{background:#fdebd0}.sh.fl b{color:#b35c00;font-weight:700}
 .sh .a{outline:2px solid var(--s1);outline-offset:-2px}
 .mode{display:flex;gap:0;margin:6px 0 10px}
 
