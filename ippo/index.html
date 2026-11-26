@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>一歩ずつ</title>
+<title>国家試験過去問対策アプリ</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -13,42 +13,42 @@
 <body>
 
 <div id="scrLogin" class="login hidden">
-  <h1>一歩ずつ</h1>
-  <p>説明を2〜4行読む → 問いに答える → 次へ。終わりにその範囲の過去問が出ます。</p>
-  <p>大学のGoogleアカウント（OEで始まるメール）でログインしてください。</p>
-  <button class="btn" onclick="signIn()">Googleでログイン</button>
-  <div class="alert" id="inappNote" hidden></div>
+  <div class="brand">国家試験過去問対策アプリ</div>
+  <p class="lead">言語聴覚士の国家試験の過去問と、一歩ずつ進める学習。</p>
+  <div class="box">
+    <p>大学のGoogleアカウント（OEで始まるメール）でログインしてください。</p>
+    <p><button class="btn" onclick="signIn()">Googleでログイン</button></p>
+    <div class="alert" id="inappNote" hidden></div>
+  </div>
 </div>
 
 <div id="scrApply" class="login hidden">
-  <h1>一歩ずつ</h1>
-  <div id="applyBody"></div>
-  <p><button class="btn sub sm" onclick="signOut()">ログアウト</button></p>
+  <div class="brand">国家試験過去問対策アプリ</div>
+  <div class="box"><div id="applyBody"></div>
+  <p><button class="btn sub sm" onclick="signOut()">ログアウト</button></p></div>
 </div>
 
-<div id="scrMain" class="hidden">
-  <div class="top">
-    <h1>一歩ずつ</h1>
-    <span class="who"><span id="who"></span>　<a href="#" onclick="signOut();return false">ログアウト</a></span>
-  </div>
-  <div class="tabs" id="tabs">
-    <button data-t="home">ホーム</button>
-    <button data-t="ippo">一歩ずつ</button>
-    <button data-t="kq">過去問</button>
-    <button data-t="quiz">小テスト</button>
-    <button data-t="rec">記録</button>
-  </div>
-  <div class="wrap">
-    <div id="tab-home"></div>
-    <div id="tab-ippo" class="hidden"></div>
-    <div id="tab-kq" class="hidden"></div>
-    <div id="tab-quiz" class="hidden"></div>
-    <div id="tab-rec" class="hidden"></div>
+<div id="scrMain" class="app hidden">
+  <header class="top">
+    <div class="brand">国家試験過去問対策アプリ<span>言語聴覚士・2年生</span></div>
+    <div class="facts" id="facts"></div>
+    <span class="who"><span id="who"></span><a href="#" onclick="signOut();return false">ログアウト</a></span>
+  </header>
+  <div class="work">
+    <nav class="side" id="side"></nav>
+    <div class="main" id="main">
+      <div class="pane" id="tab-home"></div>
+      <div class="pane hidden" id="tab-ippo"></div>
+      <div class="pane wide hidden" id="tab-kq"></div>
+      <div class="pane hidden" id="tab-paper"></div>
+      <div class="pane hidden" id="tab-quiz"></div>
+      <div class="pane hidden" id="tab-rec"></div>
+    </div>
   </div>
 </div>
 
 <div id="viewer" class="viewer hidden">
-  <div class="vbar"><button class="btn sub sm" id="vBack">← 一覧</button><span class="tt" id="vTitle"></span></div>
+  <div class="vbar"><button class="btn sub sm" id="vBack">← もどる</button><span class="tt" id="vTitle"></span><span class="mut">一歩ずつ</span></div>
   <iframe id="frame" title="一歩ずつ"></iframe>
 </div>
 

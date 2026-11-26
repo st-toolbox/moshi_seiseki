@@ -1,7 +1,9 @@
-// 一歩ずつ（2年生用）学生の画面。
-// 回のページは ippo/content/<回> のHTMLを iframe(srcdoc) で開く。ページの中の記録（gtag）は postMessage でここへ来て ippo/log/<uid> に足す。
+// 国家試験過去問対策アプリ（2年生用）学生の画面。形は Myカコモン（左の目次・全問の地図・一覧と読む窓）。
+// 機能＝ホーム（課題・続きから）／一歩ずつ（回のページ）／過去問（地図・一覧・読む窓）／紙で解いた（答えを入れて記録）／小テスト／記録。
+// 一歩ずつの回は ippo/content/<回> のHTMLを iframe(srcdoc) で開く。ページの中の記録（gtag）は postMessage でここへ来て ippo/log/<uid> に足す。
 let UID = null, ME = null, TEACHER = false, META = null, INDEX = null, LOGS = {}, CONFIG = {}, ASSIGN = {}, CUR = null;
 const PAGE_CACHE = {};
+const TABS = ['home', 'ippo', 'kq', 'paper', 'quiz', 'rec'];
 
 // ===== ログインと参加 =====
 inAppNote($('#inappNote'));
@@ -31,7 +33,8 @@ async function applyScreen() {
   if (a) {
     b.innerHTML = `<p>${md(a.at)} に申し込みました。先生が許可すると、この画面のまま使えるようになります。</p><p class="mut">${esc(ME.email)}</p>`;
   } else {
-    b.innerHTML = `<p>一歩ずつは、申し込んだ人だけが使えます。申し込むと、先生が許可したあとに使えるようになります。</p>
+    b.innerHTML = `<p>このアプリは、申し込んだ人だけが使えます。申し込むと、先生が許可したあとに使えるようになります。</p>
+      <p>できること：過去問を解く（全問の地図で自分の○×が見える）・一歩ずつ（説明を読んで答えて進む）・紙で解いた過去問の答えを入れる・小テスト。</p>
       <p>答えと「わからない」の印、取り組んだ時間は記録に残り、先生が見ます（学習の様子を見て、課題を出すためです）。</p>
       <p><button class="btn" id="btnApply">申し込む</button></p><p class="mut">${esc(ME.email)}</p>`;
     $('#btnApply').onclick = async () => {
@@ -55,18 +58,22 @@ async function enter() {
     CONFIG = cfg || {}; ASSIGN = as || {}; LOGS = lg || {};
   } catch (e) { $('#tab-home').innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
   db.ref('ippo/assign/' + UID).on('value', s => { ASSIGN = s.val() || {}; if (curTab() === 'home') renderHome(); });
-  $$('#tabs button').forEach(b => b.onclick = () => { location.hash = b.dataset.t; });
+  $('#side').addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) location.hash = b.dataset.h; });
   window.addEventListener('hashchange', route);
+  document.addEventListener('keydown', kqKey);
   route();
+  kqAll().then(() => { kqIndex(); renderSide(); renderFacts(); }).catch(() => {});
 }
 
 // ===== 記録を足す =====
 function log(o) {
   if (TEACHER || !UID) return;
-  Object.keys(o).forEach(k => (o[k] === undefined || o[k] === null) && delete o[k]);
+  Object.keys(o).forEach(k => (o[k] === undefined || o[k] === null || o[k] === '') && delete o[k]);
   const r = db.ref('ippo/log/' + UID).push();
-  r.set(Object.assign({}, o, { at: TS })).catch(e => console.warn('記録できませんでした', e.message));
+  const p = r.set(Object.assign({}, o, { at: TS }));
+  p.catch(e => console.warn('記録できませんでした', e.message));
   LOGS[r.key] = Object.assign({}, o, { at: Date.now() });
+  return p;
 }
 
 // 時間：見えていて手を動かしている間だけ数える（手が止まった間は2分まで）
@@ -78,37 +85,80 @@ function tAct() {
   if (T.acc >= 300) tFlush();
 }
 function tFlush() { tAct(); if (T.page && T.acc >= 5) log({ ev: 'time', page: T.page, sec: Math.round(Math.min(T.acc, 1800)) }); T.acc = 0; }
-function tStart(p) { tFlush(); T.page = p; T.acc = 0; T.lastAct = Date.now(); }
+function tStart(p) { if (T.page === p) return; tFlush(); T.page = p; T.acc = 0; T.lastAct = Date.now(); }
 function tStop() { tFlush(); T.page = null; }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { tFlush(); T.lastAct = 0; } else T.lastAct = Date.now(); });
 window.addEventListener('pagehide', tFlush);
 ['click', 'keydown', 'touchstart', 'scroll'].forEach(e => document.addEventListener(e, tAct, { passive: true, capture: true }));
 
 // ===== 画面の切り替え =====
-const curTab = () => (location.hash.replace('#', '').split('/')[0] || 'home');
+const hashParts = () => location.hash.replace('#', '').split('/');
+const curTab = () => (TABS.indexOf(hashParts()[0]) >= 0 ? hashParts()[0] : 'home');
 function route() {
   const h = location.hash.replace('#', '');
   if (h.indexOf('p/') === 0) return openPage(h.slice(2));
   closeViewer();
-  const t = ['home', 'ippo', 'kq', 'quiz', 'rec'].indexOf(curTab()) >= 0 ? curTab() : 'home';
-  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['home', 'ippo', 'kq', 'quiz', 'rec'].forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
-  if (t !== 'kq' && T.page === 'kq') tStop();
-  if (t !== 'quiz' && T.page === 'quiz') tStop();
-  ({ home: renderHome, ippo: renderIppo, kq: renderKq, quiz: renderQuiz, rec: renderRec })[t]();
-  window.scrollTo(0, 0);
+  const t = curTab();
+  TABS.forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
+  ({ kq: 'kq', quiz: 'quiz', paper: 'paper' })[t] ? tStart(t) : (T.page && !META.P[T.page] && tStop());
+  ({ home: renderHome, ippo: renderIppo, kq: renderKq, paper: renderPaper, quiz: renderQuiz, rec: renderRec })[t]();
+  renderSide(); renderFacts();
+  $('#main').scrollTop = 0; window.scrollTo(0, 0);
+}
+
+// ===== 上の帯と左の目次 =====
+function daysLeft() {
+  const tg = CONFIG.target;
+  if (!tg || !tg.date) return null;
+  const d = Math.ceil((new Date(tg.date + 'T00:00:00') - new Date(day(Date.now()) + 'T00:00:00')) / 864e5);
+  return d >= 0 ? { d, name: tg.name || '目標', date: tg.date } : null;
+}
+function renderFacts() {
+  const R = summarize(LOGS, META), dl = daysLeft();
+  const nq = KQ.years ? KQ.years.reduce((a, y) => a + (KQ.q[y] || []).length, 0) : 0;
+  $('#facts').innerHTML = `<span>一歩ずつ<b>${R.pagesDone}</b>/ ${META.order.length}回</span>`
+    + `<span>過去問 解いた<b>${R.nKq}</b>${nq ? '/ ' + nq + '問' : '問'}</span>`
+    + (dl ? `<span class="hot">${esc(dl.name)}まで<b>${dl.d}</b>日</span>` : '');
+}
+function renderSide() {
+  const R = summarize(LOGS, META), [t, sub] = hashParts();
+  const tab = curTab();
+  const miss = Object.values(R.kq).filter(k => !k.ok).length;
+  const asOpen = Object.values(ASSIGN || {}).filter(a => !assignProgress(a, R).done).length;
+  const v = (h, label, em, on, cls) => `<button class="v${on ? ' on' : ''}" data-h="${h}"><span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
+  let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '');
+  h += '<h3>学ぶ</h3>'
+    + v('kq', '過去問', R.nKq ? R.nKq + '問' : null, tab === 'kq')
+    + v('ippo', '一歩ずつ', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub)
+    + v('paper', '紙で解いた', R.nPaper ? R.nPaper + '問' : null, tab === 'paper')
+    + v('quiz', '小テスト', null, tab === 'quiz');
+  h += '<h3>自分</h3>' + v('rec', '記録・分析', null, tab === 'rec');
+  if (tab === 'kq') {
+    h += '<h3>過去問の絞り込み</h3>'
+      + v('kq/miss', '間違えたまま', miss, KS.f === 'miss', miss ? 'hot' : '')
+      + v('kq/new', 'まだ解いていない', null, KS.f === 'new')
+      + v('kq/all', '全部', null, KS.f === 'all');
+  }
+  h += '<h3>一歩ずつの科目</h3>';
+  META.list.forEach(k => {
+    const s = META.S[k], r = R.subj[k] || { done: 0 }, pp = pct(r.done, s.total);
+    h += `<button class="v sub${tab === 'ippo' && sub === k ? ' on' : ''}" data-h="ippo/${k}"><span>${esc(s.name)}</span><em>${r.pagesDone || 0}/${s.pages.length}</em><i class="bar"><b class="${pp >= 100 ? 'done' : ''}" style="width:${pp}%"></b></i></button>`;
+  });
+  const dl = daysLeft();
+  if (dl) h += `<div class="count"><div class="lab">${esc(dl.name)}（${esc(dl.date)}）まで</div><div class="d">あと ${dl.d} 日</div></div>`;
+  $('#side').innerHTML = h;
 }
 
 // ===== ホーム =====
 function pageState(R, id) {
   const p = R.pages[id], m = META.P[id];
-  if (!p || !p.done) return { cls: '', txt: '' };
-  if (p.done >= m.total) return { cls: 'done', txt: '✓ 終わった' };
-  return { cls: '', txt: `${p.done} / ${m.total}` };
+  if (!p || !p.done) return { cls: '', txt: '', pp: 0 };
+  if (p.done >= m.total) return { cls: 'done', txt: '✓ 終わった', pp: 100 };
+  return { cls: '', txt: `${p.done} / ${m.total}`, pp: pct(p.done, m.total) };
 }
-function pageLink(id, R) {
+function pageLink(id, R, withSubj) {
   const m = META.P[id], st = pageState(R, id);
-  return `<li><a href="#p/${id}"><span class="no">第${m.no}回</span><span class="tt">${esc(m.sname)}｜${esc(m.title)}</span><span class="st ${st.cls}">${st.txt}</span></a></li>`;
+  return `<li><a href="#p/${id}"><span class="no">第${m.no}回</span><span class="tt">${withSubj ? esc(m.sname) + '｜' : ''}${esc(m.title)}</span><span class="st ${st.cls}">${st.txt}${st.pp && st.pp < 100 ? `<div class="prog"><i style="width:${st.pp}%"></i></div>` : ''}</span></a></li>`;
 }
 function assignProgress(a, R) {
   const pages = a.pages || [];
@@ -118,7 +168,6 @@ function assignProgress(a, R) {
   const tot = pages.length + (a.kqn ? 1 : 0), dn = pd + (a.kqn && kqd >= a.kqn ? 1 : 0);
   return { pd, kqd, done: tot > 0 && dn >= tot };
 }
-const KQS = {}; // 問題id → 科目（過去問を読んだあとに入る）
 function kqIn(k, list) {
   if (k.s) return list.indexOf(k.s) >= 0;
   const m = k.page && META.P[k.page];
@@ -128,56 +177,57 @@ function kqIn(k, list) {
 function renderHome() {
   const R = summarize(LOGS, META);
   const now = Date.now(), wk = summarize(LOGS, META, now - 7 * 864e5);
-  let h = '';
-  const tg = CONFIG.target;
-  if (tg && tg.date) {
-    const d = Math.ceil((new Date(tg.date + 'T00:00:00') - new Date(day(now) + 'T00:00:00')) / 864e5);
-    if (d >= 0) h += `<div class="card hl"><span class="mut">${esc(tg.name || '目標')}（${esc(tg.date)}）まで</span><div class="big">あと ${d} 日</div></div>`;
-  }
+  let h = '<div class="ph"><h1>ホーム</h1><span class="mut">' + esc(day(now)) + '</span></div>';
   if (CONFIG.notice) h += `<div class="notice">${esc(CONFIG.notice)}</div>`;
+  h += `<div class="stats">
+    <div class="card"><div class="lab">この1週間 取り組んだ日</div><div class="big">${wk.nDays}<small>日</small></div></div>
+    <div class="card"><div class="lab">この1週間の時間</div><div class="big">${hm(wk.time)}</div></div>
+    <div class="card"><div class="lab">この1週間 過去問</div><div class="big">${wk.nKq}<small>問</small></div></div>
+    <div class="card"><div class="lab">この1週間 一歩ずつの歩</div><div class="big">${wk.nStep}</div></div></div>`;
   // 課題
   const as = Object.entries(ASSIGN || {}).sort((a, b) => (a[1].due || '9') < (b[1].due || '9') ? -1 : 1);
-  if (as.length) {
-    h += '<h2>先生からの課題</h2>';
-    as.forEach(([k, a]) => {
-      const p = assignProgress(a, R);
-      h += `<div class="card${p.done ? '' : ' hl'}"><b>${esc(a.title || '課題')}</b> ${p.done ? '<span class="tag ok">終わった</span>' : ''}${a.due ? ` <span class="tag warn">${esc(a.due)} まで</span>` : ''}`;
-      if (a.note) h += `<div style="white-space:pre-wrap;margin:6px 0">${esc(a.note)}</div>`;
-      if ((a.pages || []).length) h += '<ul class="plist">' + a.pages.filter(id => META.P[id]).map(id => pageLink(id, R)).join('') + '</ul>';
-      if (a.kqn) h += `<p>過去問 ${a.kqs ? esc(a.kqs.join('・')) + ' を' : ''}${a.kqn}問：いま ${Math.min(p.kqd, a.kqn)} 問　<a href="#kq">過去問へ</a></p>`;
-      h += '</div>';
-    });
-  }
-  // 続きから
-  const last = R.lastPage && META.P[R.lastPage];
-  h += '<h2>続きから</h2>';
-  if (last) h += '<ul class="plist">' + pageLink(R.lastPage, R) + '</ul>';
+  h += '<h2>先生からの課題</h2>';
+  if (!as.length) h += '<p class="mut">いまはありません。</p>';
+  as.forEach(([k, a]) => {
+    const p = assignProgress(a, R);
+    h += `<div class="card${p.done ? '' : ' hl'}"><b>${esc(a.title || '課題')}</b> ${p.done ? '<span class="tag ok">終わった</span>' : ''}${a.due ? ` <span class="tag warn">${esc(a.due)} まで</span>` : ''}`;
+    if (a.note) h += `<div style="white-space:pre-wrap;margin:6px 0">${esc(a.note)}</div>`;
+    if ((a.pages || []).length) h += '<ul class="plist">' + a.pages.filter(id => META.P[id]).map(id => pageLink(id, R, true)).join('') + '</ul>';
+    if (a.kqn) h += `<p>過去問 ${a.kqs ? esc(a.kqs.join('・')) + ' を' : ''}${a.kqn}問：いま ${Math.min(p.kqd, a.kqn)} 問　<a href="#kq">過去問へ</a>（紙で解いた分も入ります）</p>`;
+    h += '</div>';
+  });
+  // 次の一手
+  h += '<h2>次にやること</h2><div class="grid2"><div>';
+  h += '<h3>一歩ずつ：続きから</h3>';
+  if (R.lastPage && META.P[R.lastPage]) h += '<ul class="plist">' + pageLink(R.lastPage, R, true) + '</ul>';
   else h += '<p>まだ何も開いていません。<a href="#ippo">一歩ずつの一覧</a>から始めましょう。</p>';
-  h += `<h2>この1週間</h2><div class="stats">
-    <div class="card"><div class="lab">取り組んだ日</div><div class="big">${wk.nDays}日</div></div>
-    <div class="card"><div class="lab">時間</div><div class="big">${hm(wk.time)}</div></div>
-    <div class="card"><div class="lab">答えた歩</div><div class="big">${wk.nStep}</div></div>
-    <div class="card"><div class="lab">過去問</div><div class="big">${wk.nKq}問</div></div></div>
-    <p class="mut">これまでの合計：${hm(R.time)}・終わった回 ${R.pagesDone} / ${META.order.length}</p>`;
+  h += '</div><div><h3>過去問</h3>';
+  const miss = Object.values(R.kq).filter(k => !k.ok).length;
+  h += miss ? `<p>間違えたままの問題が <b>${miss}</b> 問あります。<a href="#kq/miss">解き直す</a></p>` : '<p class="mut">間違えたままの問題はありません。</p>';
+  h += '<p><a href="#kq/new">まだ解いていない問題を解く</a>　<a href="#paper">紙で解いた答えを入れる</a></p></div></div>';
+  h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・一歩ずつ ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
   $('#tab-home').innerHTML = h;
 }
 
 // ===== 一歩ずつの一覧 =====
 function renderIppo() {
-  const R = summarize(LOGS, META);
-  let h = '<p>説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど、30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。</p>';
-  META.list.forEach(k => {
-    const s = META.S[k], r = R.subj[k] || { done: 0 };
-    const pp = pct(r.done, s.total);
-    h += `<details class="subj" ${r.done ? 'open' : ''}><summary>${esc(s.name)}　全${s.pages.length}回 <span class="mut">${r.pagesDone || 0}回終わった</span>
-      <div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></summary><ul class="plist">`;
-    s.pages.forEach(p => {
-      const st = pageState(R, p.id);
-      h += `<li><a href="#p/${p.id}"><span class="no">第${p.no}回</span><span class="tt">${esc(p.title)}</span><span class="st ${st.cls}">${st.txt}</span></a></li>`;
+  const R = summarize(LOGS, META), sub = hashParts()[1];
+  let h = '<div class="ph"><h1>一歩ずつ</h1><span class="mut">説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。</span></div>';
+  const keys = sub && META.S[sub] ? [sub] : META.list;
+  if (!sub) {
+    h += '<table><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th></tr>';
+    META.list.forEach(k => {
+      const s = META.S[k], r = R.subj[k], pp = pct(r.done, s.total);
+      h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td></tr>`;
     });
-    h += '</ul></details>';
+    h += '</table>';
+  }
+  keys.forEach(k => {
+    const s = META.S[k];
+    h += `<h2>${esc(s.name)}　<span class="mut">全${s.pages.length}回</span></h2><ul class="plist">` + s.pages.map(p => pageLink(p.id, R)).join('') + '</ul>';
   });
   $('#tab-ippo').innerHTML = h;
+  $$('#tab-ippo tr[data-h]').forEach(r => r.onclick = () => { location.hash = r.dataset.h; });
 }
 
 // ===== 回を開く =====
@@ -192,7 +242,6 @@ function restoreLS(key, id) {
     Object.keys(p.s).forEach(k => { if (S.s[k] == null && p.s[k].ch != null) { S.s[k] = p.s[k].ch; S.open[k.split('-')[0]] = 1; } });
     Object.keys(p.p).forEach(q => { if (S.p[q] == null && p.p[q].ch != null) S.p[q] = p.p[q].ch; });
     Object.keys(p.u).forEach(k => { S.u[k] = 1; });
-    // 答えのある山の次の山も開けておく
     const m = META.P[id];
     m.yama.forEach(y => {
       const all = Array.from({ length: y.steps }, (_, i) => y.no + '-' + (i + 1)).every(k => S.s[k] != null) && (y.past || []).every(q => S.p[q] != null);
@@ -206,7 +255,7 @@ async function openPage(id) {
   const m = META && META.P[id];
   if (!m) { location.hash = 'ippo'; return; }
   CUR = id;
-  $('#vTitle').textContent = `${m.sname} 第${m.no}回　${m.title}`;
+  $('#vTitle').textContent = `${m.sname}　第${m.no}回　${m.title}`;
   $('#viewer').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   const fr = $('#frame');
@@ -235,7 +284,7 @@ function closeViewer() {
   if (T.page && META.P[T.page]) tStop();
   CUR = null;
 }
-$('#vBack').onclick = () => { location.hash = 'ippo'; };
+$('#vBack').onclick = () => { const m = CUR && META.P[CUR]; location.hash = m ? 'ippo/' + m.subj : 'ippo'; };
 
 // ページの中からの知らせ（記録・回の移動・解説）
 window.addEventListener('message', e => {
@@ -252,75 +301,279 @@ window.addEventListener('message', e => {
   else if (d.ev === 'ippo_exit_hit' || d.ev === 'ippo_exit_miss') log({ ev: d.ev === 'ippo_exit_hit' ? 'exit_hit' : 'exit_miss', page, ok: p.ok, n: p.n });
 });
 
-// ===== 過去問 =====
-const KS = { list: [], i: 0, ans: null };
+// ===== 過去問（全問の地図・一覧・読む窓） =====
+const KQS = {}; // 問題id → 科目
+let KQ_SUBJ = [];  // 科目の並び（一歩ずつの科目が先）
+function kqIndex() {
+  if (KQ_SUBJ.length) return;
+  const cnt = {};
+  KQ.years.forEach(y => (KQ.q[y] || []).forEach(q => { KQS[y + '-' + q.n] = q.s; cnt[q.s] = (cnt[q.s] || 0) + 1; }));
+  const seen = {}, a = [];
+  META.list.forEach(k => META.S[k].kq.forEach(s => { if (cnt[s] && !seen[s]) { seen[s] = 1; a.push(s); } }));
+  KQ_SUBJ = a.concat(Object.keys(cnt).filter(s => !seen[s]).sort()).map(s => ({ s, n: cnt[s], ippo: !!seen[s] }));
+}
+const KS = { f: 'new', subj: '', year: '', list: [], sel: null, lim: 300, done: {}, ready: false };
+const kqState = (R, id) => { const k = R.kq[id]; return !k ? 0 : k.ok ? 1 : 2; };
+function kqFilter(R) {
+  const L = [];
+  KQ.years.slice().reverse().forEach(y => {
+    if (KS.year && String(y) !== KS.year) return;
+    (KQ.q[y] || []).forEach(q => {
+      if (KS.subj && q.s !== KS.subj) return;
+      const id = y + '-' + q.n, st = kqState(R, id);
+      if (KS.f === 'new' && st) return;
+      if (KS.f === 'miss' && st !== 2) return;
+      L.push(id);
+    });
+  });
+  return L;
+}
 async function renderKq() {
   const box = $('#tab-kq');
+  const f = hashParts()[1];
+  if (['new', 'miss', 'all'].indexOf(f) >= 0 && f !== KS.f) { KS.f = f; KS.list = []; KS.lim = 300; }
   if (!KS.ready) {
     box.innerHTML = '<p class="mut">過去問を読み込み中…（はじめの1回だけ少しかかります）</p>';
-    try { await kqAll(); } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
-    KQ.years.forEach(y => KQ.q[y].forEach(q => { KQS[y + '-' + q.n] = q.s; }));
-    KS.ready = true;
+    try { await kqAll(); kqIndex(); } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+    KS.ready = true; renderSide(); renderFacts();
   }
-  if (KS.list.length && KS.i < KS.list.length) return drawKq();
-  const cnt = {};
-  KQ.years.forEach(y => KQ.q[y].forEach(q => { cnt[q.s] = (cnt[q.s] || 0) + 1; }));
-  const ippoS = [], seen = {};
-  META.list.forEach(k => META.S[k].kq.forEach(s => { if (cnt[s] && !seen[s]) { seen[s] = 1; ippoS.push(s); } }));
-  const others = Object.keys(cnt).filter(s => !seen[s]).sort();
-  const opt = s => `<option value="${esc(s)}">${esc(s)}（${cnt[s]}問）</option>`;
-  box.innerHTML = `<p>第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験。答えると正誤と解説が出ます。</p>
-  <div class="card">
-    <div class="row"><label>科目 <select id="kS"><option value="">すべての科目</option><optgroup label="一歩ずつの科目">${ippoS.map(opt).join('')}</optgroup><optgroup label="ほかの科目">${others.map(opt).join('')}</optgroup></select></label></div>
-    <div class="row"><label>回 <select id="kY"><option value="">すべての回</option>${KQ.years.slice().reverse().map(y => `<option>${y}</option>`).join('')}</select></label>
-      <label>出す問題 <select id="kF"><option value="">すべて</option><option value="new" selected>まだ解いていない</option><option value="ng">まちがえた（最後の答えが×）</option></select></label>
-      <label>順番 <select id="kO"><option value="">回の順</option><option value="r">ばらばら</option></select></label>
-      <label>数 <select id="kN"><option>10</option><option selected>20</option><option>40</option><option value="0">全部</option></select></label></div>
-    <div class="row"><button class="btn" id="kGo">始める</button><span id="kCnt" class="mut"></span></div>
-  </div>`;
-  const pick = () => {
-    const R = summarize(LOGS, META), s = $('#kS').value, y = $('#kY').value, f = $('#kF').value;
-    let L = [];
-    (y ? [y] : KQ.years).forEach(yy => KQ.q[yy].forEach(q => {
-      if (s && q.s !== s) return;
-      const id = yy + '-' + q.n, k = R.kq[id];
-      if (f === 'new' && k) return;
-      if (f === 'ng' && !(k && !k.ok)) return;
-      L.push(id);
-    }));
-    return L;
+  const R = summarize(LOGS, META);
+  if (!KS.list.length) KS.list = kqFilter(R);
+  const fl = { new: 'まだ解いていない', miss: '間違えたまま', all: '全部' }[KS.f];
+  const yrs = KQ.years.slice().reverse();
+  let h = `<div class="ph"><h1>過去問</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。答えると正誤と解説が出ます。紙で解いた分は「紙で解いた」から入れると地図に入ります。</span></div>`;
+  h += `<section class="map"><div class="mh"><b>全問の地図</b><span class="num">${R.nKq} 問 解いた</span><span class="mut">ます目を押すとその問題が開きます</span>
+    <div class="lg"><span><i class="s1"></i>正解</span><span><i class="s2"></i>間違い</span><span><i class="s0"></i>まだ</span></div></div>
+    <div class="ax"><span></span><span>午前 1 → 100</span><span>午後 101 → 200</span></div><div class="mg" id="mg">`;
+  const inL = {}; KS.list.forEach(id => inL[id] = 1);
+  yrs.forEach(y => {
+    h += `<label data-y="${y}" title="第${y}回だけにする">第${y}回</label><div class="mc">`;
+    const qs = {}; (KQ.q[y] || []).forEach(q => qs[q.n] = q);
+    for (let n = 1; n <= 200; n++) {
+      const id = y + '-' + n, q = qs[n];
+      if (!q) { h += `<i class="dim${n === 101 ? ' pm' : ''}"></i>`; continue; }
+      const st = kqState(R, id);
+      h += `<i data-q="${id}" class="${st ? 's' + st : ''}${n === 101 ? ' pm' : ''}${inL[id] ? '' : ' dim'}${KS.sel === id ? ' sel' : ''}" title="第${y}回 問${n}　${esc(q.s || '')}"></i>`;
+    }
+    h += '</div>';
+  });
+  h += '</div></section>';
+  const so = KQ_SUBJ.map(x => `<option value="${esc(x.s)}"${KS.subj === x.s ? ' selected' : ''}>${esc(x.s)}（${x.n}）</option>`);
+  const nIppo = KQ_SUBJ.filter(x => x.ippo).length;
+  h += `<div class="split"><section class="list">
+    <div class="bar2"><b>${fl}</b><span class="num">${KS.list.length} 問</span>
+      <select id="kS"><option value="">すべての科目</option><optgroup label="一歩ずつの科目">${so.slice(0, nIppo).join('')}</optgroup><optgroup label="ほかの科目">${so.slice(nIppo).join('')}</optgroup></select>
+      <select id="kY"><option value="">すべての回</option>${yrs.map(y => `<option${KS.year === String(y) ? ' selected' : ''}>${y}</option>`).join('')}</select>
+      <span class="seg" id="kF"><button data-f="miss" class="${KS.f === 'miss' ? 'on' : ''}">間違えたまま</button><button data-f="new" class="${KS.f === 'new' ? 'on' : ''}">まだ</button><button data-f="all" class="${KS.f === 'all' ? 'on' : ''}">全部</button></span>
+      <button class="btn sm" id="kGo">${KS.sel ? '続ける' : '上から解く'}</button></div>
+    <div class="tr th"><span class="r">回</span><span class="r">番号</span><span class="ks">科目</span><span>問題</span><span>自分</span><span class="r">みんな</span></div>
+    <div class="rows" id="kRows"></div></section>
+    <section class="read" id="kRead"><div class="empty">左の一覧か、上の地図のます目から問題を選んでください。<br><br>キー：<kbd>1</kbd>〜<kbd>5</kbd> 答える　<kbd>Enter</kbd> 次へ　<kbd>J</kbd><kbd>K</kbd> 下・上</div></section></div>`;
+  box.innerHTML = h;
+  drawRows(R);
+  $('#mg').onclick = e => {
+    const c = e.target.closest('[data-q]'); if (c) return kqOpen(c.dataset.q);
+    const l = e.target.closest('label[data-y]'); if (l) { KS.year = KS.year === l.dataset.y ? '' : l.dataset.y; KS.list = []; KS.lim = 300; renderKq(); }
   };
-  const upd = () => { $('#kCnt').textContent = `当てはまる問題 ${pick().length} 問`; };
-  ['#kS', '#kY', '#kF'].forEach(s => $(s).onchange = upd); upd();
-  $('#kGo').onclick = () => {
-    let L = pick();
-    if ($('#kO').value === 'r') for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; }
-    const n = +$('#kN').value; if (n) L = L.slice(0, n);
-    if (!L.length) { alert('当てはまる問題がありません'); return; }
-    KS.list = L; KS.i = 0; KS.ok = 0; KS.ans = null; tStart('kq'); drawKq();
-  };
+  $('#kS').onchange = () => { KS.subj = $('#kS').value; KS.list = []; KS.lim = 300; renderKq(); };
+  $('#kY').onchange = () => { KS.year = $('#kY').value; KS.list = []; KS.lim = 300; renderKq(); };
+  $$('#kF button').forEach(b => b.onclick = () => { location.hash = 'kq/' + b.dataset.f; });
+  $('#kGo').onclick = () => { const i = KS.list.indexOf(KS.sel); kqOpen(KS.list[i >= 0 ? i : 0]); };
+  if (KS.sel) kqOpen(KS.sel, true);
 }
-async function drawKq() {
-  const box = $('#tab-kq');
-  if (KS.i >= KS.list.length) {
-    box.innerHTML = `<div class="card"><div class="big">${KS.ok} / ${KS.list.length} 問 正解</div><p><button class="btn" id="kAgain">ほかの問題へ</button></p></div>`;
-    $('#kAgain').onclick = () => { KS.list = []; tStop(); renderKq(); };
+function rowHtml(R, id) {
+  const [y, n] = id.split('-'), q = (KQ.q[y] || []).find(x => String(x.n) === n) || {};
+  const st = kqState(R, id);
+  return `<div class="tr${KS.sel === id ? ' on' : ''}" data-q="${id}"><span class="r">${y}</span><span class="r">${n}</span><span class="ks">${esc(q.s || '')}</span><span>${esc(kqStem(q).slice(0, 60))}</span><span class="mk ${st === 1 ? 'o' : st === 2 ? 'x' : ''}">${st === 1 ? '○' : st === 2 ? '×' : ''}</span><span class="r">${q.r != null ? q.r + '%' : ''}</span></div>`;
+}
+function drawRows(R) {
+  const L = KS.list.slice(0, KS.lim);
+  $('#kRows').innerHTML = L.map(id => rowHtml(R, id)).join('') + (KS.list.length > KS.lim ? `<button class="more" id="kMore">ほか ${KS.list.length - KS.lim} 問を出す</button>` : '') + (!KS.list.length ? '<div class="more">当てはまる問題はありません。</div>' : '');
+  $('#kRows').onclick = e => { const r = e.target.closest('[data-q]'); if (r) kqOpen(r.dataset.q); };
+  if ($('#kMore')) $('#kMore').onclick = e => { e.stopPropagation(); KS.lim += 500; drawRows(summarize(LOGS, META)); };
+}
+async function kqOpen(id, quiet) {
+  if (!id) return;
+  KS.sel = id;
+  $$('#kRows .tr.on, #mg i.sel').forEach(x => x.classList.remove('on', 'sel'));
+  const row = $(`#kRows [data-q="${id}"]`), cell = $(`#mg [data-q="${id}"]`);
+  if (row) { row.classList.add('on'); if (!quiet) row.scrollIntoView({ block: 'nearest' }); }
+  if (cell) cell.classList.add('sel');
+  const box = $('#kRead');
+  const q = await kqGet(id);
+  if (KS.sel !== id) return;
+  if (!q) { box.innerHTML = '<p>この問題は見つかりませんでした。</p>'; return; }
+  const R = summarize(LOGS, META), k = R.kq[id];
+  const i = KS.list.indexOf(id);
+  box.innerHTML = `<div class="row" style="margin-top:0"><span class="mut">${i >= 0 ? (i + 1) + ' / ' + KS.list.length : ''}</span>${k ? `<span class="hist">これまで ${k.n} 回・初め ${k.first ? '○' : '×'}・最後 ${k.ok ? '○' : '×'}${k.src === 'paper' ? '（紙）' : ''}</span>` : ''}</div><div id="kCard">${await kqHtml(id, q, true)}</div><div id="kRes"></div>`;
+  if (KS.sel !== id) return;
+  const done = KS.done[id];
+  if (done != null) markAns(id, q, done, true);
+  $$('#kCard .ch').forEach(b => b.onclick = () => answerKq(id, q, +b.dataset.n));
+  if (!quiet && window.innerWidth <= 820) box.scrollIntoView({ block: 'start' });
+}
+function answerKq(id, q, n) {
+  if (KS.done[id] != null || TEACHER && false) return;
+  KS.done[id] = n;
+  const ok = kqOk(q.a, n);
+  log({ ev: 'kq', page: 'kq', qid: id, ok: ok ? 1 : 0, ch: n, s: q.s });
+  markAns(id, q, n);
+  const R = summarize(LOGS, META), st = kqState(R, id);
+  const row = $(`#kRows [data-q="${id}"] .mk`), cell = $(`#mg [data-q="${id}"]`);
+  if (row) { row.className = 'mk ' + (st === 1 ? 'o' : 'x'); row.textContent = st === 1 ? '○' : '×'; }
+  if (cell) { cell.classList.remove('s1', 's2'); cell.classList.add('s' + st); }
+  renderFacts();
+}
+async function markAns(id, q, n, again) {
+  const ok = kqOk(q.a, n);
+  $$('#kCard .ch').forEach(x => { const m = +x.dataset.n; if (kqOk(q.a, m)) x.classList.add('right'); else if (m === n) x.classList.add('wrong'); });
+  const i = KS.list.indexOf(id), nx = KS.list[i + 1];
+  $('#kRes').innerHTML = `<div class="res ${ok ? 'ok' : 'ng'}">${ok ? '○ 正解' : '× 正答は ' + esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</div>
+    <div class="row">${nx ? '<button class="btn" id="kNext">次へ <kbd>Enter</kbd></button>' : '<span class="mut">この一覧の最後です</span>'}</div><div class="kx mut" id="kX">解説を読み込み中…</div>`;
+  if ($('#kNext')) $('#kNext').onclick = () => kqOpen(nx);
+  const x = await kxGet(id).catch(() => '');
+  if (KS.sel === id && $('#kX')) { $('#kX').classList.remove('mut'); $('#kX').textContent = x || '解説はまだありません。'; }
+}
+function kqKey(e) {
+  if (curTab() !== 'kq' || !KS.sel || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/INPUT|SELECT|TEXTAREA/.test((e.target.tagName || ''))) return;
+  if (!$('#viewer').classList.contains('hidden') || $('#modal:not([hidden])')) return;
+  const i = KS.list.indexOf(KS.sel);
+  if (/^[1-5]$/.test(e.key)) { const b = $(`#kCard .ch[data-n="${e.key}"]`); if (b) { e.preventDefault(); b.click(); } }
+  else if (e.key === 'Enter' && $('#kNext')) { e.preventDefault(); $('#kNext').click(); }
+  else if ((e.key === 'j' || e.key === 'J') && i >= 0 && KS.list[i + 1]) { e.preventDefault(); kqOpen(KS.list[i + 1]); }
+  else if ((e.key === 'k' || e.key === 'K') && i > 0) { e.preventDefault(); kqOpen(KS.list[i - 1]); }
+}
+
+// ===== 紙で解いた過去問を入れる =====
+// 回と範囲を選び、①選んだ番号を入れる（答え合わせはここで）か ②○×だけ入れる（間違えた番号を書く）。
+// 記録は ev:'kq'・paper:1・on（解いた日）。過去問の画面と同じ地図・記録・先生の集計に入る。
+const PP = { y: '', part: 'am', from: 1, to: 100, mode: 'ans', on: '', ans: {}, graded: false };
+async function renderPaper() {
+  const box = $('#tab-paper');
+  if (!KS.ready) {
+    box.innerHTML = '<p class="mut">過去問を読み込み中…</p>';
+    try { await kqAll(); kqIndex(); KS.ready = true; } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+  }
+  if (!PP.y) PP.y = String(KQ.years[KQ.years.length - 1]);
+  if (!PP.on) PP.on = day(Date.now());
+  const yrs = KQ.years.slice().reverse();
+  let h = `<div class="ph"><h1>紙で解いた過去問</h1><span class="mut">紙（冊子・プリント）で解いた答えをここに入れると、過去問の地図と記録に入ります。先生の集計にも入ります。</span></div>
+  <div class="card"><div class="row">
+    <label>回 <select id="pY">${yrs.map(y => `<option${PP.y === String(y) ? ' selected' : ''}>${y}</option>`).join('')}</select></label>
+    <span class="seg" id="pPart"><button data-p="am" class="${PP.part === 'am' ? 'on' : ''}">午前 1〜100</button><button data-p="pm" class="${PP.part === 'pm' ? 'on' : ''}">午後 101〜200</button><button data-p="rg" class="${PP.part === 'rg' ? 'on' : ''}">番号で指定</button></span>
+    <span id="pRg" ${PP.part === 'rg' ? '' : 'hidden'}><input id="pFrom" type="number" min="1" max="200" value="${PP.from}" style="width:5em"> 〜 <input id="pTo" type="number" min="1" max="200" value="${PP.to}" style="width:5em"></span>
+    <label>解いた日 <input id="pOn" type="date" value="${esc(PP.on)}"></label></div>
+    <div class="row"><span class="seg" id="pMode"><button data-m="ans" class="${PP.mode === 'ans' ? 'on' : ''}">選んだ番号を入れる</button><button data-m="ox" class="${PP.mode === 'ox' ? 'on' : ''}">○×だけ入れる</button></span>
+    <span class="mut">${PP.mode === 'ans' ? '答え合わせはここでします。' : '自分で答え合わせした人向け：間違えた番号だけ書きます。'}</span></div></div>
+  <div id="pBody"></div>`;
+  h += paperHistory();
+  box.innerHTML = h;
+  const re = () => { PP.ans = {}; PP.graded = false; renderPaper(); };
+  $('#pY').onchange = () => { PP.y = $('#pY').value; re(); };
+  $$('#pPart button').forEach(b => b.onclick = () => { PP.part = b.dataset.p; if (PP.part === 'am') { PP.from = 1; PP.to = 100; } if (PP.part === 'pm') { PP.from = 101; PP.to = 200; } re(); });
+  if ($('#pFrom')) { $('#pFrom').onchange = $('#pTo').onchange = () => { PP.from = Math.max(1, +$('#pFrom').value || 1); PP.to = Math.min(200, Math.max(PP.from, +$('#pTo').value || PP.from)); re(); }; }
+  $('#pOn').onchange = () => { PP.on = $('#pOn').value || day(Date.now()); };
+  $$('#pMode button').forEach(b => b.onclick = () => { PP.mode = b.dataset.m; re(); });
+  drawPaper();
+}
+function paperQs() {
+  const qs = (KQ.q[PP.y] || []).filter(q => +q.n >= PP.from && +q.n <= PP.to).sort((a, b) => a.n - b.n);
+  return qs;
+}
+function drawPaper() {
+  const qs = paperQs(), b = $('#pBody');
+  if (!qs.length) { b.innerHTML = '<p>この範囲に問題がありません。</p>'; return; }
+  if (PP.mode === 'ox') {
+    b.innerHTML = `<div class="card"><p>第${PP.y}回 問${qs[0].n}〜${qs[qs.length - 1].n}（${qs.length}問）</p>
+      <div class="row"><label style="flex:1">間違えた番号 <input id="pNg" style="width:100%" placeholder="例：3, 15, 27  ／  103 108"></label></div>
+      <div class="row"><label style="flex:1">解かなかった番号（あれば） <input id="pSkip" style="width:100%" placeholder="例：40-50"></label></div>
+      <div class="row"><button class="btn" id="pCheck">確かめる</button><span id="pSum" class="mut"></span></div></div><div id="pOut"></div>`;
+    $('#pCheck').onclick = () => {
+      const ng = numSet($('#pNg').value), sk = numSet($('#pSkip').value);
+      const bad = Array.from(ng).concat(Array.from(sk)).filter(n => !qs.some(q => +q.n === n));
+      if (bad.length) { alert('範囲の外の番号があります：' + bad.join(', ')); return; }
+      const rows = qs.filter(q => !sk.has(+q.n)).map(q => ({ q, ok: !ng.has(+q.n) }));
+      const okn = rows.filter(r => r.ok).length;
+      $('#pOut').innerHTML = `<div class="card hl"><b>${rows.length} 問・正解 ${okn}（${pct(okn, rows.length)}%）</b>　間違い ${rows.length - okn} 問 <span class="mut">解いた日 ${esc(PP.on)}</span>
+        <div class="row"><button class="btn" id="pSave">記録する</button><span class="mut">記録したあとで消すことはできません。番号を確かめてから押してください。</span></div></div>`;
+      $('#pSave').onclick = () => savePaper(rows);
+    };
     return;
   }
-  const id = KS.list[KS.i], q = await kqGet(id);
-  box.innerHTML = `<div class="row"><span class="mut">${KS.i + 1} / ${KS.list.length}</span><button class="btn sub sm" id="kQuit" style="margin-left:auto">やめる</button></div><div class="card" id="kCard">${await kqHtml(id, q, true)}</div><div id="kRes"></div>`;
-  $('#kQuit').onclick = () => { KS.list = []; tStop(); renderKq(); };
-  $$('#kCard .ch').forEach(b => b.onclick = () => {
-    if (KS.ans != null) return;
-    const n = +b.dataset.n, ok = kqOk(q.a, n);
-    KS.ans = n; if (ok) KS.ok++;
-    log({ ev: 'kq', page: 'kq', qid: id, ok: ok ? 1 : 0, ch: n, s: q.s });
-    $$('#kCard .ch').forEach(x => { const m = +x.dataset.n; if (kqOk(q.a, m)) x.classList.add('right'); else if (m === n) x.classList.add('wrong'); });
-    $('#kRes').innerHTML = `<div class="res ${ok ? 'ok' : 'ng'}">${ok ? '○ 正解' : '× 正答は ' + esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</div>
-      <div class="row"><button class="btn sub" id="kX">解説を見る</button><button class="btn" id="kNext">次へ</button></div>`;
-    $('#kX').onclick = () => showKx(id);
-    $('#kNext').onclick = () => { KS.i++; KS.ans = null; drawKq(); window.scrollTo(0, 0); };
+  // 選んだ番号を入れる
+  let h = `<div class="card"><p>第${PP.y}回 問${qs[0].n}〜${qs[qs.length - 1].n}（${qs.length}問）。丸を押すか、下の欄に番号を続けて打ちます（解かなかった問題は 0 か -）。</p>
+    <div class="row"><input id="pType" style="flex:1;font-family:var(--n);letter-spacing:.1em" placeholder="例：3142 5213 …（問${qs[0].n}から順に）" autocomplete="off"><button class="btn sub sm" id="pFill">入れる</button></div>
+    <div class="sheet" id="pSheet">`;
+  qs.forEach(q => {
+    const a = PP.ans[q.n], g = PP.graded && a != null ? (kqOk(q.a, a) ? ' ok' : ' ng') : '';
+    h += `<div class="sh${g}" data-n="${q.n}"><b>${q.n}</b>` + [1, 2, 3, 4, 5].map(i => `<button data-c="${i}" class="${a === i ? 'on' : ''}${PP.graded && a != null && !kqOk(q.a, a) && kqOk(q.a, i) ? ' a' : ''}">${i}</button>`).join('') + '</div>';
   });
+  const nIn = Object.keys(PP.ans).length;
+  h += `</div><div class="row"><button class="btn" id="pGrade"${nIn ? '' : ' disabled'}>答え合わせ（${nIn}問）</button><button class="btn sub sm" id="pClear">消す</button><span id="pSum"></span></div></div><div id="pOut"></div>`;
+  $('#pBody').innerHTML = h;
+  $('#pSheet').onclick = e => {
+    const bt = e.target.closest('button[data-c]'); if (!bt) return;
+    const n = +bt.parentNode.dataset.n, c = +bt.dataset.c;
+    if (PP.ans[n] === c) delete PP.ans[n]; else PP.ans[n] = c;
+    PP.graded = false; drawPaper();
+  };
+  $('#pFill').onclick = () => {
+    const ds = $('#pType').value.replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 65248)).replace(/[\s,、]/g, '').split('');
+    let i = 0;
+    for (const ch of ds) { if (i >= qs.length) break; const n = qs[i].n; if (/[1-5]/.test(ch)) PP.ans[n] = +ch; else delete PP.ans[n]; i++; }
+    PP.graded = false; drawPaper();
+  };
+  $('#pType').onkeydown = e => { if (e.key === 'Enter') $('#pFill').click(); };
+  $('#pClear').onclick = () => { if (confirm('入れた答えを消しますか？')) { PP.ans = {}; PP.graded = false; drawPaper(); } };
+  $('#pGrade').onclick = () => { PP.graded = true; drawPaper(); };
+  if (PP.graded) {
+    const rows = qs.filter(q => PP.ans[q.n] != null).map(q => ({ q, ch: PP.ans[q.n], ok: kqOk(q.a, PP.ans[q.n]) }));
+    const okn = rows.filter(r => r.ok).length;
+    const bySubj = {};
+    rows.forEach(r => { const s = bySubj[r.q.s] || (bySubj[r.q.s] = [0, 0]); s[1]++; if (r.ok) s[0]++; });
+    $('#pOut').innerHTML = `<div class="card hl"><b>${rows.length} 問・正解 ${okn}（${pct(okn, rows.length)}%）</b> <span class="mut">解いた日 ${esc(PP.on)}・緑の枠が正答</span>
+      <table style="margin:8px 0"><tr><th>科目</th><th class="n">正解</th><th class="n">問題</th><th class="n">%</th></tr>${Object.entries(bySubj).sort((a, b) => b[1][1] - a[1][1]).map(([s, v]) => `<tr><td>${esc(s)}</td><td class="n">${v[0]}</td><td class="n">${v[1]}</td><td class="n">${pct(v[0], v[1])}%</td></tr>`).join('')}</table>
+      <div class="row"><button class="btn" id="pSave">記録する</button><span class="mut">記録すると地図と記録に入ります（あとで消すことはできません）。</span></div></div>`;
+    $('#pSave').onclick = () => savePaper(rows);
+  }
+}
+const numSet = s => {
+  const out = new Set();
+  String(s || '').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 65248)).split(/[^0-9\-〜~]+/).forEach(t => {
+    const m = t.match(/^(\d+)\s*[-〜~]\s*(\d+)$/);
+    if (m) { for (let i = +m[1]; i <= +m[2] && i - m[1] < 200; i++) out.add(i); }
+    else if (/^\d+$/.test(t)) out.add(+t);
+  });
+  return out;
+};
+async function savePaper(rows) {
+  if (TEACHER) { alert('先生のアカウントでは記録しません'); return; }
+  if (!rows.length) return;
+  const R = summarize(LOGS, META);
+  const dup = rows.filter(r => Object.values(LOGS).some(l => l.ev === 'kq' && l.paper && l.qid === PP.y + '-' + r.q.n && l.on === PP.on)).length;
+  if (dup && !confirm(`このうち ${dup} 問は、同じ日の紙の記録がもうあります。重ねて記録しますか？`)) return;
+  $('#pSave').disabled = true; $('#pSave').textContent = '記録中…';
+  try {
+    await Promise.all(rows.map(r => log({ ev: 'kq', page: 'kq', qid: PP.y + '-' + r.q.n, ok: r.ok ? 1 : 0, ch: r.ch, s: r.q.s, paper: 1, on: PP.on })));
+    const okn = rows.filter(r => r.ok).length;
+    PP.ans = {}; PP.graded = false; KS.list = [];
+    renderPaper(); renderSide(); renderFacts();
+    $('#pBody').insertAdjacentHTML('afterbegin', `<div class="notice">第${PP.y}回の ${rows.length} 問（正解 ${okn}）を記録しました。<a href="#kq/miss">間違えた問題を解き直す</a></div>`);
+  } catch (e) { alert('記録できませんでした：' + e.message); $('#pSave').disabled = false; $('#pSave').textContent = '記録する'; }
+}
+function paperHistory() {
+  const g = {};
+  Object.values(LOGS).filter(l => l.ev === 'kq' && l.paper).forEach(l => {
+    const k = (l.on || day(l.at)) + '|' + String(l.qid).split('-')[0];
+    const o = g[k] || (g[k] = { n: 0, ok: 0, lo: 999, hi: 0 });
+    const n = +String(l.qid).split('-')[1];
+    o.n++; if (l.ok) o.ok++; o.lo = Math.min(o.lo, n); o.hi = Math.max(o.hi, n);
+  });
+  const ks = Object.keys(g).sort().reverse();
+  if (!ks.length) return '';
+  return '<h2>これまでに入れた紙の記録</h2><table><tr><th>解いた日</th><th>回</th><th class="n">番号</th><th class="n">問題</th><th class="n">正解</th><th class="n">%</th></tr>'
+    + ks.map(k => { const [d, y] = k.split('|'), o = g[k]; return `<tr><td>${esc(d)}</td><td>第${esc(y)}回</td><td class="n">${o.lo}〜${o.hi}</td><td class="n">${o.n}</td><td class="n">${o.ok}</td><td class="n">${pct(o.ok, o.n)}%</td></tr>`; }).join('') + '</table>';
 }
 
 // ===== 小テスト（先生が ippo/quiz に入れたら出る） =====
@@ -334,24 +587,25 @@ async function renderQuiz() {
   try { all = await get('ippo/quiz'); } catch (e) {}
   const R = summarize(LOGS, META);
   const L = Object.entries(all || {}).filter(([, v]) => v && v.open);
-  if (!L.length) { box.innerHTML = '<div class="card"><b>準備中</b><p>先生が小テストを出すと、ここに出ます。</p></div>'; return; }
-  box.innerHTML = '<ul class="plist">' + L.map(([k, v]) => {
+  let h = '<div class="ph"><h1>小テスト</h1><span class="mut">先生が出した小テスト。</span></div>';
+  if (!L.length) { box.innerHTML = h + '<div class="card"><b>準備中</b><p>先生が小テストを出すと、ここに出ます。</p></div>'; return; }
+  box.innerHTML = h + '<ul class="plist">' + L.map(([k, v]) => {
     const qs = typeof v.qs === 'string' ? JSON.parse(v.qs) : (v.qs || []);
     const d = qs.filter((_, i) => R.quiz[k + '/' + i]).length;
-    return `<li><a href="#" data-q="${esc(k)}"><span class="tt">${esc(v.title || k)}</span><span class="st ${d >= qs.length ? 'done' : ''}">${d} / ${qs.length}</span></a></li>`;
+    return `<li><a href="#" data-q="${esc(k)}"><span class="no">${qs.length}問</span><span class="tt">${esc(v.title || k)}</span><span class="st ${d >= qs.length ? 'done' : ''}">${d} / ${qs.length}</span></a></li>`;
   }).join('') + '</ul>';
   $$('#tab-quiz [data-q]').forEach(a => a.onclick = ev => {
     ev.preventDefault();
     const v = all[a.dataset.q];
     QZ.id = a.dataset.q; QZ.title = v.title; QZ.qs = typeof v.qs === 'string' ? JSON.parse(v.qs) : (v.qs || []); QZ.i = 0; QZ.ok = 0;
-    tStart('quiz'); drawQuiz();
+    drawQuiz();
   });
 }
 function drawQuiz() {
   const box = $('#tab-quiz');
   if (QZ.i >= QZ.qs.length) {
     box.innerHTML = `<div class="card"><b>${esc(QZ.title || '')}</b><div class="big">${QZ.ok} / ${QZ.qs.length} 問 正解</div><p><button class="btn" id="qBack">一覧へ</button></p></div>`;
-    $('#qBack').onclick = () => { QZ.id = null; tStop(); renderQuiz(); };
+    $('#qBack').onclick = () => { QZ.id = null; renderQuiz(); };
     return;
   }
   const q = QZ.qs[QZ.i];
@@ -367,24 +621,34 @@ function drawQuiz() {
   });
 }
 
-// ===== 記録 =====
+// ===== 記録・分析 =====
 function renderRec() {
   const R = summarize(LOGS, META);
-  let h = `<div class="stats">
-    <div class="card"><div class="lab">取り組んだ日</div><div class="big">${R.nDays}日</div></div>
+  let h = `<div class="ph"><h1>記録・分析</h1><span class="mut">これまでの全部</span></div><div class="stats">
+    <div class="card"><div class="lab">取り組んだ日</div><div class="big">${R.nDays}<small>日</small></div></div>
     <div class="card"><div class="lab">時間</div><div class="big">${hm(R.time)}</div></div>
-    <div class="card"><div class="lab">答えた歩（初めの正解）</div><div class="big">${R.nStep}</div><span class="mut">${pct(R.okStep, R.nStep)}%</span></div>
-    <div class="card"><div class="lab">過去問（初めの正解）</div><div class="big">${R.nKq}問</div><span class="mut">${pct(R.okKq, R.nKq)}%</span></div></div>`;
-  // 直近21日
+    <div class="card"><div class="lab">過去問（初めの正解）</div><div class="big">${R.nKq}<small>問</small></div><span class="mut">${pct(R.okKq, R.nKq)}%・うち紙 ${R.nPaper}</span></div>
+    <div class="card"><div class="lab">一歩ずつの歩（初めの正解）</div><div class="big">${R.nStep}</div><span class="mut">${pct(R.okStep, R.nStep)}%</span></div></div>`;
   const N = 21, today = new Date(day(Date.now()) + 'T00:00:00').getTime();
   const ds = Array.from({ length: N }, (_, i) => day(today - (N - 1 - i) * 864e5));
   const mx = Math.max(1, ...ds.map(d => R.days[d] || 0));
   h += '<h2>この3週間（1日の時間）</h2><div class="days">' + ds.map(d => `<div class="${R.days[d] ? '' : 'z'}" style="height:${Math.max(2, (R.days[d] || 0) * 100 / mx)}%" title="${d} ${hm(R.days[d] || 0)}"></div>`).join('') + `</div><div class="dlab"><span>${md(today - (N - 1) * 864e5)}</span><span>今日</span></div>`;
-  h += '<h2>科目ごと</h2><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>';
+  // 過去問の科目ごと
+  const ks = {};
+  Object.keys(R.kq).forEach(id => {
+    const k = R.kq[id], s = k.s || KQS[id] || (k.page && META.P[k.page] && META.S[META.P[k.page].subj].kq[0]) || 'ほか';
+    const o = ks[s] || (ks[s] = { n: 0, first: 0, miss: 0 });
+    o.n++; if (k.first) o.first++; if (!k.ok) o.miss++;
+  });
+  const kl = Object.entries(ks).sort((a, b) => pct(a[1].first, a[1].n) - pct(b[1].first, b[1].n));
+  h += '<div class="grid2"><div><h2>過去問：科目ごと（初めの正解の低い順）</h2>';
+  h += kl.length ? '<table><tr><th>科目</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${pct(o.first, o.n)}%</td><td class="n">${o.miss ? `<a href="#kq/miss" data-s="${esc(s)}">${o.miss}</a>` : 0}</td></tr>`).join('') + '</table>' : '<p class="mut">まだありません。</p>';
+  h += '</div><div><h2>一歩ずつ：科目ごと</h2><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>';
   META.list.forEach(k => {
     const s = META.S[k], r = R.subj[k];
     h += `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`;
   });
-  h += '</table><p class="mut">「初めの正解」＝その歩に初めて答えたときに正解だった割合。もう一度答えても変わりません。</p>';
+  h += '</table></div></div><p class="mut">「初めの正解」＝その問題・歩に初めて答えたときに正解だった割合。もう一度答えても変わりません。</p>';
   $('#tab-rec').innerHTML = h;
+  $$('#tab-rec a[data-s]').forEach(a => a.onclick = () => { KS.subj = a.dataset.s; KS.list = []; });
 }

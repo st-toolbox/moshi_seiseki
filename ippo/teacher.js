@@ -1,4 +1,5 @@
-// 一歩ずつ（2年生用）先生の画面。参加の許可・取り組み・伸び（模試の前後）・課題・設定。
+// 国家試験過去問対策アプリ（2年生用）先生の画面。全体の地図・取り組み・伸び（模試の前後）・課題・参加の許可・設定。
+// 形は学生の画面と同じ（左の目次・上の帯）。
 // 読むのは ippo/ 全部と students・exams・responses（先生だけが読める）。学生の名前は students の name（学籍番号）で出す。
 let ME = null, META = null, STU = {}, MEM = {}, APP = {}, LOGALL = {}, ASG = {}, DRAFT = {}, CFG = {}, EXAMS = {};
 const RESP = {};
@@ -11,10 +12,10 @@ auth.onAuthStateChanged(async user => {
   ME = user;
   $('#scrLogin').classList.add('hidden'); $('#scrMain').classList.remove('hidden');
   $('#who').textContent = user.email;
-  $('#tab-mem').innerHTML = '<p class="mut">読み込み中…</p>';
-  try { await loadAll(); } catch (e) { $('#tab-mem').innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
-  db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; if (cur() === 'mem') renderMem(); });
-  db.ref('ippo/apply').on('value', s => { APP = s.val() || {}; if (cur() === 'mem') renderMem(); });
+  $('#tab-map').innerHTML = '<p class="mut">読み込み中…</p>';
+  try { await loadAll(); } catch (e) { $('#tab-map').innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+  db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
+  db.ref('ippo/apply').on('value', s => { APP = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
   $$('#tabs button').forEach(b => b.onclick = () => { location.hash = b.dataset.t; });
   window.addEventListener('hashchange', route);
   route();
@@ -27,12 +28,72 @@ async function loadAll() {
 }
 async function reloadLogs() { LOGALL = (await get('ippo/log')) || {}; ASG = (await get('ippo/assign')) || {}; DRAFT = (await get('ippo/draft')) || {}; }
 
-const cur = () => location.hash.replace('#', '').split('/')[0] || 'mem';
+const TT = ['map', 'act', 'gain', 'task', 'mem', 'cfg'];
+const cur = () => location.hash.replace('#', '').split('/')[0] || 'map';
 function route() {
-  const t = ['mem', 'act', 'gain', 'task', 'cfg'].indexOf(cur()) >= 0 ? cur() : 'mem';
+  const t = TT.indexOf(cur()) >= 0 ? cur() : 'map';
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['mem', 'act', 'gain', 'task', 'cfg'].forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
-  ({ mem: renderMem, act: renderAct, gain: renderGain, task: renderTask, cfg: renderCfg })[t]();
+  TT.forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
+  ({ map: renderMap, act: renderAct, gain: renderGain, task: renderTask, mem: renderMem, cfg: renderCfg })[t]();
+  const u = location.hash.split('/')[1];
+  if (t === 'act' && u && MEM[u]) detail(u);
+  renderFacts();
+  if (!u) $('#main').scrollTop = 0;
+}
+
+// 上の帯と左の目次の数
+function renderFacts() {
+  if (!META) return;
+  const wk = Date.now() - 7 * 864e5, ms = memUids();
+  let act = 0, kq = 0, paper = 0;
+  ms.forEach(u => { const R = summarize(LOGALL[u], META, wk); if (R.ev) act++; kq += R.nKq; paper += R.nPaper; });
+  const ap = Object.keys(APP).filter(u => !MEM[u]).length, dr = Object.keys(DRAFT).filter(u => MEM[u]).length;
+  const tg = CFG.target, dl = tg && tg.date ? Math.ceil((new Date(tg.date + 'T00:00:00') - new Date(day(Date.now()) + 'T00:00:00')) / 864e5) : null;
+  $('#facts').innerHTML = `<span>参加<b>${ms.length}</b>人</span><span>この1週間に動いた<b>${act}</b>人</span><span>この1週間の過去問<b>${kq}</b>問（紙 ${paper}）</span>`
+    + (ap ? `<span class="hot">申し込み待ち<b>${ap}</b>人</span>` : '') + (dl != null && dl >= 0 ? `<span>${esc(tg.name || '目標')}まで<b>${dl}</b>日</span>` : '');
+  $('#nMap').textContent = ms.length ? ms.length + '人' : '';
+  $('#nAct').textContent = act ? act + '人' : '';
+  $('#nDraft').textContent = dr ? 'AI' + dr : '';
+  $('#nApp').textContent = ap ? '待ち' + ap : ''; $('#nApp').className = ap ? 'hot' : '';
+}
+
+// ===== 全体の地図（学生×一歩ずつの回） =====
+// ます目＝回。薄い緑＝開いた・緑＝半分より先・濃い緑＝終わった。右に過去問（解いた・初めの正解・紙）と最後の日。
+function renderMap() {
+  const ms = memUids();
+  const per = window._mper || '0', from = +per ? Date.now() - (+per) * 864e5 : 0;
+  let h = `<div class="ph"><h1>全体の地図</h1><span class="mut">学生×一歩ずつの回。名前を押すとその学生の詳しい取り組みが出ます。</span></div>`;
+  if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「参加者」で申し込みを許可してください。</p>'; return; }
+  h += `<div class="row"><label>数える期間 <select id="mPer"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
+    <button class="btn sub sm" id="mRl">最新にする</button>
+    <span class="hmlg"><span><i class="p1"></i>開いた</span><span><i class="p2"></i>半分より先</span><span><i class="p3"></i>終わった</span></span></div>`;
+  const rows = ms.map(u => ({ u, R: summarize(LOGALL[u], META, from) })).sort((a, b) => b.R.done + b.R.nKq - (a.R.done + a.R.nKq));
+  h += '<div style="overflow-x:auto"><table class="hm"><tr><th></th>';
+  META.list.forEach((k, i) => { h += (i ? '<th></th>' : '') + `<th colspan="${META.S[k].pages.length}" title="${esc(META.S[k].name)}">${esc(META.S[k].name.slice(0, Math.max(2, META.S[k].pages.length)))}</th>`; });
+  h += '<th class="k">終わった回</th><th class="k">過去問</th><th class="k">初めの正解</th><th class="k">紙</th><th class="k">時間</th><th class="k">最後</th></tr>';
+  rows.forEach(({ u, R }) => {
+    h += `<tr><td class="nm" data-u="${u}">${esc(nm(u))}</td>`;
+    META.list.forEach((k, i) => {
+      if (i) h += '<td class="gap"></td>';
+      META.S[k].pages.forEach(pg => {
+        const p = R.pages[pg.id], m = META.P[pg.id];
+        const c = !p || !(p.done || p.opened) ? '' : p.complete ? 'p3' : p.done * 2 >= m.total ? 'p2' : 'p1';
+        h += `<td class="c"><i class="${c}" title="${esc(m.sname)} 第${m.no}回 ${esc(m.title)}${p ? '　' + (p.done || 0) + '/' + m.total : ''}"></i></td>`;
+      });
+    });
+    h += `<td class="k">${R.pagesDone}</td><td class="k">${R.nKq}</td><td class="k">${R.nKq ? pct(R.okKq, R.nKq) + '%' : '—'}</td><td class="k">${R.nPaper || ''}</td><td class="k">${R.time ? hm(R.time) : ''}</td><td class="k">${R.last ? md(R.last) : '—'}</td></tr>`;
+  });
+  h += '</table></div><p class="mut">並びは取り組んだ量（歩と過去問）の多い順。「紙」＝紙で解いて学生が入れた過去問の数（過去問の数に含む）。</p>';
+  // 過去問の科目ごと（参加者全体）
+  const ks = {};
+  rows.forEach(({ u, R }) => Object.values(R.kq).forEach(k => { const s = k.s || 'ほか'; const o = ks[s] || (ks[s] = { n: 0, f: 0, who: new Set() }); o.n++; if (k.first) o.f++; o.who.add(u); }));
+  const kl = Object.entries(ks).sort((a, b) => pct(a[1].f, a[1].n) - pct(b[1].f, b[1].n));
+  if (kl.length) h += '<h2>過去問：科目ごと（参加者全体・初めの正解の低い順）</h2><table><tr><th>科目</th><th class="n">解いた（のべ）</th><th class="n">解いた人</th><th class="n">初めの正解</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${o.who.size}</td><td class="n">${pct(o.f, o.n)}%</td></tr>`).join('') + '</table>';
+  $('#tab-map').innerHTML = h;
+  $('#mPer').value = per;
+  $('#mPer').onchange = () => { window._mper = $('#mPer').value; renderMap(); };
+  $('#mRl').onclick = async () => { await reloadLogs(); renderMap(); renderFacts(); };
+  $$('#tab-map td.nm').forEach(td => td.onclick = () => { location.hash = 'act/' + td.dataset.u; });
 }
 
 const nm = uid => (STU[uid] && STU[uid].name) || (MEM[uid] && MEM[uid].email || '').split('@')[0] || (APP[uid] && APP[uid].name) || uid.slice(0, 6);
@@ -95,17 +156,17 @@ function renderAct() {
   rows.sort((a, b) => (b.R.last || 0) - (a.R.last || 0));
   let h = `<div class="row"><label>期間 <select id="per"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="rl">最新にする</button><button class="btn sub sm" id="dl">CSV</button></div>
-    <table><tr><th>学籍番号</th><th>学年</th><th>最後</th><th class="n">日数</th><th class="n">時間</th><th class="n">歩</th><th class="n">初めの正解</th><th class="n">終わった回</th><th class="n">過去問</th><th class="n">過去問の正解</th><th class="n">課題</th></tr>`;
+    <table><tr><th>学籍番号</th><th>学年</th><th>最後</th><th class="n">日数</th><th class="n">時間</th><th class="n">歩</th><th class="n">初めの正解</th><th class="n">終わった回</th><th class="n">過去問</th><th class="n">過去問の正解</th><th class="n">うち紙</th><th class="n">課題</th></tr>`;
   rows.forEach(({ u, R, a }) => {
-    h += `<tr class="click" data-u="${u}"><td>${esc(nm(u))}</td><td>${esc(gk(u))}</td><td>${R.last ? md(R.last) : '—'}</td><td class="n">${R.nDays}</td><td class="n">${hm(R.time)}</td><td class="n">${R.nStep}</td><td class="n">${R.nStep ? pct(R.okStep, R.nStep) + '%' : '—'}</td><td class="n">${R.pagesDone}</td><td class="n">${R.nKq}</td><td class="n">${R.nKq ? pct(R.okKq, R.nKq) + '%' : '—'}</td><td class="n">${a.n ? a.done + ' / ' + a.n : '—'}</td></tr>`;
+    h += `<tr class="click" data-u="${u}"><td>${esc(nm(u))}</td><td>${esc(gk(u))}</td><td>${R.last ? md(R.last) : '—'}</td><td class="n">${R.nDays}</td><td class="n">${hm(R.time)}</td><td class="n">${R.nStep}</td><td class="n">${R.nStep ? pct(R.okStep, R.nStep) + '%' : '—'}</td><td class="n">${R.pagesDone}</td><td class="n">${R.nKq}</td><td class="n">${R.nKq ? pct(R.okKq, R.nKq) + '%' : '—'}</td><td class="n">${R.nPaper || ''}</td><td class="n">${a.n ? a.done + ' / ' + a.n : '—'}</td></tr>`;
   });
   h += '</table><p class="mut">行を押すと詳しく出ます。「初めの正解」＝初めて答えたときに正解だった割合。時間＝画面が見えていて手を動かしていた時間（手が止まった間は2分まで数える）。</p><div id="detail"></div>';
   $('#tab-act').innerHTML = h;
   $('#per').value = per;
   $('#per').onchange = () => { window._per = $('#per').value; renderAct(); };
   $('#rl').onclick = async () => { await reloadLogs(); renderAct(); };
-  $('#dl').onclick = () => csv([['学籍番号', '学年', '最後', '日数', '分', '歩', '初めの正解%', '終わった回', '過去問', '過去問の正解%', '課題（済/出した）']].concat(rows.map(({ u, R, a }) => [nm(u), gk(u), R.last ? day(R.last) : '', R.nDays, mins(R.time), R.nStep, R.nStep ? pct(R.okStep, R.nStep) : '', R.pagesDone, R.nKq, R.nKq ? pct(R.okKq, R.nKq) : '', a.n ? a.done + '/' + a.n : ''])), '一歩ずつ_取り組み_' + day(Date.now()) + '.csv');
-  $$('#tab-act tr.click').forEach(tr => tr.onclick = () => detail(tr.dataset.u));
+  $('#dl').onclick = () => csv([['学籍番号', '学年', '最後', '日数', '分', '歩', '初めの正解%', '終わった回', '過去問', '過去問の正解%', 'うち紙', '課題（済/出した）']].concat(rows.map(({ u, R, a }) => [nm(u), gk(u), R.last ? day(R.last) : '', R.nDays, mins(R.time), R.nStep, R.nStep ? pct(R.okStep, R.nStep) : '', R.pagesDone, R.nKq, R.nKq ? pct(R.okKq, R.nKq) : '', R.nPaper, a.n ? a.done + '/' + a.n : ''])), '過去問対策_取り組み_' + day(Date.now()) + '.csv');
+  $$('#tab-act tr.click').forEach(tr => tr.onclick = () => { location.hash = 'act/' + tr.dataset.u; });
 }
 function detail(u) {
   const R = summarize(LOGALL[u], META);
@@ -116,6 +177,14 @@ function detail(u) {
   h += '<h3>科目ごと</h3><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>' + META.list.map(k => { const s = META.S[k], r = R.subj[k]; return `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`; }).join('') + '</table>';
   const ps = Object.keys(R.pages).filter(id => META.P[id]).sort((a, b) => R.pages[b].last - R.pages[a].last);
   h += '<h3>開いた回</h3><table><tr><th>回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">わからない</th><th class="n">時間</th><th>終わりの過去問</th><th>最後</th></tr>' + ps.map(id => { const p = R.pages[id], m = META.P[id]; return `<tr><td>${esc(m.sname)} 第${m.no}回 ${esc(m.title)}</td><td class="n">${p.done} / ${m.total}</td><td class="n">${p.n ? pct(p.ok, p.n) + '%' : '—'}</td><td class="n">${Object.keys(p.u).length || ''}</td><td class="n">${p.time ? hm(p.time) : ''}</td><td>${p.exit ? (p.exit.ok + ' / ' + p.exit.n) : ''}</td><td>${p.last ? md(p.last) : ''}</td></tr>`; }).join('') + '</table>';
+  const ks = {};
+  Object.values(R.kq).forEach(k => { const s = k.s || 'ほか'; const o = ks[s] || (ks[s] = { n: 0, f: 0, x: 0, pp: 0 }); o.n++; if (k.first) o.f++; if (!k.ok) o.x++; if (k.src === 'paper') o.pp++; });
+  const kl = Object.entries(ks).sort((a, b) => pct(a[1].f, a[1].n) - pct(b[1].f, b[1].n));
+  h += '<h3>過去問：科目ごと（初めの正解の低い順）</h3>' + (kl.length ? '<table><tr><th>科目</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th><th class="n">初めが紙</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${pct(o.f, o.n)}%</td><td class="n">${o.x}</td><td class="n">${o.pp || ''}</td></tr>`).join('') + '</table>' : '<p class="mut">まだありません。</p>');
+  const pg = {};
+  Object.values(LOGALL[u] || {}).filter(l => l.ev === 'kq' && l.paper).forEach(l => { const y = String(l.qid).split('-')[0], k = (l.on || day(l.at)) + '|' + y; const o = pg[k] || (pg[k] = { n: 0, ok: 0, at: l.at }); o.n++; if (l.ok) o.ok++; });
+  const pk = Object.keys(pg).sort().reverse();
+  if (pk.length) h += '<h3>紙で解いて入れた分</h3><table><tr><th>解いた日</th><th>回</th><th class="n">問題</th><th class="n">正解</th><th>入れた日</th></tr>' + pk.map(k => { const [d, y] = k.split('|'), o = pg[k]; return `<tr><td>${esc(d)}</td><td>第${esc(y)}回</td><td class="n">${o.n}</td><td class="n">${o.ok}（${pct(o.ok, o.n)}%）</td><td>${md(o.at)}</td></tr>`; }).join('') + '</table>';
   const as = Object.entries(ASG[u] || {});
   if (as.length) h += '<h3>課題</h3><ul>' + as.map(([, a]) => { const pd = (a.pages || []).filter(id => R.pages[id] && R.pages[id].complete).length; return `<li>${esc(a.title)}（${a.at ? md(a.at) : ''}${a.due ? '・' + esc(a.due) + 'まで' : ''}）回 ${pd} / ${(a.pages || []).length}</li>`; }).join('') + '</ul>';
   $('#detail').innerHTML = h;

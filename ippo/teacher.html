@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>一歩ずつ（先生）</title>
+<title>国家試験過去問対策アプリ（先生）</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -13,31 +13,41 @@
 <body>
 
 <div id="scrLogin" class="login hidden">
-  <h1>一歩ずつ（先生）</h1>
-  <p>先生のGoogleアカウントでログインしてください。</p>
-  <button class="btn" onclick="signIn()">Googleでログイン</button>
-  <div class="alert" id="inappNote" hidden></div>
+  <div class="brand">国家試験過去問対策アプリ（先生）</div>
+  <p class="lead">2年生の取り組み・伸び・課題を見る画面。</p>
+  <div class="box">
+    <p>先生のGoogleアカウントでログインしてください。</p>
+    <p><button class="btn" onclick="signIn()">Googleでログイン</button></p>
+    <div class="alert" id="inappNote" hidden></div>
+  </div>
 </div>
 
-<div id="scrMain" class="hidden">
-  <div class="top">
-    <h1>一歩ずつ（先生）</h1>
-    <a href="index.html" class="mut">学生の画面</a>
-    <span class="who"><span id="who"></span>　<a href="#" onclick="signOut();return false">ログアウト</a></span>
-  </div>
-  <div class="tabs" id="tabs">
-    <button data-t="mem">参加者</button>
-    <button data-t="act">取り組み</button>
-    <button data-t="gain">伸び</button>
-    <button data-t="task">課題</button>
-    <button data-t="cfg">設定</button>
-  </div>
-  <div class="wrap">
-    <div id="tab-mem"></div>
-    <div id="tab-act" class="hidden"></div>
-    <div id="tab-gain" class="hidden"></div>
-    <div id="tab-task" class="hidden"></div>
-    <div id="tab-cfg" class="hidden"></div>
+<div id="scrMain" class="app hidden">
+  <header class="top">
+    <div class="brand">国家試験過去問対策アプリ<span>先生</span></div>
+    <div class="facts" id="facts"></div>
+    <span class="who"><a href="index.html">学生の画面</a>　<span id="who"></span><a href="#" onclick="signOut();return false">ログアウト</a></span>
+  </header>
+  <div class="work">
+    <nav class="side" id="tabs">
+      <h3>学生を見る</h3>
+      <button class="v" data-t="map"><span>全体の地図</span><em id="nMap"></em></button>
+      <button class="v" data-t="act"><span>取り組み</span><em id="nAct"></em></button>
+      <button class="v" data-t="gain"><span>伸び（模試の前後）</span></button>
+      <h3>動かす</h3>
+      <button class="v" data-t="task"><span>課題</span><em id="nDraft"></em></button>
+      <button class="v" data-t="mem"><span>参加者</span><em id="nApp"></em></button>
+      <button class="v" data-t="cfg"><span>設定</span></button>
+      <div class="count" id="tCount" hidden></div>
+    </nav>
+    <div class="main" id="main">
+      <div class="pane wide" id="tab-map"></div>
+      <div class="pane wide hidden" id="tab-act"></div>
+      <div class="pane hidden" id="tab-gain"></div>
+      <div class="pane hidden" id="tab-task"></div>
+      <div class="pane hidden" id="tab-mem"></div>
+      <div class="pane hidden" id="tab-cfg"></div>
+    </div>
   </div>
 </div>
 

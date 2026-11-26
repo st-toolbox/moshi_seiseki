@@ -1,4 +1,4 @@
-// 一歩ずつ（2年生用）の共通部品：Firebase・ログイン・記録の集計。
+// 国家試験過去問対策アプリ（2年生用・一歩ずつはその機能の1つ）の共通部品：Firebase・ログイン・記録の集計。
 // 中身（回のページ・過去問・解説）と記録は Firebase RTDB の ippo/ にある＝このリポジトリには画面の殻だけを置く。
 // 決まり＝../database.rules.json の ippo（参加を許された学生と先生だけが読める・記録は本人が足すだけ）
 const firebaseConfig = {
@@ -79,11 +79,11 @@ function buildMeta(index) {
 // ===== 記録の集計 =====
 // 記録1件＝{ev, page, yama, step, ok, ch, qid, sec, at}
 //   ev: open（回を開いた）／time（見えていて手を動かしていた秒）／step（歩か回の中の過去問に答えた）／unsure（わからないの印）
-//       exit_hit・exit_miss（回の終わりの過去問の結果）／kq（過去問の画面で答えた）／quiz（小テスト）
+//       exit_hit・exit_miss（回の終わりの過去問の結果）／kq（過去問の画面で答えた・paper:1＝紙で解いて入れた・on＝解いた日）／quiz（小テスト）
 // 同じ歩に何度答えても「初め」と「最後」を持つ（正答率は初めの答えで数える）
 function summarize(logs, META, from, to) {
   from = from || 0; to = to || Infinity;
-  const R = { time: 0, days: {}, last: 0, first: 0, pages: {}, kq: {}, quiz: {}, ev: 0, lastPage: null, lastOpen: 0 };
+  const R = { time: 0, days: {}, last: 0, first: 0, pages: {}, kq: {}, quiz: {}, ev: 0, lastPage: null, lastOpen: 0, nPaper: 0 };
   const arr = Object.values(logs || {}).filter(l => l && l.at >= from && l.at < to).sort((a, b) => a.at - b.at);
   const pg = id => R.pages[id] || (R.pages[id] = { s: {}, p: {}, u: {}, exit: null, time: 0, opened: 0, last: 0 });
   const addK = (q, l, src) => {
@@ -125,7 +125,7 @@ function summarize(logs, META, from, to) {
       continue;
     }
     if ((l.ev === 'exit_hit' || l.ev === 'exit_miss') && l.page) { pg(l.page).exit = { hit: l.ev === 'exit_hit', ok: l.ok, n: l.n }; continue; }
-    if (l.ev === 'kq') { addK(l.qid, l, 'kq'); continue; }
+    if (l.ev === 'kq') { addK(l.qid, l, l.paper ? 'paper' : 'kq'); if (l.paper) R.nPaper++; continue; }
     if (l.ev === 'quiz' && l.qid) { const q = R.quiz[l.qid] || (R.quiz[l.qid] = { first: !!l.ok, n: 0 }); q.n++; q.ok = !!l.ok; }
   }
   // 回ごと・科目ごとの数
