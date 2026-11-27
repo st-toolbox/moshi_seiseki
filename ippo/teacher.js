@@ -40,7 +40,17 @@ async function loadAll() {
   const [idx, stu, lg, asg, dr, cfg, ex] = await Promise.all(['ippo/index', 'students', 'ippo/log', 'ippo/assign', 'ippo/draft', 'ippo/config', 'exams'].map(p => get(p).catch(() => null)));
   META = buildMeta(typeof idx === 'string' ? JSON.parse(idx) : idx);
   STU = stu || {}; LOGALL = lg || {}; ASG = asg || {}; DRAFT = dr || {}; CFG = cfg || {}; EXAMS = ex || {};
+  await kqEvery().catch(() => null);
 }
+// 過去問の科目（11/27 運営者「「ほか」ってなに？」＝基礎学習の回の中で解いた過去問は記録に科目が無かった）
+function kSubj(id, k) {
+  if (k && k.s) return k.s;
+  const [y, n] = String(id).split('-'); const q = (KQ.q[y] || []).find(x => String(x.n) === n);
+  if (q && q.s) return q.s;
+  return (k && k.page && META && META.P[k.page]) ? META.P[k.page].sname : '科目不明';
+}
+// 先生の画面に出す名前＝同意で学生が入れた名前（学籍番号）。名前は先生だけが読める所にあり、AIの下書きには渡さない（ippo2_ai_draft.py が止める）
+const nmx = uid => { const c = consOf(uid); return c && c.name ? c.name + '（' + nm(uid) + '）' : nm(uid); };
 async function reloadLogs() { LOGALL = (await get('ippo/log')) || {}; ASG = (await get('ippo/assign')) || {}; DRAFT = (await get('ippo/draft')) || {}; }
 
 const TT = ['map', 'act', 'gain', 'task', 'mem', 'cfg'];
@@ -77,7 +87,7 @@ function renderFacts() {
 function renderMap() {
   const ms = memUids();
   const per = window._mper || '0', from = +per ? Date.now() - (+per) * 864e5 : 0;
-  let h = phead('map', '学生を見る', '全体の地図', '学生×基礎学習の回。ます目1つが1回。学籍番号を押すと、その学生の詳しい取り組みが出ます。', '');
+  let h = phead('map', '学生を見る', '全体の地図', '学生×基礎学習の回。ます目1つが1回。名前を押すと、その学生の詳しい取り組みが出ます。名前はAI分析の同意で学生が入れたもの（未回答の学生は学籍番号）。', '');
   if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「登録した学生」で申し込みを許可してください。</p>'; return; }
   h += `<div class="row"><label>数える期間 <select id="mPer"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="mRl">最新にする</button>
@@ -87,7 +97,7 @@ function renderMap() {
   META.list.forEach((k, i) => { h += (i ? '<th></th>' : '') + `<th colspan="${META.S[k].pages.length}" title="${esc(META.S[k].name)}">${esc(META.S[k].name.slice(0, Math.max(2, META.S[k].pages.length)))}</th>`; });
   h += '<th class="k">終わった回</th><th class="k">過去問</th><th class="k">初めの正解</th><th class="k">紙</th><th class="k">時間</th><th class="k">最後</th></tr>';
   rows.forEach(({ u, R }) => {
-    h += `<tr><td class="nm" data-u="${u}">${esc(nm(u))}</td>`;
+    h += `<tr><td class="nm" data-u="${u}">${esc(nmx(u))}</td>`;
     META.list.forEach((k, i) => {
       if (i) h += '<td class="gap"></td>';
       META.S[k].pages.forEach(pg => {
@@ -101,7 +111,7 @@ function renderMap() {
   h += '</table></div><p class="mut">並びは取り組んだ量（歩と過去問）の多い順。「紙」＝紙で解いて学生が入れた過去問の数（過去問の数に含む）。</p>';
   // 過去問の科目ごと（参加者全体）
   const ks = {};
-  rows.forEach(({ u, R }) => Object.values(R.kq).forEach(k => { const s = k.s || 'ほか'; const o = ks[s] || (ks[s] = { n: 0, f: 0, who: new Set() }); o.n++; if (k.first) o.f++; o.who.add(u); }));
+  rows.forEach(({ u, R }) => Object.entries(R.kq).forEach(([id, k]) => { const s = kSubj(id, k); const o = ks[s] || (ks[s] = { n: 0, f: 0, who: new Set() }); o.n++; if (k.first) o.f++; o.who.add(u); }));
   const kl = Object.entries(ks).sort((a, b) => pct(a[1].f, a[1].n) - pct(b[1].f, b[1].n));
   if (kl.length) h += '<h2>過去問：科目ごと（参加者全体・初めの正解の低い順）</h2><table><tr><th>科目</th><th class="n">解いた（のべ）</th><th class="n">解いた人</th><th class="n">初めの正解</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${o.who.size}</td><td class="n">${pct(o.f, o.n)}%</td></tr>`).join('') + '</table>';
   $('#tab-map').innerHTML = h;
@@ -166,10 +176,10 @@ function renderMem() {
     if (g) { STU[u] = STU[u] || {}; STU[u].gakunen = g; }
   };
   $$('[data-ok]').forEach(b => b.onclick = () => admit(b.dataset.ok, $(`[data-g="${b.dataset.ok}"]`).value).catch(e => alert(e.message)));
-  $$('[data-no]').forEach(b => b.onclick = () => confirm(nm(b.dataset.no) + ' の申し込みを見送りますか？') && db.ref('ippo/apply/' + b.dataset.no).remove());
+  $$('[data-no]').forEach(b => b.onclick = () => confirm(nmx(b.dataset.no) + ' の申し込みを見送りますか？') && db.ref('ippo/apply/' + b.dataset.no).remove());
   $$('[data-cimg]').forEach(b => b.onclick = () => consImg(b.dataset.cimg));
   $$('[data-see]').forEach(b => b.onclick = () => { location.hash = 'act/' + b.dataset.see; });
-  $$('[data-rm]').forEach(b => b.onclick = () => confirm(nm(b.dataset.rm) + ' を外しますか？（記録は残ります）') && db.ref('ippo/members/' + b.dataset.rm).remove());
+  $$('[data-rm]').forEach(b => b.onclick = () => confirm(nmx(b.dataset.rm) + ' を外しますか？（記録は残ります）') && db.ref('ippo/members/' + b.dataset.rm).remove());
   $('#addGo').onclick = () => { const u = $('#addU').value; if (!u) return; admit(u, $('[data-g="_add"]').value).catch(e => alert(e.message)); };
 }
 
@@ -194,7 +204,7 @@ function renderAct() {
     <button class="btn sub sm" id="rl">最新にする</button><button class="btn sub sm" id="dl">CSV</button></div>
     <table><tr><th>学籍番号</th><th>学年</th><th>最後</th><th class="n">日数</th><th class="n">時間</th><th class="n">歩</th><th class="n">初めの正解</th><th class="n">終わった回</th><th class="n">過去問</th><th class="n">過去問の正解</th><th class="n">うち紙</th><th class="n">課題</th></tr>`;
   rows.forEach(({ u, R, a }) => {
-    h += `<tr class="click" data-u="${u}"><td>${esc(nm(u))}</td><td>${esc(gk(u))}</td><td>${R.last ? md(R.last) : '—'}</td><td class="n">${R.nDays}</td><td class="n">${hm(R.time)}</td><td class="n">${R.nStep}</td><td class="n">${R.nStep ? pct(R.okStep, R.nStep) + '%' : '—'}</td><td class="n">${R.pagesDone}</td><td class="n">${R.nKq}</td><td class="n">${R.nKq ? pct(R.okKq, R.nKq) + '%' : '—'}</td><td class="n">${R.nPaper || ''}</td><td class="n">${a.n ? a.done + ' / ' + a.n : '—'}</td></tr>`;
+    h += `<tr class="click" data-u="${u}"><td>${esc(nmx(u))}</td><td>${esc(gk(u))}</td><td>${R.last ? md(R.last) : '—'}</td><td class="n">${R.nDays}</td><td class="n">${hm(R.time)}</td><td class="n">${R.nStep}</td><td class="n">${R.nStep ? pct(R.okStep, R.nStep) + '%' : '—'}</td><td class="n">${R.pagesDone}</td><td class="n">${R.nKq}</td><td class="n">${R.nKq ? pct(R.okKq, R.nKq) + '%' : '—'}</td><td class="n">${R.nPaper || ''}</td><td class="n">${a.n ? a.done + ' / ' + a.n : '—'}</td></tr>`;
   });
   h += '</table><p class="mut">行を押すと詳しく出ます。「初めの正解」＝初めて答えたときに正解だった割合。時間＝画面が見えていて手を動かしていた時間（手が止まった間は2分まで数える）。</p><div id="detail"></div>';
   $('#tab-act').innerHTML = h;
@@ -209,12 +219,12 @@ function detail(u) {
   const N = 21, today = new Date(day(Date.now()) + 'T00:00:00').getTime();
   const ds = Array.from({ length: N }, (_, i) => day(today - (N - 1 - i) * 864e5));
   const mx = Math.max(1, ...ds.map(d => R.days[d] || 0));
-  let h = `<h2>${esc(nm(u))}　${esc(gk(u))}</h2><h3>この3週間（1日の時間）</h3><div class="days">` + ds.map(d => `<div class="${R.days[d] ? '' : 'z'}" style="height:${Math.max(2, (R.days[d] || 0) * 100 / mx)}%" title="${d} ${hm(R.days[d] || 0)}"></div>`).join('') + `</div><div class="dlab"><span>${md(today - (N - 1) * 864e5)}</span><span>今日</span></div>`;
+  let h = `<h2>${esc(nmx(u))}　${esc(gk(u))}</h2><h3>この3週間（1日の時間）</h3><div class="days">` + ds.map(d => `<div class="${R.days[d] ? '' : 'z'}" style="height:${Math.max(2, (R.days[d] || 0) * 100 / mx)}%" title="${d} ${hm(R.days[d] || 0)}"></div>`).join('') + `</div><div class="dlab"><span>${md(today - (N - 1) * 864e5)}</span><span>今日</span></div>`;
   h += '<h3>科目ごと</h3><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>' + META.list.map(k => { const s = META.S[k], r = R.subj[k]; return `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`; }).join('') + '</table>';
   const ps = Object.keys(R.pages).filter(id => META.P[id]).sort((a, b) => R.pages[b].last - R.pages[a].last);
   h += '<h3>開いた回</h3><table><tr><th>回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">わからない</th><th class="n">時間</th><th>終わりの過去問</th><th>最後</th></tr>' + ps.map(id => { const p = R.pages[id], m = META.P[id]; return `<tr><td>${esc(m.sname)} 第${m.no}回 ${esc(m.title)}</td><td class="n">${p.done} / ${m.total}</td><td class="n">${p.n ? pct(p.ok, p.n) + '%' : '—'}</td><td class="n">${Object.keys(p.u).length || ''}</td><td class="n">${p.time ? hm(p.time) : ''}</td><td>${p.exit ? (p.exit.ok + ' / ' + p.exit.n) : ''}</td><td>${p.last ? md(p.last) : ''}</td></tr>`; }).join('') + '</table>';
   const ks = {};
-  Object.values(R.kq).forEach(k => { const s = k.s || 'ほか'; const o = ks[s] || (ks[s] = { n: 0, f: 0, x: 0, pp: 0 }); o.n++; if (k.first) o.f++; if (!k.ok) o.x++; if (k.src === 'paper') o.pp++; });
+  Object.entries(R.kq).forEach(([id, k]) => { const s = kSubj(id, k); const o = ks[s] || (ks[s] = { n: 0, f: 0, x: 0, pp: 0 }); o.n++; if (k.first) o.f++; if (!k.ok) o.x++; if (k.src === 'paper') o.pp++; });
   const kl = Object.entries(ks).sort((a, b) => pct(a[1].f, a[1].n) - pct(b[1].f, b[1].n));
   h += '<h3>過去問：科目ごと（初めの正解の低い順）</h3>' + (kl.length ? '<table><tr><th>科目</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th><th class="n">初めが紙</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${pct(o.f, o.n)}%</td><td class="n">${o.x}</td><td class="n">${o.pp || ''}</td></tr>`).join('') + '</table>' : '<p class="mut">まだありません。</p>');
   const pg = {};
@@ -310,7 +320,7 @@ async function gain() {
   h += `<h3>取り組み時間（横）と伸び（縦）</h3><svg class="scatter" viewBox="0 0 ${W} ${Hh}"><line x1="${P}" y1="${Y(0)}" x2="${W - 10}" y2="${Y(0)}" stroke="#999"/><line x1="${P}" y1="10" x2="${P}" y2="${Hh - 10}" stroke="#999"/>
     <text x="${P - 4}" y="${Y(mxY) + 4}" font-size="11" text-anchor="end">+${Math.round(mxY)}</text><text x="${P - 4}" y="${Y(-mxY) + 4}" font-size="11" text-anchor="end">-${Math.round(mxY)}</text><text x="${P - 4}" y="${Y(0) + 4}" font-size="11" text-anchor="end">0</text>
     <text x="${W - 10}" y="${Hh - 2}" font-size="11" text-anchor="end">${mxX}分</text>
-    ${rows.map(r => `<circle cx="${X(r.min)}" cy="${Y(r.d)}" r="5" fill="${r.mem ? '#4f46e5' : '#999'}" fill-opacity=".7"><title>${esc(nm(r.u))} ${r.min}分 ${sg(r.d)}</title></circle>`).join('')}</svg>
+    ${rows.map(r => `<circle cx="${X(r.min)}" cy="${Y(r.d)}" r="5" fill="${r.mem ? '#4f46e5' : '#999'}" fill-opacity=".7"><title>${esc(nmx(r.u))} ${r.min}分 ${sg(r.d)}</title></circle>`).join('')}</svg>
     <p class="mut">青＝参加者・灰＝参加していない学生。点にカーソルを当てると学籍番号が出ます。</p>`;
   // 科目ごと
   h += `<h2>科目ごと（その科目を基礎学習でやった人とやっていない人）</h2><p class="mut">「やった」＝期間の中でその科目の歩と過去問の ${Math.round(SP * 100)}% 以上に答えた。模試の科目名で点を取る。</p><table><tr><th>科目</th><th class="n">やった人</th><th class="n">その伸び</th><th class="n">やっていない人</th><th class="n">その伸び</th><th class="n">差</th></tr>`;
@@ -332,7 +342,7 @@ async function gain() {
   const ws = Object.entries(within).filter(([, w]) => w.y.length && w.n.length).map(([u, w]) => ({ u, v: avg(w.y) - avg(w.n) }));
   h += `<h3>同じ学生の中で比べる</h3><p>やった科目の伸び − やっていない科目の伸び（両方ある学生 ${ws.length} 人の平均）：<b>${ws.length ? sg(avg(ws.map(x => x.v))) : '—'}</b> 点の%</p><p class="mut">学生ごとの力の差を消して比べる見方。プラスなら、やった科目のほうが伸びている。</p>`;
   h += `<h3>学生ごと</h3><div class="row"><button class="btn sub sm" id="gCsv">CSV</button></div><table><tr><th>学籍番号</th><th>参加</th><th class="n">前</th><th class="n">後</th><th class="n">伸び</th><th class="n">時間</th><th class="n">歩</th></tr>` +
-    rows.sort((x, y) => y.d - x.d).map(r => `<tr><td>${esc(nm(r.u))}</td><td>${r.mem ? '○' : ''}</td><td class="n">${f1(r.A.p)}%</td><td class="n">${f1(r.B.p)}%</td><td class="n">${sg(r.d)}</td><td class="n">${r.min}分</td><td class="n">${r.R.nStep}</td></tr>`).join('') + '</table>';
+    rows.sort((x, y) => y.d - x.d).map(r => `<tr><td>${esc(nmx(r.u))}</td><td>${r.mem ? '○' : ''}</td><td class="n">${f1(r.A.p)}%</td><td class="n">${f1(r.B.p)}%</td><td class="n">${sg(r.d)}</td><td class="n">${r.min}分</td><td class="n">${r.R.nStep}</td></tr>`).join('') + '</table>';
   $('#gOut').innerHTML = h;
   $('#gCsv').onclick = () => csv([['学籍番号', '学年', '参加', '前%', '後%', '伸び', '分', '歩']].concat(rows.map(r => [nm(r.u), gk(r.u), r.mem ? 1 : 0, f1(r.A.p), f1(r.B.p), f1(r.d), r.min, r.R.nStep])), '基礎学習_伸び_' + day(Date.now()) + '.csv');
 }
@@ -360,7 +370,7 @@ async function suggest(u) {
 async function renderTask() {
   const ms = memUids();
   const sel = window._tu && MEM[window._tu] ? window._tu : '';
-  let h = phead('target', '動かす', '課題', '学生を選ぶと、模試の点と進みからの提案とAIの下書きが出ます。出すかどうかを決めるのは先生です。', '') + `<div class="row"><label>学生 <select id="tU"><option value="">選ぶ</option><option value="_all" ${sel === '_all' ? 'selected' : ''}>参加者全員に同じ課題</option>${ms.map(u => `<option value="${u}" ${u === sel ? 'selected' : ''}>${esc(nm(u))}</option>`).join('')}</select></label><button class="btn sub sm" id="tRl">最新にする</button></div><div id="tBody"></div>`;
+  let h = phead('target', '動かす', '課題', '学生を選ぶと、模試の点と進みからの提案とAIの下書きが出ます。出すかどうかを決めるのは先生です。', '') + `<div class="row"><label>学生 <select id="tU"><option value="">選ぶ</option><option value="_all" ${sel === '_all' ? 'selected' : ''}>参加者全員に同じ課題</option>${ms.map(u => `<option value="${u}" ${u === sel ? 'selected' : ''}>${esc(nmx(u))}</option>`).join('')}</select></label><button class="btn sub sm" id="tRl">最新にする</button></div><div id="tBody"></div>`;
   $('#tab-task').innerHTML = h;
   $('#tU').onchange = () => { window._tu = $('#tU').value; drawTask(); };
   $('#tRl').onclick = async () => { await reloadLogs(); drawTask(); };
@@ -393,7 +403,7 @@ async function drawTask() {
     <div style="max-height:320px;overflow:auto;border:1px solid var(--line);padding:6px 10px;border-radius:6px">${META.list.map(k => `<details><summary>${esc(META.S[k].name)}</summary>${META.S[k].pages.map(p => `<label class="chk"><input type="checkbox" value="${p.id}"> 第${p.no}回 ${esc(p.title)}</label>`).join('')}</details>`).join('')}</div>
     <div class="row"><label>過去問 <select id="aKs"><option value="">出さない</option>${subjOpts.map(s => `<option>${esc(s)}</option>`).join('')}</select></label><label><input type="number" id="aKn" value="10" style="width:5em"> 問</label></div>
     <div>ひとこと</div><textarea id="aN"></textarea>
-    <div class="row"><button class="btn" id="aGo">${u === '_all' ? '参加者全員に送る' : esc(nm(u)) + ' に送る'}</button></div>`;
+    <div class="row"><button class="btn" id="aGo">${u === '_all' ? '参加者全員に送る' : esc(nmx(u)) + ' に送る'}</button></div>`;
   box.innerHTML = `<div class="grid2"><div>${left || '<p class="mut">全員に同じ課題を出します。学生ごとの進みは「取り組み」で見られます。</p>'}</div><div>${right}</div></div>`;
   const fill = d => {
     $('#aT').value = d.title || ''; $('#aN').value = d.note || '';
