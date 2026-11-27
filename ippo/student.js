@@ -240,10 +240,10 @@ function renderHome() {
 // ===== 一歩ずつの一覧 =====
 function renderIppo() {
   const R = summarize(LOGS, META), sub = hashParts()[1];
-  let h = '<div class="ph"><h1>基礎学習</h1><span class="mut">説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。</span></div>';
+  let h = phead('book', 'STEP 1　まずはここから', sub && META.S[sub] ? esc(META.S[sub].name) : '基礎学習する', '説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。', ringHtml(pct(R.pagesDone, META.order.length), `<b class="num">${R.pagesDone}</b> / ${META.order.length} 回 終わった`, sub ? '<a href="#ippo">科目の一覧へ</a>' : ''));
   const keys = sub && META.S[sub] ? [sub] : META.list;
   if (!sub) {
-    h += '<table><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th><th></th></tr>';
+    h += '<h2 class="sec">科目を選ぶ</h2><table class="tcard"><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th><th></th></tr>';
     META.list.forEach(k => {
       const s = META.S[k], r = R.subj[k], pp = pct(r.done, s.total);
       h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n"><span class="go2">開く ›</span></td></tr>`;
@@ -252,7 +252,7 @@ function renderIppo() {
   }
   keys.forEach(k => {
     const s = META.S[k];
-    h += `<h2>${esc(s.name)}　<span class="mut">全${s.pages.length}回</span></h2><ul class="plist">` + s.pages.map(p => pageLink(p.id, R)).join('') + '</ul>';
+    h += `<h2 class="sec">${esc(s.name)}　<span class="mut">全${s.pages.length}回</span></h2><ul class="plist">` + s.pages.map(p => pageLink(p.id, R)).join('') + '</ul>';
   });
   $('#tab-ippo').innerHTML = h;
   $$('#tab-ippo tr[data-h]').forEach(r => r.onclick = () => { location.hash = r.dataset.h; });
@@ -400,7 +400,7 @@ async function renderKq() {
   if (!KS.list.length) KS.list = kqFilter(R);
   const fl = { new: 'まだ解いていない', miss: '間違えたまま', all: '全部' }[KS.f];
   const yrs = KQ.years.slice().reverse();
-  let h = kqSwitch('kq') + `<div class="ph"><h1>過去5年分の一覧</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。行を押すと右に問題が出て、答えると正誤と解説が出ます。正解・間違いの地図はホームにあります。</span></div>`;
+  let h = kqSwitch('kq') + phead('quiz', '', '過去5年分の一覧', `第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。行を押すと右に問題が出て、答えると正誤と解説が出ます。`, '', 1);
   const so = KQ_SUBJ.map(x => `<option value="${esc(x.s)}"${KS.subj === x.s ? ' selected' : ''}>${esc(x.s)}（${x.n}）</option>`);
   const nIppo = KQ_SUBJ.filter(x => x.ippo).length;
   h += `<div class="split"><section class="list">
@@ -499,7 +499,7 @@ async function renderPaper() {
   if (!PP.on) PP.on = day(Date.now());
   const yrs = KQ.allYears.slice().reverse(), sets = psets(), S = PP.set ? psetOf(PP.set) : null;
   if (PP.set && !S) PP.set = '';
-  let h = `<div class="ph"><h1>結果のスキャン</h1><span class="mut">紙で解いた答えを入れると、過去問の地図と記録に入ります。マークシートを撮るのがいちばん早い。先生の集計にも入ります。</span></div>
+  let h = `${phead('scan', 'STEP 3　紙で解いた分も記録に', '結果のスキャン', '紙で解いた答えを入れると、ホームの地図と記録に入ります。マークシートをスマホで撮るのがいちばん早い。', '')}
   <div class="card"><div class="row"><label>解いた物 <select id="pSet"><option value="">冊子・プリント（回を選ぶ）</option>${sets.map(s => `<option value="${s.code}"${PP.set === s.code ? ' selected' : ''}>印刷したセット ${s.code}（${esc(s.t)}・${s.ids.length}問・${md(s.at)}）</option>`).join('')}</select></label>
     ${S ? `<button class="btn sub sm" id="pRe">問題とマークシートをもう一度刷る</button><button class="btn sub sm" id="pReS">マークシートだけ刷る</button>` : `<a href="#drill" class="btn sub sm">${ic('print')}問題を印刷する（過去問とく→A4で印刷）</a>`}</div>
     ${S ? `<div class="row"><span class="mut">セット ${S.code}：問1〜${S.ids.length}${S.ids.length > 100 ? '（マークシート2枚＝1枚目が問1〜100・2枚目が問101〜）' : ''}</span><label>解いた日 <input id="pOn" type="date" value="${esc(PP.on)}"></label></div>` : `<div class="row">
@@ -698,8 +698,8 @@ async function renderQuiz() {
   try { all = await get('ippo/quiz'); } catch (e) {}
   const R = summarize(LOGS, META);
   const L = Object.entries(all || {}).filter(([, v]) => v && v.open);
-  let h = '<div class="ph"><h1>小テスト</h1><span class="mut">先生が出した小テスト。</span></div>';
-  if (!L.length) { box.innerHTML = h + '<div class="card"><b>準備中</b><p>先生が小テストを出すと、ここに出ます。</p></div>'; return; }
+  let h = phead('quiz', '先生から', '小テスト', '先生が出した小テストがここに並びます。', '');
+  if (!L.length) { box.innerHTML = h + `<div class="empty2">${ic('quiz', 'eic')}<b>まだ小テストはありません</b><p>先生が出すと、ここに出ます。それまでは基礎学習と過去問を進めましょう。</p><p class="row" style="justify-content:center"><a class="btn" href="#ippo">${ic('book')}基礎学習する</a><a class="btn sub" href="#drill">${ic('pen')}過去問をとく</a></p></div>`; return; }
   box.innerHTML = h + '<ul class="plist">' + L.map(([k, v]) => {
     const qs = typeof v.qs === 'string' ? JSON.parse(v.qs) : (v.qs || []);
     const d = qs.filter((_, i) => R.quiz[k + '/' + i]).length;
@@ -735,7 +735,7 @@ function drawQuiz() {
 // ===== 記録・分析 =====
 function renderRec() {
   const R = summarize(LOGS, META);
-  let h = `<div class="ph"><h1>記録・分析</h1><span class="mut">これまでの全部</span></div><div class="stats">
+  let h = `${phead('chart', '自分の記録', '記録・分析', 'これまでに取り組んだ全部。科目ごとの初めの正解が低い所から手をつけると、点が伸びやすくなります。', '')}<div class="stats">
     <div class="card"><div class="lab">取り組んだ日</div><div class="big">${R.nDays}<small>日</small></div></div>
     <div class="card"><div class="lab">時間</div><div class="big">${hm(R.time)}</div></div>
     <div class="card"><div class="lab">過去問（初めの正解）</div><div class="big">${R.nKq}<small>問</small></div><span class="mut">${pct(R.okKq, R.nKq)}%・うち紙 ${R.nPaper}</span></div>

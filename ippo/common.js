@@ -185,7 +185,11 @@ const IC = {
   screen: '<rect x="3" y="4" width="18" height="12" rx="1"/><path d="M9 20h6M12 16v4"/>',
   redo: '<path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/>',
   go: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
 };
+// ページの頭（11/27 運営者「ほかのページもホームと同じように」）＝印・小見出し・題・説明・右に輪
+const ringHtml = (p, top, bot) => `<div class="pring"><span class="ring" style="--p:${p}"><b class="num">${p}<small>%</small></b></span><span>${top}${bot ? '<br>' + bot : ''}</span></div>`;
+const phead = (icon, kick, title, lead, side, slim) => `<header class="phero${slim ? ' slim' : ''}"><span class="pic">${ic(icon)}</span><div class="ptx">${kick ? `<span class="kick">${kick}</span>` : ''}<h1>${title}</h1>${lead ? `<p>${lead}</p>` : ''}</div>${side || ''}</header>`;
 const ic = (k, c) => `<svg class="ic${c ? ' ' + c : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k] || ''}</svg>`;
 const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">${ic('pen')}問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">${ic('quiz')}一覧から選ぶ（過去5年）</a></div>`;
 async function kqGet(id) { const [y, n] = id.split('-'); const qs = await kqYear(y); return qs.find(q => String(q.n) === String(n)) || null; }

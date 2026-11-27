@@ -104,7 +104,7 @@ function drawSetup() {
     const ids = all.filter(id => KQS[id] === x.s), n = ids.filter(id => R.kq[id]).length;
     return `<tr><td>${esc(x.s)}</td><td class="n mut">${n}/${ids.length}</td><td class="dbtn">${qb('subj', 10, '10問', { v: x.s, sub: 1 })}${qb('subj', 20, '20問', { v: x.s, sub: 1 })}${qb('subj', 0, '全問', { v: x.s, sub: 1 })}</td></tr>`;
   };
-  let h = kqSwitch('drill') + `<div class="ph"><h1>過去問を解く</h1><span class="mut">第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部解くのが目標です。ボタンを押すとすぐ始まります。</span></div>`;
+  let h = kqSwitch('drill') + phead('pen', 'STEP 2　覚えたら過去問で確かめる', '過去問をとく', `第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部。ボタンを押すとすぐ始まります。`, ringHtml(pct(nSeen, nAll), `<b class="num">${nSeen}</b> / ${nAll} 問`, '過去5年分'));
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
     <p class="row"><button class="btn" id="dRes">続きから</button><button class="btn sub" id="dDrop">やめて新しく始める</button></p></div>`;
   const PR = D.out === 'print';
@@ -297,11 +297,12 @@ function drawResult() {
   const by = {};
   ids.forEach(id => { const q = qOf(id) || {}, s = q.s || 'ほか', o = by[s] || (by[s] = { n: 0, ok: 0 }); o.n++; if (r.ok[id]) o.ok++; });
   const wrong = ids.filter(id => !r.ok[id]);
-  let h = `<div class="ph"><h1>結果</h1><span class="mut">${esc(drTitle(r.cfg))}・${r.cfg.set === 'surv' ? '連続正解 ' + nOk + '問（これまでの最高 ' + (lsGet(survKey()) || 0) + '問）' : r.ids.length + '問・' + (each ? '1問ごと' : 'まとめて答え合わせ')}</span></div>
+  let h = phead('chart', '結果', nOk >= Math.ceil(ids.length * .6) && ids.length ? '6割に届きました' : 'おつかれさま', `${esc(drTitle(r.cfg))}・${r.cfg.set === 'surv' ? '連続正解 ' + nOk + '問（これまでの最高 ' + (lsGet(survKey()) || 0) + '問）' : r.ids.length + '問・' + (each ? '1問ごと' : 'まとめて答え合わせ')}`, ringHtml(pct(nOk, ids.length), `<b class="num">${nOk}</b> / ${ids.length} 問 正解`, ''), 1) + `
     <div class="stats"><div class="card"><div class="lab">正解</div><div class="big">${nOk}<small> / ${ids.length}問</small></div><span class="mut">${pct(nOk, ids.length)}%${each && ids.length < r.ids.length && r.cfg.set !== 'surv' ? `・答えなかった ${r.ids.length - ids.length}問は数えていません` : ''}</span></div>
     <div class="card"><div class="lab">かかった時間</div><div class="big">${clock(r.sec)}</div><span class="mut">1問あたり ${ids.length ? Math.round(r.sec / ids.length) : 0}秒</span></div>
     <div class="card"><div class="lab">6割まで</div><div class="big">${nOk >= Math.ceil(ids.length * .6) ? '届いた' : 'あと ' + (Math.ceil(ids.length * .6) - nOk) + '問'}</div></div></div>`;
-  h += `<p class="row">${wrong.length ? `<button class="btn" id="rWrong">間違えた ${wrong.length} 問をもう一度</button>` : ''}${r.cfg.set === 'again' ? '' : '<button class="btn sub" id="rSame">同じ出し方でもう一度</button>'}<button class="btn sub" id="rSetup">出し方を選ぶ</button><a href="#kq/miss">過去問の「間違えたまま」へ</a></p>`;
+  // ボタンは3つだけ（11/27 運営者「多すぎる・問題選択に戻るボタンがない」）
+  h += `<div class="rbar"><button class="btn sub rback" id="rSetup">${ic('back')}問題選びに戻る</button><span class="sp"></span>${wrong.length ? `<button class="btn" id="rWrong">${ic('pen')}間違えた ${wrong.length} 問をもう一度</button>` : ''}<button class="btn sub" id="rPrint">${ic('print')}印刷・PDF</button></div>`;
   const bl = Object.entries(by).sort((a, b) => a[1].ok / a[1].n - b[1].ok / b[1].n);
   h += '<div class="grid2"><div><h2>科目ごと（低い順）</h2><table><tr><th>科目</th><th class="n">問題</th><th class="n">正解</th><th class="n">%</th></tr>'
     + bl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${o.ok}</td><td class="n">${pct(o.ok, o.n)}</td></tr>`).join('') + '</table></div>';
@@ -313,8 +314,8 @@ function drawResult() {
   box.innerHTML = h;
   $$('#tab-drill tr[data-q]').forEach(t => t.onclick = () => showKx(t.dataset.q));
   if ($('#rWrong')) $('#rWrong').onclick = () => startRun(shuffle(wrong.slice()), Object.assign({}, r.cfg, { set: 'again' }));
-  if ($('#rSame')) $('#rSame').onclick = () => { const c = r.cfg; DR.run = null; const ids = drPick(c, summarize(LOGS, META)); if (!ids.length) { alert('当てはまる問題がありません。'); return drawSetup(); } startRun(ids, c); };
   $('#rSetup').onclick = () => { DR.run = null; drawSetup(); };
+  $('#rPrint').onclick = () => resultPrint(r.cfg.set === 'surv' ? ids : r.ids, r, drTitle(r.cfg));
 }
 
 // キー（解いている間だけ）
