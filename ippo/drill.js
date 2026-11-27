@@ -108,7 +108,7 @@ function drawSetup() {
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
     <p class="row"><button class="btn" id="dRes">続きから</button><button class="btn sub" id="dDrop">やめて新しく始める</button></p></div>`;
   const PR = D.out === 'print';
-  h += `<div class="card dopt dout"><b>解き方</b>${seg('dOut', [['screen', '画面で解く'], ['print', '🖨 A4で印刷して紙で解く']], PR ? 'print' : 'screen')}
+  h += `<div class="card dopt dout"><b>解き方</b>${seg('dOut', [['screen', ic('screen') + '画面で解く'], ['print', ic('print') + 'A4で印刷して紙で解く']], PR ? 'print' : 'screen')}
     <span class="mut">${PR ? '下のボタンを押すと、その問題を問題用紙とマークシートにして刷ります（' + PSET_MAX + '問まで）。解いたらマークシートを写真に撮って「結果のスキャン」へ。' : '紙で解きたいときは「A4で印刷」に切り替えます。'}</span></div>`;
   if (!PR) h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
     <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}

@@ -133,22 +133,21 @@ function renderSide() {
   const tab = curTab();
   const miss = Object.values(R.kq).filter(k => !k.ok).length;
   const asOpen = Object.values(ASSIGN || {}).filter(a => !assignProgress(a, R).done).length;
-  const v = (h, label, em, on, cls) => `<button class="v${on ? ' on' : ''}" data-h="${h}"><span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
-  let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '');
+  const v = (h, label, em, on, cls, icn) => `<button class="v${icn ? ' top1' : ''}${on ? ' on' : ''}" data-h="${h}">${icn ? ic(icn) : ''}<span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
+  let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '', 'home');
   h += '<h3>学ぶ</h3>'
-    + v('drill', '過去問とく', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '')
-    + (tab === 'drill' || tab === 'kq' ? v('drill', '└ 解く', null, tab === 'drill', '').replace('class="v', 'class="v kin') + v('kq', '└ 地図・一覧（5年）', null, tab === 'kq', '').replace('class="v', 'class="v kin') : '')
-    + v('ippo', '基礎学習する', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub)
-    + v('paper', '結果のスキャン', R.nPaper ? R.nPaper + '問' : null, tab === 'paper')
-    + v('quiz', '小テスト', null, tab === 'quiz');
-  h += '<h3>自分</h3>' + v('rec', '記録・分析', null, tab === 'rec');
+    + v('drill', '過去問とく', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '', 'pen')
+    + v('ippo', '基礎学習する', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub, '', 'book')
+    + v('paper', '結果のスキャン', R.nPaper ? R.nPaper + '問' : null, tab === 'paper', '', 'scan')
+    + v('quiz', '小テスト', null, tab === 'quiz', '', 'quiz');
+  h += '<h3>自分</h3>' + v('rec', '記録・分析', null, tab === 'rec', '', 'chart');
   if (tab === 'kq') {
     h += '<h3>過去問の絞り込み</h3>'
       + v('kq/miss', '間違えたまま', miss, KS.f === 'miss', miss ? 'hot' : '')
       + v('kq/new', 'まだ解いていない', null, KS.f === 'new')
       + v('kq/all', '全部', null, KS.f === 'all');
   }
-  h += '<h3>基礎学習の科目</h3>';
+  h += '<h3>基礎学習の科目（押すと開く）</h3>';
   META.list.forEach(k => {
     const s = META.S[k], r = R.subj[k] || { done: 0 }, pp = pct(r.done, s.total);
     h += `<button class="v sub${tab === 'ippo' && sub === k ? ' on' : ''}" data-h="ippo/${k}"><span>${esc(s.name)}</span><em>${r.pagesDone || 0}/${s.pages.length}</em><i class="bar"><b class="${pp >= 100 ? 'done' : ''}" style="width:${pp}%"></b></i></button>`;
@@ -188,7 +187,20 @@ function renderHome() {
   const now = Date.now(), wk = summarize(LOGS, META, now - 7 * 864e5);
   let h = '<div class="ph"><h1>ホーム</h1><span class="mut">' + esc(day(now)) + '</span></div>';
   if (CONFIG.notice) h += `<div class="notice">${esc(CONFIG.notice)}</div>`;
-  h += `<div class="stats">
+  // 次の一手（大きなカード）
+  const nq = KQ.years ? KQ.years.reduce((a, y) => a + (KQ.q[y] || []).length, 0) : 0, n5 = Object.keys(R.kq).filter(kqIn5).length;
+  const lp = R.lastPage && META.P[R.lastPage] ? META.P[R.lastPage] : null, lst = lp ? pageState(R, R.lastPage) : null;
+  const act = (href, icn, t, d, go, extra, cls) => `<a class="act${cls ? ' ' + cls : ''}" href="${href}"><span class="aic">${ic(icn)}</span><span class="atx"><b>${t}</b><span>${d}</span>${extra || ''}</span><span class="ago">${go} ${ic('go')}</span></a>`;
+  const miss0 = Object.values(R.kq).filter(k => !k.ok).length;
+  if (drSaved()) h += `<a class="act resume" href="#drill/go"><span class="aic">${ic('redo')}</span><span class="atx"><b>解きかけの問題があります</b><span>前の続きから解けます</span></span><span class="ago">続きから ${ic('go')}</span></a>`;
+  h += '<div class="acts">'
+    + act('#drill', 'pen', '過去問をとく', nq ? `過去5年分 ${n5} / ${nq} 問。ボタン1つで10〜50問` : 'ボタン1つで10〜50問。科目別・回ごとも', '解く', nq ? `<i class="abar"><i style="width:${pct(n5, nq)}%"></i></i>` : '', 'a1')
+    + act(lp ? '#p/' + R.lastPage : '#ippo', 'book', '基礎学習する', lp ? `つづき：${esc(lp.sname)}｜${esc(lp.title)}` : `国試の6割を取る範囲を順に（全${META.order.length}回）`, lp ? (lst && lst.cls === 'done' ? '一覧へ' : 'つづき') : 'はじめる')
+    + act('#paper', 'scan', '結果のスキャン', '紙で解いたマークシートを写真で入れる', '入れる')
+    + act('#kq', 'map', '全問の地図を見る', '過去5年分の正解・間違い・まだを1枚で', '見る')
+    + '</div>';
+  if (miss0) h += `<div class="card warn rowc"><span>間違えたままの問題が <b>${miss0}</b> 問あります。</span><a class="btn" href="#drill">${ic('redo')}解き直す（復習）</a></div>`;
+  h += `<h2>この1週間</h2><div class="stats">
     <div class="card"><div class="lab">この1週間 取り組んだ日</div><div class="big">${wk.nDays}<small>日</small></div></div>
     <div class="card"><div class="lab">この1週間の時間</div><div class="big">${hm(wk.time)}</div></div>
     <div class="card"><div class="lab">この1週間 過去問</div><div class="big">${wk.nKq}<small>問</small></div></div>
@@ -205,17 +217,8 @@ function renderHome() {
     if (a.kqn) h += `<p>過去問 ${a.kqs ? esc(a.kqs.join('・')) + ' を' : ''}${a.kqn}問：いま ${Math.min(p.kqd, a.kqn)} 問　<a href="#kq">過去問へ</a>（紙で解いた分も入ります）</p>`;
     h += '</div>';
   });
-  // 次の一手
-  h += '<h2>次にやること</h2><div class="grid2"><div>';
-  h += '<h3>基礎学習：続きから</h3>';
-  if (R.lastPage && META.P[R.lastPage]) h += '<ul class="plist">' + pageLink(R.lastPage, R, true) + '</ul>';
-  else h += '<p>まだ何も開いていません。<a href="#ippo">基礎学習の一覧</a>から始めましょう。</p>';
-  h += '</div><div><h3>過去問</h3>';
-  const miss = Object.values(R.kq).filter(k => !k.ok).length;
-  h += miss ? `<p>間違えたままの問題が <b>${miss}</b> 問あります。<a href="#drill">解き直す（復習）</a></p>` : '<p class="mut">間違えたままの問題はありません。</p>';
-  h += (drSaved() ? '<p><a href="#drill/go"><b>解きかけの問題の続きから</b></a></p>' : '') + '<p><a href="#drill"><b>過去5年分をやりきる</b>・科目別・回ごと</a>　<a href="#kq">全問の地図を見る</a>　<a href="#paper">結果のスキャン（紙で解いた答え）</a></p></div></div>';
   h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・基礎学習 ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
-  h += `<p class="mut cs-home">AIによる学習の記録の分析：<b>${CONSENT ? (CONSENT.ai ? '同意している' : '同意していない') : '未回答'}</b>（名前・学籍番号などはAIに渡しません）　<a href="#" id="csChange">変える</a></p><div id="csHomeBox"></div>`;
+  h += `<p class="mut cs-home">AIによる学習の記録の分析：<b>${CONSENT ? (CONSENT.ai ? '同意している' : '同意していない') : '未回答'}</b>（名前・学籍番号などはAIに渡しません）　<button class="btn sub sm" id="csChange">変える</button></p><div id="csHomeBox"></div>`;
   $('#tab-home').innerHTML = h;
   $('#csChange').onclick = e => { e.preventDefault(); consentForm($('#csHomeBox'), () => renderHome(), '変更を保存する'); $('#csHomeBox').scrollIntoView({ behavior: 'smooth' }); };
 }
@@ -229,7 +232,7 @@ function renderIppo() {
     h += '<table><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th><th></th></tr>';
     META.list.forEach(k => {
       const s = META.S[k], r = R.subj[k], pp = pct(r.done, s.total);
-      h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n go2">開く ›</td></tr>`;
+      h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n"><span class="go2">開く ›</span></td></tr>`;
     });
     h += '</table>';
   }
@@ -353,7 +356,7 @@ async function renderKq() {
   const fl = { new: 'まだ解いていない', miss: '間違えたまま', all: '全部' }[KS.f];
   const yrs = KQ.years.slice().reverse();
   let h = kqSwitch('kq') + `<div class="ph"><h1>過去5年分の地図</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。答えると正誤と解説が出ます。まとめて解くなら「問題を解く」、紙で解いた分は「結果のスキャン」から入れると地図に入ります。印刷は「問題を解く」で「A4で印刷」に切り替え。</span></div>`;
-  h += `<section class="map"><div class="mh"><b>全問の地図</b><span class="num">${R.nKq} 問 解いた</span><span class="mut">ます目を押すとその問題が開きます</span>
+  h += `<section class="map"><div class="mh"><b>全問の地図</b><span class="num">${R.nKq} 問 解いた</span><span class="hint">ます目を押すと、その問題が右（スマホは下）に開きます</span>
     <div class="lg"><span><i class="s1"></i>正解</span><span><i class="s2"></i>間違い</span><span><i class="s0"></i>まだ</span></div></div>
     <div class="ax"><span></span><span>午前 1 → 100</span><span>午後 101 → 200</span></div><div class="mg" id="mg">`;
   const inL = {}; KS.list.forEach(id => inL[id] = 1);
@@ -379,7 +382,7 @@ async function renderKq() {
       <button class="btn sm" id="kGo">${KS.sel ? '続ける' : '上から解く'}</button></div>
     <div class="tr th"><span class="r">回</span><span class="r">番号</span><span class="ks">科目</span><span>問題</span><span>自分</span><span class="r">みんな</span></div>
     <div class="rows" id="kRows"></div></section>
-    <section class="read" id="kRead"><div class="empty">左の一覧か、上の地図のます目から問題を選んでください。<br><br>キー：<kbd>1</kbd>〜<kbd>5</kbd> 答える　<kbd>Enter</kbd> 次へ　<kbd>J</kbd><kbd>K</kbd> 下・上</div></section></div>`;
+    <section class="read" id="kRead"><div class="empty">${ic('pen', 'eic')}<br>左の一覧の行か、上の地図のます目を押すと<br>ここに問題が出て、そのまま解けます。<br><br>キー：<kbd>1</kbd>〜<kbd>5</kbd> 答える　<kbd>Enter</kbd> 次へ　<kbd>J</kbd><kbd>K</kbd> 下・上</div></section></div>`;
   box.innerHTML = h;
   drawRows(R);
   $('#mg').onclick = e => {
@@ -473,13 +476,13 @@ async function renderPaper() {
   if (PP.set && !S) PP.set = '';
   let h = `<div class="ph"><h1>結果のスキャン</h1><span class="mut">紙で解いた答えを入れると、過去問の地図と記録に入ります。マークシートを撮るのがいちばん早い。先生の集計にも入ります。</span></div>
   <div class="card"><div class="row"><label>解いた物 <select id="pSet"><option value="">冊子・プリント（回を選ぶ）</option>${sets.map(s => `<option value="${s.code}"${PP.set === s.code ? ' selected' : ''}>印刷したセット ${s.code}（${esc(s.t)}・${s.ids.length}問・${md(s.at)}）</option>`).join('')}</select></label>
-    ${S ? `<button class="btn sub sm" id="pRe">問題とマークシートをもう一度刷る</button><button class="btn sub sm" id="pReS">マークシートだけ刷る</button>` : `<a href="#drill" class="mut">問題を印刷するには「過去問とく」で「A4で印刷」に切り替える</a>`}</div>
+    ${S ? `<button class="btn sub sm" id="pRe">問題とマークシートをもう一度刷る</button><button class="btn sub sm" id="pReS">マークシートだけ刷る</button>` : `<a href="#drill" class="btn sub sm">${ic('print')}問題を印刷する（過去問とく→A4で印刷）</a>`}</div>
     ${S ? `<div class="row"><span class="mut">セット ${S.code}：問1〜${S.ids.length}${S.ids.length > 100 ? '（マークシート2枚＝1枚目が問1〜100・2枚目が問101〜）' : ''}</span><label>解いた日 <input id="pOn" type="date" value="${esc(PP.on)}"></label></div>` : `<div class="row">
     <label>回 <select id="pY">${yrs.map(y => `<option${PP.y === String(y) ? ' selected' : ''}>${y}</option>`).join('')}</select></label>
     <span class="seg" id="pPart"><button data-p="am" class="${PP.part === 'am' ? 'on' : ''}">午前 1〜100</button><button data-p="pm" class="${PP.part === 'pm' ? 'on' : ''}">午後 101〜200</button><button data-p="rg" class="${PP.part === 'rg' ? 'on' : ''}">番号で指定</button></span>
     <span id="pRg" ${PP.part === 'rg' ? '' : 'hidden'}><input id="pFrom" type="number" min="1" max="200" value="${PP.from}" style="width:5em"> 〜 <input id="pTo" type="number" min="1" max="200" value="${PP.to}" style="width:5em"></span>
     <label>解いた日 <input id="pOn" type="date" value="${esc(PP.on)}"></label></div>`}
-    <div class="row"><span class="seg" id="pMode"><button data-m="cam" class="${PP.mode === 'cam' ? 'on' : ''}">📷 マークシートを写真で読む</button><button data-m="ans" class="${PP.mode === 'ans' ? 'on' : ''}">選んだ番号を入れる</button><button data-m="ox" class="${PP.mode === 'ox' ? 'on' : ''}">○×だけ入れる</button></span>
+    <div class="row"><span class="seg" id="pMode"><button data-m="cam" class="${PP.mode === 'cam' ? 'on' : ''}">${ic('camera')}マークシートを写真で読む</button><button data-m="ans" class="${PP.mode === 'ans' ? 'on' : ''}">選んだ番号を入れる</button><button data-m="ox" class="${PP.mode === 'ox' ? 'on' : ''}">○×だけ入れる</button></span>
     <span class="mut">${PP.mode === 'ans' ? '答え合わせはここでします。' : PP.mode === 'ox' ? '自分で答え合わせした人向け：間違えた番号だけ書きます。' : '専用の用紙に塗って、スマホで撮ります。写真はこの端末の中で読むだけで、どこにも送りません。'}</span></div></div>
   <div id="pBody"></div>`;
   h += paperHistory();
@@ -577,7 +580,7 @@ function drawCam(qs) {
   $('#pBody').innerHTML = (S ? `<div class="card"><p><b>セット ${S.code} のマークシートを撮ります。</b>${S.ids.length > 100 ? '2枚あるときは1枚ずつ撮ります（読んだ答えは足していきます）。' : ''}</p>` : `<div class="card"><p class="mut">「過去問とく」で印刷したマークシートなら、撮るだけでどのセットか分かります（右上のセット番号を読みます）。</p><p><b>1. 用紙を刷る</b>（冊子やプリントで解いたとき・A4・1枚で午前か午後の100問）。<span class="mut">学籍番号の欄は塗らなくてよい。</span></p>
     <div class="row"><button class="btn sub" id="cPrAM">午前の用紙を刷る</button><button class="btn sub" id="cPrPM">午後の用紙を刷る</button><span class="mut">一度刷れば、どの回にも使えます（回はここで選びます）。</span></div>`)
     + `<p style="margin-top:14px"><b>${S ? '' : '2. '}塗った用紙を撮る</b>　${S ? '' : `回（上で選ぶ）＝第${esc(PP.y)}回。午前か午後かは用紙から読みます。`}</p>
-    <div class="row"><label class="btn" style="cursor:pointer">カメラで撮る／写真を選ぶ<input id="cFile" type="file" accept="image/*,application/pdf" capture="environment" hidden></label>
+    <div class="row"><label class="btn big" style="cursor:pointer">${ic('camera')}カメラで撮る／写真を選ぶ<input id="cFile" type="file" accept="image/*,application/pdf" capture="environment" hidden></label>
     <span class="mut">四隅の■が4つとも写るように、明るい所で真上から。</span></div><div id="cMsg"></div></div>`;
   if (!ok) { $('#cMsg').innerHTML = '<p class="hot">読み取りの部品を読み込めませんでした。ページを開き直してください。</p>'; return; }
   const pr = p => { const w = window.open('', '_blank'); if (!w) { alert('新しい窓を開けませんでした（ポップアップを許可してください）'); return; }

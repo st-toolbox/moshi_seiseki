@@ -171,7 +171,23 @@ async function kqAll() { const ys = await kqYears(); await Promise.all(ys.map(kq
 async function kqEvery() { await kqYears(); await Promise.all(KQ.allYears.map(kqYear)); return KQ.allYears; }
 const kqIn5 = id => !!KQ.years && KQ.years.map(String).indexOf(String(id).split('-')[0]) >= 0;
 // 過去問の中の切り替え（解く／地図・一覧）
-const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">地図・一覧（過去5年）</a></div>`;
+// 絵（SVG・線画）。絵文字は端末によって化けるので使わない（11/27）
+const IC = {
+  home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  pen: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
+  book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5"/>',
+  scan: '<path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"/><circle cx="12" cy="12" r="3.2"/>',
+  quiz: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9l2 2 4-4M8 16h8"/>',
+  chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/>',
+  map: '<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/>',
+  print: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="1"/><path d="M7 14h10v7H7z"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  screen: '<rect x="3" y="4" width="18" height="12" rx="1"/><path d="M9 20h6M12 16v4"/>',
+  redo: '<path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/>',
+  go: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+};
+const ic = (k, c) => `<svg class="ic${c ? ' ' + c : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k] || ''}</svg>`;
+const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">${ic('pen')}問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">${ic('map')}地図・一覧（過去5年）</a></div>`;
 async function kqGet(id) { const [y, n] = id.split('-'); const qs = await kqYear(y); return qs.find(q => String(q.n) === String(n)) || null; }
 async function kxGet(id) {
   const [y, n] = id.split('-');
