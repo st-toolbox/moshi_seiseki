@@ -187,7 +187,7 @@ const IC = {
   go: '<path d="M5 12h14M13 6l6 6-6 6"/>',
 };
 const ic = (k, c) => `<svg class="ic${c ? ' ' + c : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k] || ''}</svg>`;
-const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">${ic('pen')}問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">${ic('map')}地図・一覧（過去5年）</a></div>`;
+const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">${ic('pen')}問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">${ic('quiz')}一覧から選ぶ（過去5年）</a></div>`;
 async function kqGet(id) { const [y, n] = id.split('-'); const qs = await kqYear(y); return qs.find(q => String(q.n) === String(n)) || null; }
 async function kxGet(id) {
   const [y, n] = id.split('-');

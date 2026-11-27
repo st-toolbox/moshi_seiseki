@@ -70,7 +70,7 @@ async function enter() {
   window.addEventListener('hashchange', route);
   document.addEventListener('keydown', kqKey);
   route();
-  kqEvery().then(() => { kqIndex(); renderSide(); renderFacts(); }).catch(() => {});
+  kqEvery().then(() => { kqIndex(); renderSide(); renderFacts(); if (curTab() === 'home') renderHome(); }).catch(() => {});
 }
 
 // ===== 記録を足す =====
@@ -197,8 +197,9 @@ function renderHome() {
     + act('#drill', 'pen', '過去問をとく', nq ? `過去5年分 ${n5} / ${nq} 問。ボタン1つで10〜50問` : 'ボタン1つで10〜50問。科目別・回ごとも', '解く', nq ? `<i class="abar"><i style="width:${pct(n5, nq)}%"></i></i>` : '', 'a1')
     + act(lp ? '#p/' + R.lastPage : '#ippo', 'book', '基礎学習する', lp ? `つづき：${esc(lp.sname)}｜${esc(lp.title)}` : `国試の6割を取る範囲を順に（全${META.order.length}回）`, lp ? (lst && lst.cls === 'done' ? '一覧へ' : 'つづき') : 'はじめる')
     + act('#paper', 'scan', '結果のスキャン', '紙で解いたマークシートを写真で入れる', '入れる')
-    + act('#kq', 'map', '全問の地図を見る', '過去5年分の正解・間違い・まだを1枚で', '見る')
+    + act('#kq', 'quiz', '問題の一覧から選ぶ', '過去5年分を科目・回で絞って1問ずつ', '一覧へ')
     + '</div>';
+  h += KQ.years ? mapHtml(R) : '<section class="map"><div class="mh"><b>過去5年分の地図</b><span class="mut">読み込み中…</span></div></section>';
   if (miss0) h += `<div class="card warn rowc"><span>間違えたままの問題が <b>${miss0}</b> 問あります。</span><a class="btn" href="#drill">${ic('redo')}解き直す（復習）</a></div>`;
   h += `<h2>この1週間</h2><div class="stats">
     <div class="card"><div class="lab">この1週間 取り組んだ日</div><div class="big">${wk.nDays}<small>日</small></div></div>
@@ -220,6 +221,7 @@ function renderHome() {
   h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・基礎学習 ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
   h += `<p class="mut cs-home">AIによる学習の記録の分析：<b>${CONSENT ? (CONSENT.ai ? '同意している' : '同意していない') : '未回答'}</b>（名前・学籍番号などはAIに渡しません）　<button class="btn sub sm" id="csChange">変える</button></p><div id="csHomeBox"></div>`;
   $('#tab-home').innerHTML = h;
+  mapBind();
   $('#csChange').onclick = e => { e.preventDefault(); consentForm($('#csHomeBox'), () => renderHome(), '変更を保存する'); $('#csHomeBox').scrollIntoView({ behavior: 'smooth' }); };
 }
 
@@ -342,6 +344,37 @@ function kqFilter(R) {
   });
   return L;
 }
+// ===== 全問の地図（過去5年・ホームに出す。11/27 運営者「過去問のタブから外してホームへ」） =====
+function mapHtml(R) {
+  const yrs = KQ.years.slice().reverse(), n5 = Object.keys(R.kq).filter(kqIn5).length;
+  const nq = KQ.years.reduce((a, y) => a + (KQ.q[y] || []).length, 0);
+  let h = `<section class="map"><div class="mh"><b>過去5年分の地図</b><span class="num">${n5} / ${nq} 問 解いた</span><span class="hint">ます目を押すと、その問題が開いて解けます（回の名前を押すとその回の一覧）</span>
+    <div class="lg"><span><i class="s1"></i>正解</span><span><i class="s2"></i>間違い</span><span><i class="s0"></i>まだ</span></div></div>
+    <div class="ax"><span></span><span>午前 1 → 100</span><span>午後 101 → 200</span></div><div class="mg" id="mg">`;
+  yrs.forEach(y => {
+    h += `<label data-y="${y}" title="第${y}回の一覧を開く">第${y}回</label><div class="mc">`;
+    const qs = {}; (KQ.q[y] || []).forEach(q => qs[q.n] = q);
+    for (let n = 1; n <= 200; n++) {
+      const id = y + '-' + n, q = qs[n];
+      if (!q) { h += `<i class="dim${n === 101 ? ' pm' : ''}"></i>`; continue; }
+      const st = kqState(R, id);
+      h += `<i data-q="${id}" class="${st ? 's' + st : ''}${n === 101 ? ' pm' : ''}${KS.sel === id ? ' sel' : ''}" title="第${y}回 問${n}　${esc(q.s || '')}"></i>`;
+    }
+    h += '</div>';
+  });
+  return h + '</div></section>';
+}
+// 地図のます目→過去問の一覧でその問題を開く（今の絞り込みに入っていなければ「全部」にする）
+function mapBind() {
+  const mg = $('#mg'); if (!mg) return;
+  mg.onclick = e => {
+    const c = e.target.closest('[data-q]');
+    if (c) { const R = summarize(LOGS, META), L = kqFilter(R); KS.sel = c.dataset.q; if (L.indexOf(KS.sel) < 0) { KS.f = 'all'; KS.subj = ''; KS.year = ''; } KS.list = []; KS.lim = 300; location.hash = 'kq/' + KS.f; return; }
+    const l = e.target.closest('label[data-y]');
+    if (l) { KS.year = l.dataset.y; KS.subj = ''; KS.f = 'all'; KS.sel = null; KS.list = []; KS.lim = 300; location.hash = 'kq/all'; }
+  };
+}
+
 async function renderKq() {
   const box = $('#tab-kq');
   const f = hashParts()[1];
@@ -355,23 +388,7 @@ async function renderKq() {
   if (!KS.list.length) KS.list = kqFilter(R);
   const fl = { new: 'まだ解いていない', miss: '間違えたまま', all: '全部' }[KS.f];
   const yrs = KQ.years.slice().reverse();
-  let h = kqSwitch('kq') + `<div class="ph"><h1>過去5年分の地図</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。答えると正誤と解説が出ます。まとめて解くなら「問題を解く」、紙で解いた分は「結果のスキャン」から入れると地図に入ります。印刷は「問題を解く」で「A4で印刷」に切り替え。</span></div>`;
-  h += `<section class="map"><div class="mh"><b>全問の地図</b><span class="num">${R.nKq} 問 解いた</span><span class="hint">ます目を押すと、その問題が右（スマホは下）に開きます</span>
-    <div class="lg"><span><i class="s1"></i>正解</span><span><i class="s2"></i>間違い</span><span><i class="s0"></i>まだ</span></div></div>
-    <div class="ax"><span></span><span>午前 1 → 100</span><span>午後 101 → 200</span></div><div class="mg" id="mg">`;
-  const inL = {}; KS.list.forEach(id => inL[id] = 1);
-  yrs.forEach(y => {
-    h += `<label data-y="${y}" title="第${y}回だけにする">第${y}回</label><div class="mc">`;
-    const qs = {}; (KQ.q[y] || []).forEach(q => qs[q.n] = q);
-    for (let n = 1; n <= 200; n++) {
-      const id = y + '-' + n, q = qs[n];
-      if (!q) { h += `<i class="dim${n === 101 ? ' pm' : ''}"></i>`; continue; }
-      const st = kqState(R, id);
-      h += `<i data-q="${id}" class="${st ? 's' + st : ''}${n === 101 ? ' pm' : ''}${inL[id] ? '' : ' dim'}${KS.sel === id ? ' sel' : ''}" title="第${y}回 問${n}　${esc(q.s || '')}"></i>`;
-    }
-    h += '</div>';
-  });
-  h += '</div></section>';
+  let h = kqSwitch('kq') + `<div class="ph"><h1>過去5年分の一覧</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。行を押すと右に問題が出て、答えると正誤と解説が出ます。正解・間違いの地図はホームにあります。</span></div>`;
   const so = KQ_SUBJ.map(x => `<option value="${esc(x.s)}"${KS.subj === x.s ? ' selected' : ''}>${esc(x.s)}（${x.n}）</option>`);
   const nIppo = KQ_SUBJ.filter(x => x.ippo).length;
   h += `<div class="split"><section class="list">
@@ -382,13 +399,9 @@ async function renderKq() {
       <button class="btn sm" id="kGo">${KS.sel ? '続ける' : '上から解く'}</button></div>
     <div class="tr th"><span class="r">回</span><span class="r">番号</span><span class="ks">科目</span><span>問題</span><span>自分</span><span class="r">みんな</span></div>
     <div class="rows" id="kRows"></div></section>
-    <section class="read" id="kRead"><div class="empty">${ic('pen', 'eic')}<br>左の一覧の行か、上の地図のます目を押すと<br>ここに問題が出て、そのまま解けます。<br><br>キー：<kbd>1</kbd>〜<kbd>5</kbd> 答える　<kbd>Enter</kbd> 次へ　<kbd>J</kbd><kbd>K</kbd> 下・上</div></section></div>`;
+    <section class="read" id="kRead"><div class="empty">${ic('pen', 'eic')}<br>左の一覧の行を押すと<br>ここに問題が出て、そのまま解けます。<br><br>キー：<kbd>1</kbd>〜<kbd>5</kbd> 答える　<kbd>Enter</kbd> 次へ　<kbd>J</kbd><kbd>K</kbd> 下・上</div></section></div>`;
   box.innerHTML = h;
   drawRows(R);
-  $('#mg').onclick = e => {
-    const c = e.target.closest('[data-q]'); if (c) return kqOpen(c.dataset.q);
-    const l = e.target.closest('label[data-y]'); if (l) { KS.year = KS.year === l.dataset.y ? '' : l.dataset.y; KS.list = []; KS.lim = 300; renderKq(); }
-  };
   $('#kS').onchange = () => { KS.subj = $('#kS').value; KS.list = []; KS.lim = 300; renderKq(); };
   $('#kY').onchange = () => { KS.year = $('#kY').value; KS.list = []; KS.lim = 300; renderKq(); };
   $$('#kF button').forEach(b => b.onclick = () => { location.hash = 'kq/' + b.dataset.f; });
