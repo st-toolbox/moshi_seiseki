@@ -153,11 +153,15 @@ function summarize(logs, META, from, to) {
 
 // 正答の判定（kakomon_print.js と同じ：'0'＝全員正解・2桁以上＝どれも正解）
 const kqOk = (a, n) => a === '0' || String(a).split('').map(Number).indexOf(Number(n)) >= 0;
+// 解説の **太字** を太字で出す（ほかは文字のまま）
+const kxFmt = x => esc(x).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');
 const kqStem = q => (q.t || (q.raw || '').split('\n')[0] || '').trim();
 
 // 過去問（ippo/kq/y<回>・ippo/kx/y<回>・ippo/kimg/<回-問>）の読み込み
 const KQ = { years: null, q: {}, x: {}, img: {} };
-async function kqYears() { if (!KQ.years) { const m = await get('ippo/kqmeta'); KQ.years = (m && m.years) || []; } return KQ.years; }
+// 学生に見せる過去問は新しい5年分だけ（運営者 11/27）。古い回のデータは残す＝60％達成コンテンツの中の過去問の解説が使う
+const KQ_SPAN = 5;
+async function kqYears() { if (!KQ.years) { const m = await get('ippo/kqmeta'); KQ.allYears = (m && m.years) || []; KQ.years = KQ.allYears.slice(-KQ_SPAN); } return KQ.years; }
 async function kqYear(y) {
   if (!KQ.q[y]) { const s = await get('ippo/kq/y' + y); KQ.q[y] = s ? (typeof s === 'string' ? JSON.parse(s) : s) : []; }
   return KQ.q[y];
@@ -203,6 +207,6 @@ async function showKx(id) {
     const q = await kqGet(id), x = await kxGet(id);
     if (!q) { body.innerHTML = '<p>この問題は見つかりませんでした。</p>'; return; }
     body.innerHTML = (await kqHtml(id, q, false)) + `<p class="kq-ans">正答：${esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</p>`
-      + (x ? `<div class="kx">${esc(x)}</div>` : '<p class="mut">解説はまだありません。</p>');
+      + (x ? `<div class="kx">${kxFmt(x)}</div>` : '<p class="mut">解説はまだありません。</p>');
   } catch (e) { body.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; }
 }

@@ -105,11 +105,15 @@ tr.on{background:var(--sel)}
 /* 回の一覧 */
 .plist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line2)}
 .plist li{border-bottom:1px solid var(--line2)}
-.plist a{display:grid;grid-template-columns:4.2em 1fr 7em;gap:12px;align-items:center;padding:7px 8px;color:var(--ink);text-decoration:none}
+.plist a{display:grid;grid-template-columns:4.2em 1fr auto 10px;gap:12px;align-items:center;padding:7px 8px;color:var(--ink);text-decoration:none}
 .plist a:hover{background:var(--sel)}
 .plist .no{color:var(--sub);font-size:12px}
 .plist .tt{min-width:0}
 .plist .st{font:12px var(--n);color:var(--sub);text-align:right}
+.plist a::after{content:'›';color:var(--mute);font-size:20px;line-height:1}
+.plist .go{display:inline-block;padding:3px 12px;border:1px solid var(--acc);border-radius:14px;color:var(--acc);font:700 12px var(--f);white-space:nowrap}
+.plist a:hover .go{background:var(--acc);color:#fff}
+.go2{color:var(--acc);font-weight:700;white-space:nowrap}
 .plist .st.done{color:var(--ok);font-weight:700}
 .plist .st .prog{margin-top:3px}
 
@@ -247,3 +251,24 @@ div.kq-ch .ch{cursor:default}
   .app{display:block;height:auto}.work{display:block}.main{overflow:visible}
   .card{break-inside:avoid}
 }
+/* 問題を解く */
+.dset{display:grid;grid-template-columns:7em 1fr;gap:12px 14px;align-items:center}
+.dset .seg{flex-wrap:wrap}
+.yrs label{margin-right:12px;white-space:nowrap}
+.drh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.drh .tm{font-weight:700;margin-left:auto}
+.drh .tm.lo{color:var(--ng)}
+.mkb.on{color:#9a6b00;border-color:var(--s3)}
+.pace{height:6px;background:var(--line2);border-radius:3px;overflow:hidden;margin:0 0 10px}
+.pace b{display:block;height:100%;background:var(--ok);transition:width 1s linear}
+.pace b.lo{background:var(--ng)}
+.kq-ch .ch.pick{outline:2px solid var(--acc);background:var(--sel)}
+.pal{display:flex;flex-wrap:wrap;gap:4px;margin-top:16px}
+.pal button{min-width:36px;height:30px;border:1px solid var(--line);background:#fff;border-radius:4px;font:12px var(--n);position:relative}
+.pal button.a{background:var(--sel)}
+.pal button.o{background:#dcefe7;border-color:var(--s1)}
+.pal button.x{background:#f7dcda;border-color:var(--s2)}
+.pal button.cur{outline:2px solid var(--acc)}
+.pal button.mk::after{content:'★';position:absolute;top:-6px;right:-3px;font-size:10px;color:#c98a00}
+@media(max-width:640px){.dset{grid-template-columns:1fr;gap:4px}.dset>b{margin-top:8px}}
+@media print{.pal,.drh button,.pace{display:none}}

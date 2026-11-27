@@ -3,7 +3,7 @@
 // 一歩ずつの回は ippo/content/<回> のHTMLを iframe(srcdoc) で開く。ページの中の記録（gtag）は postMessage でここへ来て ippo/log/<uid> に足す。
 let UID = null, ME = null, TEACHER = false, META = null, INDEX = null, LOGS = {}, CONFIG = {}, ASSIGN = {}, CUR = null;
 const PAGE_CACHE = {};
-const TABS = ['home', 'ippo', 'kq', 'paper', 'quiz', 'rec'];
+const TABS = ['home', 'ippo', 'drill', 'kq', 'paper', 'quiz', 'rec'];
 
 // ===== ログインと参加 =====
 inAppNote($('#inappNote'));
@@ -100,8 +100,8 @@ function route() {
   closeViewer();
   const t = curTab();
   TABS.forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
-  ({ kq: 'kq', quiz: 'quiz', paper: 'paper' })[t] ? tStart(t) : (T.page && !META.P[T.page] && tStop());
-  ({ home: renderHome, ippo: renderIppo, kq: renderKq, paper: renderPaper, quiz: renderQuiz, rec: renderRec })[t]();
+  ({ kq: 'kq', drill: 'kq', quiz: 'quiz', paper: 'paper' })[t] ? tStart(t) : (T.page && !META.P[T.page] && tStop());
+  ({ home: renderHome, ippo: renderIppo, drill: renderDrill, kq: renderKq, paper: renderPaper, quiz: renderQuiz, rec: renderRec })[t]();
   renderSide(); renderFacts();
   $('#main').scrollTop = 0; window.scrollTo(0, 0);
 }
@@ -128,7 +128,8 @@ function renderSide() {
   const v = (h, label, em, on, cls) => `<button class="v${on ? ' on' : ''}" data-h="${h}"><span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
   let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '');
   h += '<h3>学ぶ</h3>'
-    + v('kq', '過去問', R.nKq ? R.nKq + '問' : null, tab === 'kq')
+    + v('drill', '問題を解く', drSaved() ? '続き' : null, tab === 'drill', drSaved() ? 'hot' : '')
+    + v('kq', '過去問（地図・一覧）', R.nKq ? R.nKq + '問' : null, tab === 'kq')
     + v('ippo', '60％達成コンテンツ', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub)
     + v('paper', '紙で解いた', R.nPaper ? R.nPaper + '問' : null, tab === 'paper')
     + v('quiz', '小テスト', null, tab === 'quiz');
@@ -152,9 +153,9 @@ function renderSide() {
 // ===== ホーム =====
 function pageState(R, id) {
   const p = R.pages[id], m = META.P[id];
-  if (!p || !p.done) return { cls: '', txt: '', pp: 0 };
+  if (!p || !p.done) return { cls: '', txt: '<b class="go">はじめる</b>', pp: 0 };
   if (p.done >= m.total) return { cls: 'done', txt: '✓ 終わった', pp: 100 };
-  return { cls: '', txt: `${p.done} / ${m.total}`, pp: pct(p.done, m.total) };
+  return { cls: '', txt: `<b class="go">つづき ${p.done}/${m.total}</b>`, pp: pct(p.done, m.total) };
 }
 function pageLink(id, R, withSubj) {
   const m = META.P[id], st = pageState(R, id);
@@ -204,7 +205,7 @@ function renderHome() {
   h += '</div><div><h3>過去問</h3>';
   const miss = Object.values(R.kq).filter(k => !k.ok).length;
   h += miss ? `<p>間違えたままの問題が <b>${miss}</b> 問あります。<a href="#kq/miss">解き直す</a></p>` : '<p class="mut">間違えたままの問題はありません。</p>';
-  h += '<p><a href="#kq/new">まだ解いていない問題を解く</a>　<a href="#paper">紙で解いた答えを入れる</a></p></div></div>';
+  h += (drSaved() ? '<p><a href="#drill/go"><b>解きかけの問題の続きから</b></a></p>' : '') + '<p><a href="#drill">問題を解く（ランダム・回ごと・苦手）</a>　<a href="#kq/new">まだ解いていない問題を解く</a>　<a href="#paper">紙で解いた答えを入れる</a></p></div></div>';
   h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・60％達成コンテンツ ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
   $('#tab-home').innerHTML = h;
 }
@@ -215,10 +216,10 @@ function renderIppo() {
   let h = '<div class="ph"><h1>60％達成コンテンツ</h1><span class="mut">説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。</span></div>';
   const keys = sub && META.S[sub] ? [sub] : META.list;
   if (!sub) {
-    h += '<table><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th></tr>';
+    h += '<table><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th><th></th></tr>';
     META.list.forEach(k => {
       const s = META.S[k], r = R.subj[k], pp = pct(r.done, s.total);
-      h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td></tr>`;
+      h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n go2">開く ›</td></tr>`;
     });
     h += '</table>';
   }
@@ -432,7 +433,7 @@ async function markAns(id, q, n, again) {
     <div class="row">${nx ? '<button class="btn" id="kNext">次へ <kbd>Enter</kbd></button>' : '<span class="mut">この一覧の最後です</span>'}</div><div class="kx mut" id="kX">解説を読み込み中…</div>`;
   if ($('#kNext')) $('#kNext').onclick = () => kqOpen(nx);
   const x = await kxGet(id).catch(() => '');
-  if (KS.sel === id && $('#kX')) { $('#kX').classList.remove('mut'); $('#kX').textContent = x || '解説はまだありません。'; }
+  if (KS.sel === id && $('#kX')) { $('#kX').classList.remove('mut'); $('#kX').innerHTML = x ? kxFmt(x) : '解説はまだありません。'; }
 }
 function kqKey(e) {
   if (curTab() !== 'kq' || !KS.sel || e.ctrlKey || e.metaKey || e.altKey) return;
