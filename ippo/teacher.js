@@ -14,9 +14,10 @@ auth.onAuthStateChanged(async user => {
   $('#who').textContent = user.email;
   $('#tab-map').innerHTML = '<p class="mut">読み込み中…</p>';
   try { await loadAll(); } catch (e) { $('#tab-map').innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
-  db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
+  // 参加者・申し込み・同意は開いた後に届く＝届いたら今のページを描き直す（11/27 運営者「登録している学生いるのに地図が空」）
+  db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; renderFacts(); redraw(); });
   db.ref('ippo/apply').on('value', s => { APP = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
-  db.ref('ippo/consent').on('value', s => { CONS = s.val() || {}; if (cur() === 'mem') renderMem(); });
+  db.ref('ippo/consent').on('value', s => { CONS = s.val() || {}; redraw(); });
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) location.hash = b.dataset.t; });
   window.addEventListener('hashchange', route);
   route();
@@ -55,6 +56,12 @@ async function reloadLogs() { LOGALL = (await get('ippo/log')) || {}; ASG = (awa
 
 const TT = ['map', 'act', 'gain', 'task', 'mem', 'cfg'];
 const cur = () => location.hash.replace('#', '').split('/')[0] || 'map';
+// 課題と設定は書きかけを消さないよう描き直さない
+function redraw() {
+  const t = cur();
+  if (t === 'map') renderMap(); else if (t === 'gain') renderGain(); else if (t === 'mem') renderMem();
+  else if (t === 'act') { renderAct(); const u = location.hash.split('/')[1]; if (u && MEM[u]) detail(u); }
+}
 function route() {
   const t = TT.indexOf(cur()) >= 0 ? cur() : 'map';
   TT.forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
