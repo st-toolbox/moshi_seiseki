@@ -108,11 +108,15 @@ function drawSetup() {
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
     <p class="row"><button class="btn" id="dRes">続きから</button><button class="btn sub" id="dDrop">やめて新しく始める</button></p></div>`;
   const PR = D.out === 'print';
-  h += `<div class="card dopt dout"><b>解き方</b>${seg('dOut', [['screen', ic('screen') + '画面で解く'], ['print', ic('print') + 'A4で印刷して紙で解く']], PR ? 'print' : 'screen')}
-    <span class="mut">${PR ? '下のボタンを押すと、その問題を問題用紙とマークシートにして刷ります（' + PSET_MAX + '問まで）。解いたらマークシートを写真に撮って「結果のスキャン」へ。' : '紙で解きたいときは「A4で印刷」に切り替えます。'}</span></div>`;
-  if (!PR) h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
-    <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}
-    <span class="mut">下のどの出し方にも効きます</span></div>`;
+  // 設定（解き方・答え合わせ・時間）は歯車のボタンで開く（11/27 運営者「設定なので設定マークを押したら出てくるように」）
+  const GRL = { each: '1問ごとに答え合わせ', end: '最後にまとめて答え合わせ' }, TML = { none: '時間は計らない', pace: '1問の目安時間', total: '全体の制限時間' };
+  const now = PR ? ['A4で印刷して紙で解く'] : ['画面で解く', GRL[D.grade] || GRL.each, TML[D.time] || TML.none];
+  h += `<details class="card dcfg" id="dCfg"${D.cfgOpen ? ' open' : ''}><summary><span class="dcfg-ic">${ic('gear')}</span><span class="dcfg-tx"><b>設定</b><span class="dcfg-now">${now.map(esc).join('・')}</span></span><span class="dcfg-go"></span></summary>
+    <div class="dopt"><b>解き方</b>${seg('dOut', [['screen', ic('screen') + '画面で解く'], ['print', ic('print') + 'A4で印刷して紙で解く']], PR ? 'print' : 'screen')}`
+    + (PR ? '' : `<b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
+    <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}`)
+    + `<span class="mut">下のどの出し方にも効きます</span></div></details>`;
+  if (PR) h += `<p class="mut dcfg-tip">${ic('print')} 下のボタンを押すと、その問題を問題用紙とマークシートにして刷ります（${PSET_MAX}問まで）。解いたらマークシートを写真に撮って「スキャン」へ。</p>`;
   h += `<div class="card dsec dhero"><h2>★ まずはこれ：過去5年分を全部やりきる</h2><p class="mut">第${y5[0]}回〜第${y5[y5.length - 1]}回の${nAll}問。まだ解いていない問題だけから出します（全部解いたら全体から）。</p>
     <p class="dprog">${bar(nSeen, nAll)}<span class="num">${nSeen} / ${nAll}問</span><span class="mut">のこり ${nAll - nSeen}問</span></p>
     <p class="row">${[10, 20, 30, 50].map(n => qb('all5', n, n + '問')).join('')}</p></div>`;
@@ -155,6 +159,7 @@ function drawSetup() {
   $('#dKw').onchange = () => setC('kw', $('#dKw').value);
   $('#dCus').ontoggle = () => { D.open = $('#dCus').open ? 1 : 0; save(); };
   $('.dmore').ontoggle = () => { D.more = $('.dmore').open ? 1 : 0; save(); };
+  $('#dCfg').ontoggle = () => { D.cfgOpen = $('#dCfg').open ? 1 : 0; save(); };
   $('#dOld').ontoggle = () => { D.old = $('#dOld').open ? 1 : 0; save(); };
   if (sv) {
     $('#dRes').onclick = () => { DR.run = sv; drawRun(); };

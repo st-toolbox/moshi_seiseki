@@ -243,10 +243,11 @@ function renderIppo() {
   let h = phead('book', 'STEP 1　まずはここから', sub && META.S[sub] ? esc(META.S[sub].name) : '基礎学習する', '説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。', ringHtml(pct(R.pagesDone, META.order.length), `<b class="num">${R.pagesDone}</b> / ${META.order.length} 回 終わった`, sub ? '<a href="#ippo">科目の一覧へ</a>' : ''));
   const keys = sub && META.S[sub] ? [sub] : META.list;
   if (!sub) {
-    h += '<h2 class="sec">科目を選ぶ</h2><table class="tcard"><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th><th></th></tr>';
+    h += '<h2 class="sec">科目を選ぶ</h2><table class="tcard tsubj"><tr><th>科目</th><th class="n pc">回</th><th class="n pc">終わった</th><th class="pc">進み</th><th class="n pc">初めの正解</th><th></th></tr>';
     META.list.forEach(k => {
       const s = META.S[k], r = R.subj[k], pp = pct(r.done, s.total);
-      h += `<tr class="click" data-h="ippo/${k}"><td>${esc(s.name)}</td><td class="n">${s.pages.length}</td><td class="n">${r.pagesDone}</td><td style="width:30%"><div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div></td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n"><span class="go2">開く ›</span></td></tr>`;
+      const pg = `<div class="prog${pp >= 100 ? ' done' : ''}"><i style="width:${pp}%"></i></div>`, rt = r.n ? pct(r.ok, r.n) + '%' : '—';
+      h += `<tr class="click" data-h="ippo/${k}"><td class="tn"><b>${esc(s.name)}</b><span class="sp">${pg}<small>${r.pagesDone} / ${s.pages.length} 回・初めの正解 ${rt}</small></span></td><td class="n pc">${s.pages.length}</td><td class="n pc">${r.pagesDone}</td><td class="pc" style="width:30%">${pg}</td><td class="n pc">${rt}</td><td class="n"><span class="go2">開く ›</span></td></tr>`;
     });
     h += '</table>';
   }
