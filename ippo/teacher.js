@@ -17,7 +17,7 @@ auth.onAuthStateChanged(async user => {
   db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
   db.ref('ippo/apply').on('value', s => { APP = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
   db.ref('ippo/consent').on('value', s => { CONS = s.val() || {}; if (cur() === 'mem') renderMem(); });
-  $$('#tabs button').forEach(b => b.onclick = () => { location.hash = b.dataset.t; });
+  $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) location.hash = b.dataset.t; });
   window.addEventListener('hashchange', route);
   route();
 });
@@ -47,7 +47,6 @@ const TT = ['map', 'act', 'gain', 'task', 'mem', 'cfg'];
 const cur = () => location.hash.replace('#', '').split('/')[0] || 'map';
 function route() {
   const t = TT.indexOf(cur()) >= 0 ? cur() : 'map';
-  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   TT.forEach(k => $('#tab-' + k).classList.toggle('hidden', k !== t));
   ({ map: renderMap, act: renderAct, gain: renderGain, task: renderTask, mem: renderMem, cfg: renderCfg })[t]();
   const u = location.hash.split('/')[1];
@@ -66,10 +65,11 @@ function renderFacts() {
   const tg = CFG.target, dl = tg && tg.date ? Math.ceil((new Date(tg.date + 'T00:00:00') - new Date(day(Date.now()) + 'T00:00:00')) / 864e5) : null;
   $('#facts').innerHTML = `<span>参加<b>${ms.length}</b>人</span><span>この1週間に動いた<b>${act}</b>人</span><span>この1週間の過去問<b>${kq}</b>問（紙 ${paper}）</span>`
     + (ap ? `<span class="hot">申し込み待ち<b>${ap}</b>人</span>` : '') + (dl != null && dl >= 0 ? `<span>${esc(tg.name || '目標')}まで<b>${dl}</b>日</span>` : '');
-  $('#nMap').textContent = ms.length ? ms.length + '人' : '';
-  $('#nAct').textContent = act ? act + '人' : '';
-  $('#nDraft').textContent = dr ? 'AI' + dr : '';
-  $('#nApp').textContent = ap ? '待ち' + ap : ''; $('#nApp').className = ap ? 'hot' : '';
+  const t = TT.indexOf(cur()) >= 0 ? cur() : 'map';
+  const v = (k, label, em, cls, icn) => `<button class="v top1${t === k ? ' on' : ''}" data-t="${k}">${ic(icn)}<span>${label}</span>${em ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
+  $('#tabs').innerHTML = '<h3>学生を見る</h3>' + v('map', '全体の地図', ms.length ? ms.length + '人' : '', '', 'map') + v('act', '取り組み', act ? act + '人' : '', '', 'chart') + v('gain', '伸び', '', '', 'trend')
+    + '<h3>動かす</h3>' + v('mem', '登録した学生', ap ? '待ち' + ap : (ms.length ? ms.length + '人' : ''), ap ? 'hot' : '', 'users') + v('task', '課題', dr ? 'AI' + dr : '', '', 'target') + v('cfg', '設定', '', '', 'gear')
+    + (dl != null && dl >= 0 ? `<div class="count"><div class="lab">${esc(tg.name || '目標')}（${esc(tg.date)}）まで</div><div class="d">あと ${dl} 日</div></div>` : '');
 }
 
 // ===== 全体の地図（学生×一歩ずつの回） =====
@@ -77,8 +77,8 @@ function renderFacts() {
 function renderMap() {
   const ms = memUids();
   const per = window._mper || '0', from = +per ? Date.now() - (+per) * 864e5 : 0;
-  let h = `<div class="ph"><h1>全体の地図</h1><span class="mut">学生×基礎学習の回。名前を押すとその学生の詳しい取り組みが出ます。</span></div>`;
-  if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「参加者」で申し込みを許可してください。</p>'; return; }
+  let h = phead('map', '学生を見る', '全体の地図', '学生×基礎学習の回。ます目1つが1回。学籍番号を押すと、その学生の詳しい取り組みが出ます。', '');
+  if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「登録した学生」で申し込みを許可してください。</p>'; return; }
   h += `<div class="row"><label>数える期間 <select id="mPer"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="mRl">最新にする</button>
     <span class="hmlg"><span><i class="p1"></i>開いた</span><span><i class="p2"></i>半分より先</span><span><i class="p3"></i>終わった</span></span></div>`;
@@ -120,24 +120,43 @@ function csv(rows, name) {
   a.href = URL.createObjectURL(new Blob([s], { type: 'text/csv' })); a.download = name; a.click();
 }
 
-// ===== 参加者 =====
+// ===== 登録した学生（11/27 運営者「学生の登録がリストで見えるように」）=====
+// 申し込み待ちと参加中を1つの表に。AI分析の同意（入れた名前・日・証拠の画像）も同じ行に出す。名前と画像は先生だけが見られる
 function renderMem() {
   const gakus = Array.from(new Set(Object.values(STU).map(s => s.gakunen).filter(Boolean).concat(['1年', '2年', '3年']))).sort();
   const gsel = (uid) => `<select data-g="${uid}"><option value="">学年はそのまま${gk(uid) ? '（' + esc(gk(uid)) + '）' : ''}</option>${gakus.map(g => `<option ${g === '2年' && !gk(uid) ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>`;
-  let h = `<p>学生の画面：<a href="index.html" id="stuUrl"></a>　<button class="btn sub sm" id="cpUrl">URLをコピー</button></p>`;
-  const ap = Object.keys(APP).filter(u => !MEM[u]);
-  h += `<h2>申し込み（${ap.length}人）</h2>`;
-  h += ap.length ? '<table><tr><th>学籍番号</th><th>申し込み</th><th>AI分析</th><th></th><th>学年</th><th></th></tr>' + ap.map(u => `<tr><td>${esc(nm(u))}</td><td>${md(APP[u].at)}</td>${consCell(u)}<td>${gsel(u)}</td><td><button class="btn sm" data-ok="${u}">許可</button> <button class="btn ng sm" data-no="${u}">見送り</button></td></tr>`).join('') + '</table>' : '<p class="mut">ありません。</p>';
-  const ms = memUids();
-  h += `<h2>参加している学生（${ms.length}人）</h2>`;
-  h += ms.length ? '<table><tr><th>学籍番号</th><th>学年</th><th>許可した日</th><th>AI分析</th><th></th><th></th></tr>' + ms.map(u => `<tr><td>${esc(nm(u))}</td><td>${esc(gk(u))}</td><td>${MEM[u].at ? md(MEM[u].at) : ''}</td>${consCell(u)}<td><button class="btn ng sm" data-rm="${u}">外す</button></td></tr>`).join('') + '</table>' : '<p class="mut">まだいません。</p>';
-  const others = Object.keys(STU).filter(u => !MEM[u] && /^(OE|oe)/.test(STU[u].email || '')).sort((a, b) => nm(a) < nm(b) ? -1 : 1);
-  h += `<h2>申し込みなしで足す</h2><p class="mut">成績分析アプリに一度ログインした学生から選べます。2年生はまだ名簿に無い人が多い＝学生の画面に一度ログインしてもらうと出ます。</p>
-    <div class="row"><select id="addU"><option value="">学生を選ぶ</option>${others.map(u => `<option value="${u}">${esc(nm(u))}　${esc(gk(u))}</option>`).join('')}</select>${gsel('_add')}<button class="btn sm" id="addGo">足す</button></div>`;
+  const ap = Object.keys(APP).filter(u => !MEM[u]), ms = memUids();
+  const all = ap.concat(ms).map(u => { const c = consOf(u), R = META ? summarize(LOGALL[u], META) : {}; return { u, wait: !MEM[u], at: MEM[u] ? MEM[u].at : APP[u].at, c, last: R.last || 0 }; });
+  const nAi = all.filter(r => r.c && r.c.ai).length, nNo = all.length - nAi;
+  const F = window._mf || 'all';
+  const FL = { all: ['全部', all.length], wait: ['申し込み待ち', ap.length], mem: ['参加中', ms.length], noai: ['同意なし・未回答', nNo] };
+  const rows = all.filter(r => F === 'all' || (F === 'wait' ? r.wait : F === 'mem' ? !r.wait : !(r.c && r.c.ai)))
+    .sort((x, y) => (y.wait - x.wait) || (nm(x.u) < nm(y.u) ? -1 : 1));
+  let h = phead('users', '動かす', '登録した学生', '申し込んだ学生と参加している学生の一覧。申し込みは「許可」で参加になります。AI分析の同意は、学生が最初に選んだもの（最新の1件）です。', '');
+  h += `<div class="stats">
+    <div class="card"><div class="lab">登録</div><div class="big">${all.length}<small>人</small></div></div>
+    <div class="card"><div class="lab">参加中</div><div class="big">${ms.length}<small>人</small></div></div>
+    <div class="card${ap.length ? ' hot' : ''}"><div class="lab">申し込み待ち</div><div class="big">${ap.length}<small>人</small></div></div>
+    <div class="card"><div class="lab">AI分析に同意</div><div class="big">${nAi}<small>人</small></div><span class="mut">同意なし・未回答 ${nNo}人</span></div></div>`;
+  h += `<div class="mrow"><div class="seg" id="mF">${Object.entries(FL).map(([k, [t, n]]) => `<button data-f="${k}" class="${k === F ? 'on' : ''}">${t} ${n}</button>`).join('')}</div><button class="btn sub sm" id="mCsv">CSV</button></div>`;
+  const st = r => r.wait ? '<span class="chip wait">申し込み待ち</span>' : '<span class="chip on">参加中</span>';
+  const ai = r => !r.c ? '<span class="mut">未回答</span>' : (r.c.ai ? '<b>同意</b>' : '同意しない') + (r.c.n > 1 ? ` <span class="mut">${r.c.n}回目</span>` : '');
+  h += rows.length ? `<div class="tw"><table class="mlist"><tr><th>学籍番号</th><th>状態</th><th>申し込み・許可</th><th>AI分析</th><th>同意で入れた名前</th><th>最後に使った日</th><th>学年</th><th></th></tr>`
+    + rows.map(r => `<tr><td class="mn">${esc(nm(r.u))}</td><td>${st(r)}</td><td class="n">${r.at ? md(r.at) : ''}</td><td>${ai(r)}</td><td>${r.c ? esc(r.c.name || '') + ` <button class="btn sub sm" data-cimg="${r.u}/${r.c.id}">証拠</button>` : ''}</td><td class="n">${r.last ? md(r.last) : '—'}</td>`
+      + (r.wait ? `<td>${gsel(r.u)}</td><td class="nw"><button class="btn sm" data-ok="${r.u}">許可</button> <button class="btn ng sm" data-no="${r.u}">見送り</button></td>`
+        : `<td>${esc(gk(r.u))}</td><td class="nw"><button class="btn sub sm" data-see="${r.u}">取り組み</button> <button class="btn ng sm" data-rm="${r.u}">外す</button></td>`) + '</tr>').join('') + '</table></div>'
+    : `<p class="mut">${all.length ? 'この条件の学生はいません。' : 'まだ誰も登録していません。下のURLを学生に伝えてください。'}</p>`;
+  h += `<div class="card murl"><b>学生に伝えるURL</b> <a href="index.html" id="stuUrl"></a> <button class="btn sub sm" id="cpUrl">URLをコピー</button></div>`;
+  const others = Object.keys(STU).filter(u => !MEM[u] && !APP[u] && /^(OE|oe)/.test(STU[u].email || '')).sort((a, b) => nm(a) < nm(b) ? -1 : 1);
+  h += `<details class="dmore"><summary>申し込みなしで足す</summary><p class="mut">成績分析アプリに一度ログインした学生から選べます。名簿に無い学生は、学生の画面に一度ログインしてもらうと出ます。</p>
+    <div class="row"><select id="addU"><option value="">学生を選ぶ</option>${others.map(u => `<option value="${u}">${esc(nm(u))}　${esc(gk(u))}</option>`).join('')}</select>${gsel('_add')}<button class="btn sm" id="addGo">足す</button></div></details>`;
+  h += '<p class="mut">課題の下書きでAIに渡すのは「同意」の学生の集計だけ（学籍番号・名前は渡さない）。同意で入れた名前と証拠の画像は先生だけが見られます。「外す」は参加を止めるだけで、記録は残ります。</p>';
   $('#tab-mem').innerHTML = h;
   const url = location.href.replace(/teacher\.html.*$/, 'index.html');
   $('#stuUrl').textContent = url; $('#stuUrl').href = url;
   $('#cpUrl').onclick = () => navigator.clipboard && navigator.clipboard.writeText(url).then(() => { $('#cpUrl').textContent = 'コピーしました'; });
+  $$('#mF button').forEach(b => b.onclick = () => { window._mf = b.dataset.f; renderMem(); });
+  $('#mCsv').onclick = () => csv([['学籍番号', '状態', '申し込み・許可', 'AI分析', '最後に使った日', '学年']].concat(rows.map(r => [nm(r.u), r.wait ? '申し込み待ち' : '参加中', r.at ? day(r.at) : '', !r.c ? '未回答' : r.c.ai ? '同意' : '同意しない', r.last ? day(r.last) : '', gk(r.u)])), '過去問対策_登録_' + day(Date.now()) + '.csv');
   const admit = async (u, g) => {
     const up = {};
     up['ippo/members/' + u] = { email: (STU[u] && STU[u].email) || (APP[u] && APP[u].email) || '', at: TS, by: ME.email };
@@ -149,7 +168,7 @@ function renderMem() {
   $$('[data-ok]').forEach(b => b.onclick = () => admit(b.dataset.ok, $(`[data-g="${b.dataset.ok}"]`).value).catch(e => alert(e.message)));
   $$('[data-no]').forEach(b => b.onclick = () => confirm(nm(b.dataset.no) + ' の申し込みを見送りますか？') && db.ref('ippo/apply/' + b.dataset.no).remove());
   $$('[data-cimg]').forEach(b => b.onclick = () => consImg(b.dataset.cimg));
-  if (ms.length || ap.length) $('#tab-mem').insertAdjacentHTML('beforeend', '<p class="mut">AI分析＝学生が登録のときに選んだ同意（最新の1件）。課題の下書きでAIに渡すのは「同意」の学生の集計だけ。名前と証拠の画像は先生だけが見られ、AIには渡さない。</p>');
+  $$('[data-see]').forEach(b => b.onclick = () => { location.hash = 'act/' + b.dataset.see; });
   $$('[data-rm]').forEach(b => b.onclick = () => confirm(nm(b.dataset.rm) + ' を外しますか？（記録は残ります）') && db.ref('ippo/members/' + b.dataset.rm).remove());
   $('#addGo').onclick = () => { const u = $('#addU').value; if (!u) return; admit(u, $('[data-g="_add"]').value).catch(e => alert(e.message)); };
 }
@@ -171,7 +190,7 @@ function renderAct() {
   const from = +per ? Date.now() - (+per) * 864e5 : 0;
   const rows = memUids().map(u => { const R = summarize(LOGALL[u], META, from); return { u, R, a: assignStat(u, summarize(LOGALL[u], META)) }; });
   rows.sort((a, b) => (b.R.last || 0) - (a.R.last || 0));
-  let h = `<div class="row"><label>期間 <select id="per"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
+  let h = phead('chart', '学生を見る', '取り組み', '参加している学生ごとの時間・基礎学習・過去問・課題。行を押すと、その学生の詳しい取り組みが下に出ます。', '') + `<div class="row"><label>期間 <select id="per"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="rl">最新にする</button><button class="btn sub sm" id="dl">CSV</button></div>
     <table><tr><th>学籍番号</th><th>学年</th><th>最後</th><th class="n">日数</th><th class="n">時間</th><th class="n">歩</th><th class="n">初めの正解</th><th class="n">終わった回</th><th class="n">過去問</th><th class="n">過去問の正解</th><th class="n">うち紙</th><th class="n">課題</th></tr>`;
   rows.forEach(({ u, R, a }) => {
@@ -237,7 +256,7 @@ function renderGain() {
   const opt = sel => el.map(e => `<option value="${esc(e.k)}" ${e.k === sel ? 'selected' : ''}>${esc(e.k)}${e.date ? '（' + esc(e.date) + '）' : ''}</option>`).join('');
   const gakus = Array.from(new Set(Object.values(STU).map(s => s.gakunen).filter(Boolean))).sort();
   const g = window._gain || {};
-  $('#tab-gain').innerHTML = `<p>前と後の2つの模試の点を比べ、そのあいだの基礎学習の取り組みで分けます。両方の模試を午前・午後とも出した学生だけを数えます。</p>
+  $('#tab-gain').innerHTML = phead('trend', '学生を見る', '伸び（模試の前後）', '前と後の2つの模試の点を比べ、そのあいだの基礎学習の取り組みで分けます。両方の模試を午前・午後とも出した学生だけを数えます。', '') + `
   <div class="card">
     <div class="row"><label>前の模試 <select id="gA"><option value="">選ぶ</option>${opt(g.a)}</select></label></div>
     <div class="row"><label>後の模試 <select id="gB"><option value="">選ぶ</option>${opt(g.b)}</select></label></div>
@@ -341,7 +360,7 @@ async function suggest(u) {
 async function renderTask() {
   const ms = memUids();
   const sel = window._tu && MEM[window._tu] ? window._tu : '';
-  let h = `<div class="row"><label>学生 <select id="tU"><option value="">選ぶ</option><option value="_all" ${sel === '_all' ? 'selected' : ''}>参加者全員に同じ課題</option>${ms.map(u => `<option value="${u}" ${u === sel ? 'selected' : ''}>${esc(nm(u))}</option>`).join('')}</select></label><button class="btn sub sm" id="tRl">最新にする</button></div><div id="tBody"></div>`;
+  let h = phead('target', '動かす', '課題', '学生を選ぶと、模試の点と進みからの提案とAIの下書きが出ます。出すかどうかを決めるのは先生です。', '') + `<div class="row"><label>学生 <select id="tU"><option value="">選ぶ</option><option value="_all" ${sel === '_all' ? 'selected' : ''}>参加者全員に同じ課題</option>${ms.map(u => `<option value="${u}" ${u === sel ? 'selected' : ''}>${esc(nm(u))}</option>`).join('')}</select></label><button class="btn sub sm" id="tRl">最新にする</button></div><div id="tBody"></div>`;
   $('#tab-task').innerHTML = h;
   $('#tU').onchange = () => { window._tu = $('#tU').value; drawTask(); };
   $('#tRl').onclick = async () => { await reloadLogs(); drawTask(); };
@@ -403,7 +422,7 @@ async function drawTask() {
 // ===== 設定 =====
 function renderCfg() {
   const t = CFG.target || {};
-  $('#tab-cfg').innerHTML = `<div class="card"><h3>目標（学生のホームに「あと何日」を出す）</h3>
+  $('#tab-cfg').innerHTML = phead('gear', '動かす', '設定', '目標の日・過去問の解説の公開・学生のホームに出すお知らせ。', '') + `<div class="card"><h3>目標（学生のホームに「あと何日」を出す）</h3>
     <div class="row"><label>名前 <input id="cN" value="${esc(t.name || '')}" placeholder="例：12/24 模試"></label><label>日付 <input type="date" id="cD" value="${esc(t.date || '')}"></label></div>
     <h3>過去問の解説</h3><label class="chk"><input type="checkbox" id="cX"${CFG.kxOpen ? ' checked' : ''}> 学生に選択肢ごとの解説も見せる（外している間は、はじめの全体の解説だけ。選択肢ごとの解説はDBのルールでも読めない）</label>
     <h3>お知らせ（学生のホームの上に出す）</h3><textarea id="cM">${esc(CFG.notice || '')}</textarea>
