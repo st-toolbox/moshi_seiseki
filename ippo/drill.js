@@ -104,7 +104,14 @@ function drawSetup() {
     const ids = all.filter(id => KQS[id] === x.s), n = ids.filter(id => R.kq[id]).length;
     return `<tr><td>${esc(x.s)}</td><td class="n mut">${n}/${ids.length}</td><td class="dbtn">${qb('subj', 10, '10問', { v: x.s, sub: 1 })}${qb('subj', 20, '20問', { v: x.s, sub: 1 })}${qb('subj', 0, '全問', { v: x.s, sub: 1 })}</td></tr>`;
   };
-  let h = kqSwitch('drill') + phead('pen', 'STEP 2　覚えたら過去問で確かめる', '過去問をとく', `第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部。ボタンを押すとすぐ始まります。`, ringHtml(pct(nSeen, nAll), `<b class="num">${nSeen}</b> / ${nAll} 問`, '過去5年分'));
+  // 頭（11/27 運営者「ここもデザインよく」）＝ホームと同じ絵柄の枠に、まずやる5年分を入れる
+  const tile = (n, rec) => `<button class="btn qb tile${rec ? ' rec' : ''}" data-go="all5" data-n="${n}">${rec ? '<i>おすすめ</i>' : ''}<b>${n}</b><small>問・約${n}分</small></button>`;
+  let h = kqSwitch('drill') + `<section class="hero dhero2"><div class="himg"></div><div class="htx">
+    <span class="kick">STEP 2　覚えたら過去問で確かめる</span>
+    <h2>過去問をとく</h2>
+    <p class="lead">第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部やりきろう。問題数を押すとすぐ始まります。</p>
+    <div class="d5"><div class="d5h"><span class="ring" style="--p:${pct(nSeen, nAll)}"><b class="num">${pct(nSeen, nAll)}<small>%</small></b></span><span><b>${ic('target')}まずはこれ：過去5年分を全部</b><br>第${y5[0]}回〜第${y5[y5.length - 1]}回　<b class="num">${nSeen}</b> / ${nAll}問・のこり ${nAll - nSeen}問<br><span class="mut">まだ解いていない問題から出ます</span></span></div>
+    <div class="tiles">${tile(10)}${tile(20, 1)}${tile(30)}${tile(50)}</div></div></div></section>`;
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
     <p class="row"><button class="btn" id="dRes">続きから</button><button class="btn sub" id="dDrop">やめて新しく始める</button></p></div>`;
   const PR = D.out === 'print';
@@ -117,24 +124,23 @@ function drawSetup() {
     <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}`)
     + `<span class="mut">下のどの出し方にも効きます</span></div></details>`;
   if (PR) h += `<p class="mut dcfg-tip">${ic('print')} 下のボタンを押すと、その問題を問題用紙とマークシートにして刷ります（${PSET_MAX}問まで）。解いたらマークシートを写真に撮って「スキャン」へ。</p>`;
-  h += `<div class="card dsec dhero"><h2>★ まずはこれ：過去5年分を全部やりきる</h2><p class="mut">第${y5[0]}回〜第${y5[y5.length - 1]}回の${nAll}問。まだ解いていない問題だけから出します（全部解いたら全体から）。</p>
-    <p class="dprog">${bar(nSeen, nAll)}<span class="num">${nSeen} / ${nAll}問</span><span class="mut">のこり ${nAll - nSeen}問</span></p>
-    <p class="row">${[10, 20, 30, 50].map(n => qb('all5', n, n + '問')).join('')}</p></div>`;
-  h += `<div class="card dsec"><h2>全科目からランダム</h2><p class="mut">全部の回（${all.length}問）から出します。下の科目別・回ごと・復習・自分で設定も同じです。</p><p class="row">${[10, 20, 30, 50].map(n => qb('rnd', n, n + '問')).join('')}</p></div>`;
-  h += `<div class="card dsec"><h2>科目別ランダム</h2><p class="mut">「全問」は まだ解いていない→間違えた→正解した の順に出します。</p><table class="dsub">`
+  const dh = (k, t, s) => `<h2><span class="dic">${ic(k)}</span><span>${t}${s ? `<small>${s}</small>` : ''}</span></h2>`;
+  h += '<h2 class="sec">ほかの出し方</h2><div class="dgrid">';
+  h += `<div class="card dsec">${dh('shuffle', '全科目からランダム', `全部の回（${all.length}問）から`)}<p class="mut">下の科目別・回ごと・復習・自分で設定も、全部の回から出せます。</p><p class="row">${[10, 20, 30, 50].map(n => qb('rnd', n, n + '問')).join('')}</p></div>`;
+  h += `<div class="card dsec">${dh('redo', '復習', 'まちがえた問題をもう一度')}<table class="dsub">
+    <tr><td>間違えたまま</td><td class="n mut">${nMiss}問</td><td class="dbtn">${qb('miss', 10, '10問', { sub: 1, dis: !nMiss })}${qb('miss', 20, '20問', { sub: 1, dis: !nMiss })}${qb('miss', 0, '全部', { sub: 1, dis: !nMiss })}</td></tr>
+    <tr><td>印（★）を付けた問題</td><td class="n mut">${nMark}問</td><td class="dbtn">${qb('mark', 0, '全部', { sub: 1, dis: !nMark })}</td></tr>
+    ${PR ? '' : `<tr><td>サバイバル<br><span class="mut">1問まちがえたら終わり</span></td><td class="n mut">最高 ${best}問</td><td class="dbtn">${qb('surv', 0, '始める', { sub: 1 })}</td></tr>`}</table></div></div>`;
+  h += `<div class="card dsec">${dh('layers', '科目別ランダム', '苦手な科目をねらう')}<p class="mut">「全問」は まだ解いていない→間違えた→正解した の順に出します。</p><table class="dsub">`
     + KQ_SUBJ.filter(x => x.ippo).map(subjRow).join('') + '</table>'
     + `<details class="dmore"${D.more ? ' open' : ''}><summary>ほかの科目（${KQ_SUBJ.filter(x => !x.ippo).length}）</summary><table class="dsub">`
     + KQ_SUBJ.filter(x => !x.ippo).map(subjRow).join('') + '</table></details></div>';
-  h += `<div class="card dsec"><h2>回ごとに解く（本番の練習）</h2><p class="mut">番号順に出します。本番と同じにするなら、上の答え合わせを「最後にまとめて」、時間を「全体の制限時間」に。</p><table class="dsub">`
+  h += `<div class="card dsec">${dh('cal', '回ごとに解く', '本番の練習')}<p class="mut">番号順に出します。本番と同じにするなら、上の答え合わせを「最後にまとめて」、時間を「全体の制限時間」に。</p><table class="dsub">`
     + yrs.filter(y => y5.indexOf(y) >= 0).map(yRow).join('') + '</table>'
     + `<details class="dmore" id="dOld"${D.old ? ' open' : ''}><summary>それより前の回（${yrs.length - y5.length}回分）</summary><table class="dsub">`
     + yrs.filter(y => y5.indexOf(y) < 0).map(yRow).join('') + '</table></details></div>';
-  h += `<div class="card dsec"><h2>復習</h2><table class="dsub">
-    <tr><td>間違えたまま</td><td class="n mut">${nMiss}問</td><td class="dbtn">${qb('miss', 10, '10問', { sub: 1, dis: !nMiss })}${qb('miss', 20, '20問', { sub: 1, dis: !nMiss })}${qb('miss', 0, '全部', { sub: 1, dis: !nMiss })}</td></tr>
-    <tr><td>印（★）を付けた問題</td><td class="n mut">${nMark}問</td><td class="dbtn">${qb('mark', 0, '全部', { sub: 1, dis: !nMark })}</td></tr>
-    ${PR ? '' : `<tr><td>サバイバル<br><span class="mut">1問まちがえたら終わり</span></td><td class="n mut">最高 ${best}問</td><td class="dbtn">${qb('surv', 0, '始める', { sub: 1 })}</td></tr>`}</table></div>`;
   const pc = customPool(c, R).length;
-  h += `<details class="card dsec"${D.open ? ' open' : ''} id="dCus"><summary><h2>自分で設定して解く</h2></summary><div class="dset">
+  h += `<details class="card dsec"${D.open ? ' open' : ''} id="dCus"><summary>${dh('sliders', '自分で設定して解く', '回・科目・ことば・解いたかで絞る')}</summary><div class="dset">
     <b>回</b><div class="yrs">${yrs.map(y => `<label class="chk"><input type="checkbox" value="${y}"${!c.years.length || c.years.indexOf(y) >= 0 ? ' checked' : ''}> 第${y}回</label>`).join('')}</div>
     <b>科目</b><div><span class="mut">${c.subjs.length ? c.subjs.length + '科目' : 'すべての科目'}</span>　<a href="javascript:void 0" id="dSA">全部選ぶ</a>　<a href="javascript:void 0" id="dSN">全部外す</a>
       <div class="sbjs">${KQ_SUBJ.map(x => `<label class="chk"><input type="checkbox" value="${esc(x.s)}"${!c.subjs.length || c.subjs.indexOf(x.s) >= 0 ? ' checked' : ''}> ${esc(x.s)}</label>`).join('')}</div></div>
