@@ -743,3 +743,22 @@ tr.click:hover .go2,.plist a:hover .go,.act:hover .ago{background:var(--ink2);co
 .lgtm{white-space:nowrap;width:7.5em;font-family:var(--n)}
 .lgk{display:inline-block;min-width:4.6em;font-size:11.5px;font-weight:700;color:var(--ink2);margin-right:6px}
 @media print{.lgday{break-inside:avoid}}
+
+/* 先生に質問（11/27 運営者） */
+.askw{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 4px;padding:10px 12px;border:1px dashed var(--line2);border-radius:10px;background:#fff}
+.askw .askst{font-size:13px;color:var(--ink2);line-height:1.6}
+.askw .askst.ok{color:#2f7a4a;font-weight:700}
+.askf{width:100%}
+.askf label{display:block;font-size:13px;font-weight:700;color:var(--ink2)}
+.askf textarea{display:block;width:100%;box-sizing:border-box;margin:6px 0 8px;font:inherit;font-size:14px;padding:8px;border:1px solid var(--line2);border-radius:8px}
+.askbox{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:12px 14px;margin:0 0 16px}
+.askbox.hot{border-color:#e6a49a;box-shadow:inset 4px 0 0 #b8432f}
+.askbox h2{margin:0 0 8px}
+.askbox h2 span{font-size:14px;font-weight:700;color:var(--ink2)}
+.askbox.hot h2 span{color:#b8432f}
+.askbox td.nw{white-space:nowrap}
+.askbox .tw table{min-width:640px}
+.askmany{font-size:13.5px;background:#fdecea;border-radius:8px;padding:6px 10px}
+@media (max-width:640px){.askbox .tw table{min-width:0}.askbox .tw table,.askbox .tw tbody,.askbox .tw tr,.askbox .tw td{display:block}.askbox .tw tr:first-child{display:none}.askbox .tw tr{padding:8px 10px;border-bottom:1px solid var(--line2)}.askbox .tw tr:last-child{border-bottom:0}.askbox .tw td{border:0;padding:2px 0}.askbox .tw td br{display:none}.askbox .tw td .mut{margin-left:6px}}
+.lnk{background:none;border:0;padding:0;color:var(--ink2);text-decoration:underline;cursor:pointer;font:inherit;font-weight:700}
+@media print{.askw{display:none}}

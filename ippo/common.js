@@ -245,6 +245,45 @@ async function showKx(id) {
     const q = await kqGet(id), x = await kxGet(id);
     if (!q) { body.innerHTML = '<p>この問題は見つかりませんでした。</p>'; return; }
     body.innerHTML = (await kqHtml(id, q, false)) + `<p class="kq-ans">正答：${esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</p>`
-      + (x ? `<div class="kx">${kxFmt(x)}</div>` : '<p class="mut">解説はまだありません。</p>') + (kxOpen() ? '' : KX_LOCK);
+      + (x ? `<div class="kx">${kxFmt(x)}</div>` : '<p class="mut">解説はまだありません。</p>') + (kxOpen() ? '' : KX_LOCK) + askBtn(id);
   } catch (e) { body.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; }
 }
+
+// ===== 先生に質問（11/27 運営者「質問したい問題があれば押せるボタン・教員側のホームに表示・補講や個別対応に」）=====
+// 学生：ippo/ask/<uid>/<id> = {qid, note, at}。先生が対応したら ippo/askdone/<uid>/<id> = {by, at, memo}
+let ASK = null;  // {q:{id:{qid,note,at}}, d:{id:{at}}}。学生の画面で入った時だけ student.js が作る
+const askMd = t => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); };
+function askOf(qid) {
+  const L = Object.entries((ASK && ASK.q) || {}).filter(([, a]) => a && a.qid === qid).sort((a, b) => (a[1].at || 0) - (b[1].at || 0));
+  return L.length ? Object.assign({ id: L[L.length - 1][0], done: ASK.d[L[L.length - 1][0]] || null }, L[L.length - 1][1]) : null;
+}
+function askInner(qid) {
+  const a = askOf(qid);
+  if (a && !a.done) return `<span class="askst">質問済み（${askMd(a.at)}）・先生の対応を待っています${a.note ? '<br><span class="mut">「' + esc(a.note) + '」</span>' : ''}</span><button class="btn sub sm" data-ask-act="del" data-ask-id="${a.id}">取り消す</button>`;
+  return (a ? `<span class="askst ok">先生が対応しました（${askMd(a.done.at)}）</span>` : '')
+    + `<button class="btn sub sm" data-ask-act="open">${ic('pen')}<span>${a ? 'もう一度先生に質問する' : 'この問題を先生に質問する'}</span></button>`;
+}
+function askBtn(qid) { return ASK ? `<div class="askw" data-askw="${esc(qid)}">${askInner(qid)}</div>` : ''; }
+function askRefresh() { $$('[data-askw]').forEach(el => { if (!el.querySelector('textarea')) el.innerHTML = askInner(el.dataset.askw); }); }
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-ask-act]'); if (!b || !ASK) return;
+  const w = b.closest('[data-askw]'), qid = w.dataset.askw, act = b.dataset.askAct;
+  if (act === 'open') {
+    w.innerHTML = `<div class="askf"><label>どこが分からないか（書かなくても送れます）<textarea maxlength="300" rows="3" placeholder="例：選択肢3がなぜ違うのか分からない"></textarea></label>
+      <div class="row"><button class="btn sm" data-ask-act="send">先生に送る</button><button class="btn sub sm" data-ask-act="close">やめる</button></div></div>`;
+    w.querySelector('textarea').focus();
+  } else if (act === 'close') { w.innerHTML = askInner(qid); }
+  else if (act === 'send') {
+    const note = w.querySelector('textarea').value.trim().slice(0, 300);
+    b.disabled = true;
+    const o = { qid, at: TS }; if (note) o.note = note;
+    try {
+      await db.ref('ippo/ask/' + UID).push().set(o);
+      log({ ev: 'ask', qid });
+      w.innerHTML = askInner(qid);
+    } catch (er) { b.disabled = false; alert('送れませんでした：' + er.message); }
+  } else if (act === 'del') {
+    if (!confirm('この質問を取り消しますか？')) return;
+    await db.ref('ippo/ask/' + UID + '/' + b.dataset.askId).remove().catch(er => alert('取り消せませんでした：' + er.message));
+  }
+});

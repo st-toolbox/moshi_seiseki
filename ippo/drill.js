@@ -272,7 +272,7 @@ async function drMark(id, q, n) {
   const ok = kqOk(q.a, n);
   $$('#dCard .ch').forEach(x => { const m = +x.dataset.n; if (kqOk(q.a, m)) x.classList.add('right'); else if (m === n) x.classList.add('wrong'); });
   $('#dRes').innerHTML = `<div class="res ${ok ? 'ok' : 'ng'}">${ok ? '○ 正解' : '× 正答は ' + esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</div>`;
-  $('#dXw').innerHTML = '<div class="kx mut" id="dX">解説を読み込み中…</div>';
+  $('#dXw').innerHTML = '<div class="kx mut" id="dX">解説を読み込み中…</div>' + askBtn(id);
   const x = await kxGet(id).catch(() => '');
   if (DR.run === r && r.ids[r.i] === id && $('#dX')) { $('#dX').classList.remove('mut'); $('#dX').innerHTML = kxBox(x); }
 }

@@ -18,6 +18,8 @@ auth.onAuthStateChanged(async user => {
   db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; renderFacts(); redraw(); });
   db.ref('ippo/apply').on('value', s => { APP = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
   db.ref('ippo/consent').on('value', s => { CONS = s.val() || {}; redraw(); });
+  db.ref('ippo/ask').on('value', s => { ASKALL = s.val() || {}; renderFacts(); if (cur() === 'map') renderMap(); });
+  db.ref('ippo/askdone').on('value', s => { ASKDONE = s.val() || {}; renderFacts(); if (cur() === 'map') renderMap(); });
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) location.hash = b.dataset.t; });
   window.addEventListener('hashchange', route);
   route();
@@ -80,22 +82,58 @@ function renderFacts() {
   ms.forEach(u => { const R = summarize(LOGALL[u], META, wk); if (R.ev) act++; kq += R.nKq; paper += R.nPaper; });
   const ap = Object.keys(APP).filter(u => !MEM[u]).length, dr = Object.keys(DRAFT).filter(u => MEM[u]).length;
   const tg = CFG.target, dl = tg && tg.date ? Math.ceil((new Date(tg.date + 'T00:00:00') - new Date(day(Date.now()) + 'T00:00:00')) / 864e5) : null;
-  $('#facts').innerHTML = `<span>参加<b>${ms.length}</b>人</span><span>この1週間に動いた<b>${act}</b>人</span><span>この1週間の過去問<b>${kq}</b>問（紙 ${paper}）</span>`
+  const aq = askOpenN();
+  $('#facts').innerHTML = (aq ? `<span class="hot">質問の対応待ち<b>${aq}</b>件</span>` : '') + `<span>参加<b>${ms.length}</b>人</span><span>この1週間に動いた<b>${act}</b>人</span><span>この1週間の過去問<b>${kq}</b>問（紙 ${paper}）</span>`
     + (ap ? `<span class="hot">申し込み待ち<b>${ap}</b>人</span>` : '') + (dl != null && dl >= 0 ? `<span>${esc(tg.name || '目標')}まで<b>${dl}</b>日</span>` : '');
   const t = TT.indexOf(cur()) >= 0 ? cur() : 'map';
   const v = (k, label, em, cls, icn) => `<button class="v top1${t === k ? ' on' : ''}" data-t="${k}">${ic(icn)}<span>${label}</span>${em ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
-  $('#tabs').innerHTML = '<h3>学生を見る</h3>' + v('map', '全体の地図', ms.length ? ms.length + '人' : '', '', 'map') + v('act', '取り組み', act ? act + '人' : '', '', 'chart') + v('gain', '伸び', '', '', 'trend')
+  $('#tabs').innerHTML = '<h3>学生を見る</h3>' + v('map', '全体の地図', aq ? '質問' + aq : (ms.length ? ms.length + '人' : ''), aq ? 'hot' : '', 'map') + v('act', '取り組み', act ? act + '人' : '', '', 'chart') + v('gain', '伸び', '', '', 'trend')
     + '<h3>動かす</h3>' + v('mem', '登録した学生', ap ? '待ち' + ap : (ms.length ? ms.length + '人' : ''), ap ? 'hot' : '', 'users') + v('task', '課題', dr ? 'AI' + dr : '', '', 'target') + v('cfg', '設定', '', '', 'gear')
     + (dl != null && dl >= 0 ? `<div class="count"><div class="lab">${esc(tg.name || '目標')}（${esc(tg.date)}）まで</div><div class="d">あと ${dl} 日</div></div>` : '');
 }
 
 // ===== 全体の地図（学生×一歩ずつの回） =====
 // ます目＝回。薄い緑＝開いた・緑＝半分より先・濃い緑＝終わった。右に過去問（解いた・初めの正解・紙）と最後の日。
+// ===== 学生からの質問（11/27 運営者「教員側のアプリのホームに表示されて、各先生方が補講とか個別対応できるように」）=====
+let ASKALL = {}, ASKDONE = {};
+function askList() {
+  const L = [];
+  Object.entries(ASKALL).forEach(([u, o]) => Object.entries(o || {}).forEach(([id, a]) => { if (a && a.qid) L.push(Object.assign({ u, id, done: (ASKDONE[u] || {})[id] || null }, a)); }));
+  return L.sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+const askOpenN = () => askList().filter(a => !a.done).length;
+function askBoxHtml() {
+  const L = askList(), op = L.filter(a => !a.done), dn = L.filter(a => a.done).sort((a, b) => b.done.at - a.done.at);
+  let h = `<div class="askbox${op.length ? ' hot' : ''}"><h2>学生からの質問　<span>${op.length ? '対応待ち ' + op.length + '件' : '対応待ちはありません'}</span></h2>`;
+  if (!L.length) return h + '<p class="mut">学生が過去問の解説の下の「この問題を先生に質問する」を押すと、ここに出ます。</p></div>';
+  const by = {}; op.forEach(a => (by[a.qid] = by[a.qid] || new Set()).add(a.u));
+  const many = Object.entries(by).filter(([, s]) => s.size >= 2).sort((a, b) => b[1].size - a[1].size);
+  if (many.length) h += '<p class="askmany">同じ問題に複数の質問（補講の候補）：' + many.map(([q, s]) => `<button class="lnk" data-kx="${esc(q)}">${esc(qn(q))}</button>（${s.size}人）`).join('　') + '</p>';
+  const row = (a, done) => `<tr><td>${esc(nmx(a.u))}</td><td class="nw"><button class="lnk" data-kx="${esc(a.qid)}">${esc(qn(a.qid))}</button><br><span class="mut">${esc(kSubj(a.qid))}</span></td><td>${a.note ? esc(a.note) : '<span class="mut">（書いていない）</span>'}</td><td class="nw">${askMd(a.at)}</td>`
+    + (done ? `<td>${esc((a.done.by || '').split('@')[0])} ${askMd(a.done.at)}${a.done.memo ? '<br>' + esc(a.done.memo) : ''}</td><td class="nw"><button class="btn sub sm" data-askundo="${a.u}/${a.id}">戻す</button></td>`
+      : `<td class="nw"><button class="btn sm" data-askdone="${a.u}/${a.id}">対応した</button></td>`) + '</tr>';
+  if (op.length) h += '<div class="tw"><table><tr><th>学生</th><th>問題</th><th>分からない所</th><th>送った日</th><th></th></tr>' + op.map(a => row(a, false)).join('') + '</table></div>';
+  if (dn.length) h += `<details><summary>対応した質問（${dn.length}件${dn.length > 20 ? '・新しい20件を表示' : ''}）</summary><div class="tw"><table><tr><th>学生</th><th>問題</th><th>分からない所</th><th>送った日</th><th>対応</th><th></th></tr>` + dn.slice(0, 20).map(a => row(a, true)).join('') + '</table></div></details>';
+  return h + '<p class="mut">問題を押すと問題と解説が出ます。「対応した」を押すと学生の画面に「先生が対応しました」と出ます（メモは学生にも見えます）。</p></div>';
+}
+function askBind() {
+  $$('#tab-map [data-kx]').forEach(b => b.onclick = () => showKx(b.dataset.kx));
+  $$('#tab-map [data-askdone]').forEach(b => b.onclick = async () => {
+    const memo = prompt('メモ（なくてもよい・学生にも見えます）例：12/3の補講で説明', ''); if (memo === null) return;
+    const o = { by: ME.email, at: TS }; if (memo.trim()) o.memo = memo.trim().slice(0, 200);
+    await db.ref('ippo/askdone/' + b.dataset.askdone).set(o).catch(e => alert('書けませんでした：' + e.message));
+  });
+  $$('#tab-map [data-askundo]').forEach(b => b.onclick = async () => {
+    if (!confirm('「対応した」を取り消しますか？')) return;
+    await db.ref('ippo/askdone/' + b.dataset.askundo).remove().catch(e => alert('消せませんでした：' + e.message));
+  });
+}
 function renderMap() {
   const ms = memUids();
   const per = window._mper || '0', from = +per ? Date.now() - (+per) * 864e5 : 0;
   let h = phead('map', '学生を見る', '全体の地図', '学生×基礎学習の回。ます目1つが1回。名前を押すと、その学生の詳しい取り組みが出ます。名前はAI分析の同意で学生が入れたもの（未回答の学生は学籍番号）。', '');
-  if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「登録した学生」で申し込みを許可してください。</p>'; return; }
+  h += askBoxHtml();
+  if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「登録した学生」で申し込みを許可してください。</p>'; askBind(); return; }
   h += `<div class="row"><label>数える期間 <select id="mPer"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="mRl">最新にする</button>
     <span class="hmlg"><span><i class="p1"></i>開いた</span><span><i class="p2"></i>半分より先</span><span><i class="p3"></i>終わった</span></span></div>`;
@@ -122,6 +160,7 @@ function renderMap() {
   const kl = Object.entries(ks).sort((a, b) => pct(a[1].f, a[1].n) - pct(b[1].f, b[1].n));
   if (kl.length) h += '<h2>過去問：科目ごと（参加者全体・初めの正解の低い順）</h2><table><tr><th>科目</th><th class="n">解いた（のべ）</th><th class="n">解いた人</th><th class="n">初めの正解</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${o.who.size}</td><td class="n">${pct(o.f, o.n)}%</td></tr>`).join('') + '</table>';
   $('#tab-map').innerHTML = h;
+  askBind();
   $('#mPer').value = per;
   $('#mPer').onchange = () => { window._mper = $('#mPer').value; renderMap(); };
   $('#mRl').onclick = async () => { await reloadLogs(); renderMap(); renderFacts(); };
@@ -254,7 +293,8 @@ function sessItems(L) {
     } else if (l.ev === 'kq') {
       const k = l.set || 'one'; const o = kq[k] || (kq[k] = { n: 0, ok: 0, x: [], subj: {} }); o.n++; if (l.ok) o.ok++; else o.x.push(l.qid);
       const sj = kSubj(l.qid, l); o.subj[sj] = (o.subj[sj] || 0) + 1;
-    } else if (l.ev === 'quiz') { qz.n++; if (l.ok) qz.ok++; }
+    } else if (l.ev === 'ask' && l.qid) out.push({ k: '質問', t: `${qn(l.qid)} を先生に質問した` });
+    else if (l.ev === 'quiz') { qz.n++; if (l.ok) qz.ok++; }
     else if (l.ev === 'kqmark' && l.on) mark++;
     else if (l.ev === 'pset') out.push({ k: '印刷', t: `過去問を印刷「${l.t || ''}」${l.n || ''}問` });
   });

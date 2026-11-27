@@ -66,6 +66,12 @@ async function enter() {
     CONFIG = cfg || {}; ASSIGN = as || {}; LOGS = lg || {};
   } catch (e) { $('#tab-home').innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
   db.ref('ippo/assign/' + UID).on('value', s => { ASSIGN = s.val() || {}; if (curTab() === 'home') renderHome(); });
+  // 先生に質問（先生が学生の画面を見る時は出さない）
+  if (!TEACHER) {
+    ASK = { q: {}, d: {} };
+    db.ref('ippo/ask/' + UID).on('value', s => { ASK.q = s.val() || {}; askRefresh(); });
+    db.ref('ippo/askdone/' + UID).on('value', s => { ASK.d = s.val() || {}; askRefresh(); });
+  }
   $('#side').addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) location.hash = b.dataset.h; });
   window.addEventListener('hashchange', route);
   document.addEventListener('keydown', kqKey);
@@ -469,7 +475,7 @@ async function markAns(id, q, n, again) {
   $$('#kCard .ch').forEach(x => { const m = +x.dataset.n; if (kqOk(q.a, m)) x.classList.add('right'); else if (m === n) x.classList.add('wrong'); });
   const i = KS.list.indexOf(id), nx = KS.list[i + 1];
   $('#kRes').innerHTML = `<div class="res ${ok ? 'ok' : 'ng'}">${ok ? '○ 正解' : '× 正答は ' + esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</div>
-    <div class="row">${nx ? '<button class="btn" id="kNext">次へ <kbd>Enter</kbd></button>' : '<span class="mut">この一覧の最後です</span>'}</div><div class="kx mut" id="kX">解説を読み込み中…</div>`;
+    <div class="row">${nx ? '<button class="btn" id="kNext">次へ <kbd>Enter</kbd></button>' : '<span class="mut">この一覧の最後です</span>'}</div><div class="kx mut" id="kX">解説を読み込み中…</div>${askBtn(id)}`;
   if ($('#kNext')) $('#kNext').onclick = () => kqOpen(nx);
   const x = await kxGet(id).catch(() => '');
   if (KS.sel === id && $('#kX')) { $('#kX').classList.remove('mut'); $('#kX').innerHTML = kxBox(x); }

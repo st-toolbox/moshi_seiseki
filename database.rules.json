@@ -146,6 +146,20 @@
           ".read": "auth != null && auth.uid === $uid",
           ".write": "auth != null && auth.uid === $uid && root.child('ippo').child('members').child(auth.uid).exists() && newData.isNumber()"
         }
+      },
+      "ask": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".write": "auth != null && auth.uid === $uid && root.child('ippo').child('members').child(auth.uid).exists() && (!newData.exists() || (!data.exists() && newData.child('at').val() === now))",
+            ".validate": "newData.child('qid').isString() && newData.child('qid').val().length <= 20 && (!newData.child('note').exists() || (newData.child('note').isString() && newData.child('note').val().length <= 300))"
+          }
+        }
+      },
+      "askdone": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid"
+        }
       }
     }
   }
