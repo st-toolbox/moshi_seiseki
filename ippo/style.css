@@ -722,3 +722,14 @@ tr.click:hover .go2,.plist a:hover .go,.act:hover .ago{background:var(--ink2);co
 #mF{display:flex;flex-wrap:wrap;gap:6px}
 #mF button{width:auto;flex:none;margin:0}
 @media (max-width:820px){#mF button{padding:6px 10px;font-size:13px}}
+
+/* 先生の画面のボタンはおとなしく（11/27 運営者）：影なし・細い枠・小さめ。塗りは「許可」「保存」など決める物だけ */
+.tch .btn{box-shadow:none;border-width:1.5px;border-radius:8px;font-weight:600;padding:5px 14px}
+.tch .btn.sm{padding:2px 10px;font-size:12.5px;border-radius:7px;box-shadow:none}
+.tch .btn.sub{background:#fff;border-color:#c9c6e6;color:var(--ink2);box-shadow:none}
+.tch .btn.sub:hover:not(:disabled){background:var(--lav2);border-color:var(--ink2)}
+.tch .btn.ng{background:#fff;border-color:#e6b8b0;color:var(--ng)}
+.tch .btn.ng:hover:not(:disabled){background:#fdecea;border-color:var(--ng)}
+.tch .btn:active:not(:disabled){transform:none;box-shadow:none}
+.tch .dmore>summary{border-width:1.5px;border-color:#c9c6e6;font-weight:600}
+.tch #mF button{border-width:1.5px!important;font-weight:600}
