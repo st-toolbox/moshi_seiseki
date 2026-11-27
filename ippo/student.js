@@ -62,7 +62,7 @@ async function enter() {
   window.addEventListener('hashchange', route);
   document.addEventListener('keydown', kqKey);
   route();
-  kqAll().then(() => { kqIndex(); renderSide(); renderFacts(); }).catch(() => {});
+  kqEvery().then(() => { kqIndex(); renderSide(); renderFacts(); }).catch(() => {});
 }
 
 // ===== 記録を足す =====
@@ -115,9 +115,9 @@ function daysLeft() {
 }
 function renderFacts() {
   const R = summarize(LOGS, META), dl = daysLeft();
-  const nq = KQ.years ? KQ.years.reduce((a, y) => a + (KQ.q[y] || []).length, 0) : 0;
+  const nq = KQ.years ? KQ.years.reduce((a, y) => a + (KQ.q[y] || []).length, 0) : 0, n5 = Object.keys(R.kq).filter(kqIn5).length;
   $('#facts').innerHTML = `<span>60％達成コンテンツ<b>${R.pagesDone}</b>/ ${META.order.length}回</span>`
-    + `<span>過去問 解いた<b>${R.nKq}</b>${nq ? '/ ' + nq + '問' : '問'}</span>`
+    + (nq ? `<span>過去5年分<b>${n5}</b>/ ${nq}問</span>` : `<span>過去問 解いた<b>${R.nKq}</b>問</span>`)
     + (dl ? `<span class="hot">${esc(dl.name)}まで<b>${dl.d}</b>日</span>` : '');
 }
 function renderSide() {
@@ -128,8 +128,8 @@ function renderSide() {
   const v = (h, label, em, on, cls) => `<button class="v${on ? ' on' : ''}" data-h="${h}"><span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
   let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '');
   h += '<h3>学ぶ</h3>'
-    + v('drill', '問題を解く', drSaved() ? '続き' : null, tab === 'drill', drSaved() ? 'hot' : '')
-    + v('kq', '過去問（地図・一覧）', R.nKq ? R.nKq + '問' : null, tab === 'kq')
+    + v('drill', '過去問', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '')
+    + (tab === 'drill' || tab === 'kq' ? v('drill', '└ 解く', null, tab === 'drill', '').replace('class="v', 'class="v kin') + v('kq', '└ 地図・一覧（5年）', null, tab === 'kq', '').replace('class="v', 'class="v kin') : '')
     + v('ippo', '60％達成コンテンツ', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub)
     + v('paper', '紙で解いた', R.nPaper ? R.nPaper + '問' : null, tab === 'paper')
     + v('quiz', '小テスト', null, tab === 'quiz');
@@ -204,8 +204,8 @@ function renderHome() {
   else h += '<p>まだ何も開いていません。<a href="#ippo">60％達成コンテンツの一覧</a>から始めましょう。</p>';
   h += '</div><div><h3>過去問</h3>';
   const miss = Object.values(R.kq).filter(k => !k.ok).length;
-  h += miss ? `<p>間違えたままの問題が <b>${miss}</b> 問あります。<a href="#kq/miss">解き直す</a></p>` : '<p class="mut">間違えたままの問題はありません。</p>';
-  h += (drSaved() ? '<p><a href="#drill/go"><b>解きかけの問題の続きから</b></a></p>' : '') + '<p><a href="#drill">問題を解く（ランダム・回ごと・苦手）</a>　<a href="#kq/new">まだ解いていない問題を解く</a>　<a href="#paper">紙で解いた答えを入れる</a></p></div></div>';
+  h += miss ? `<p>間違えたままの問題が <b>${miss}</b> 問あります。<a href="#drill">解き直す（復習）</a></p>` : '<p class="mut">間違えたままの問題はありません。</p>';
+  h += (drSaved() ? '<p><a href="#drill/go"><b>解きかけの問題の続きから</b></a></p>' : '') + '<p><a href="#drill"><b>過去5年分をやりきる</b>・科目別・回ごと</a>　<a href="#kq">全問の地図を見る</a>　<a href="#paper">紙で解いた答えを入れる</a></p></div></div>';
   h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・60％達成コンテンツ ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
   $('#tab-home').innerHTML = h;
 }
@@ -308,7 +308,7 @@ let KQ_SUBJ = [];  // 科目の並び（60％達成コンテンツの科目が�
 function kqIndex() {
   if (KQ_SUBJ.length) return;
   const cnt = {};
-  KQ.years.forEach(y => (KQ.q[y] || []).forEach(q => { KQS[y + '-' + q.n] = q.s; cnt[q.s] = (cnt[q.s] || 0) + 1; }));
+  (KQ.allYears || KQ.years).forEach(y => (KQ.q[y] || []).forEach(q => { KQS[y + '-' + q.n] = q.s; cnt[q.s] = (cnt[q.s] || 0) + 1; }));
   const seen = {}, a = [];
   META.list.forEach(k => META.S[k].kq.forEach(s => { if (cnt[s] && !seen[s]) { seen[s] = 1; a.push(s); } }));
   KQ_SUBJ = a.concat(Object.keys(cnt).filter(s => !seen[s]).sort()).map(s => ({ s, n: cnt[s], ippo: !!seen[s] }));
@@ -335,14 +335,14 @@ async function renderKq() {
   if (['new', 'miss', 'all'].indexOf(f) >= 0 && f !== KS.f) { KS.f = f; KS.list = []; KS.lim = 300; }
   if (!KS.ready) {
     box.innerHTML = '<p class="mut">過去問を読み込み中…（はじめの1回だけ少しかかります）</p>';
-    try { await kqAll(); kqIndex(); } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+    try { await kqEvery(); kqIndex(); } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
     KS.ready = true; renderSide(); renderFacts();
   }
   const R = summarize(LOGS, META);
   if (!KS.list.length) KS.list = kqFilter(R);
   const fl = { new: 'まだ解いていない', miss: '間違えたまま', all: '全部' }[KS.f];
   const yrs = KQ.years.slice().reverse();
-  let h = `<div class="ph"><h1>過去問</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。答えると正誤と解説が出ます。紙で解いた分は「紙で解いた」から入れると地図に入ります。</span></div>`;
+  let h = kqSwitch('kq') + `<div class="ph"><h1>過去5年分の地図</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回の国家試験・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。答えると正誤と解説が出ます。まとめて解くなら「問題を解く」、紙で解いた分は「紙で解いた」から入れると地図に入ります。</span></div>`;
   h += `<section class="map"><div class="mh"><b>全問の地図</b><span class="num">${R.nKq} 問 解いた</span><span class="mut">ます目を押すとその問題が開きます</span>
     <div class="lg"><span><i class="s1"></i>正解</span><span><i class="s2"></i>間違い</span><span><i class="s0"></i>まだ</span></div></div>
     <div class="ax"><span></span><span>午前 1 → 100</span><span>午後 101 → 200</span></div><div class="mg" id="mg">`;
@@ -454,11 +454,11 @@ async function renderPaper() {
   const box = $('#tab-paper');
   if (!KS.ready) {
     box.innerHTML = '<p class="mut">過去問を読み込み中…</p>';
-    try { await kqAll(); kqIndex(); KS.ready = true; } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+    try { await kqEvery(); kqIndex(); KS.ready = true; } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
   }
   if (!PP.y) PP.y = String(KQ.years[KQ.years.length - 1]);
   if (!PP.on) PP.on = day(Date.now());
-  const yrs = KQ.years.slice().reverse();
+  const yrs = KQ.allYears.slice().reverse();
   let h = `<div class="ph"><h1>紙で解いた過去問</h1><span class="mut">紙（冊子・プリント）で解いた答えをここに入れると、過去問の地図と記録に入ります。先生の集計にも入ります。</span></div>
   <div class="card"><div class="row">
     <label>回 <select id="pY">${yrs.map(y => `<option${PP.y === String(y) ? ' selected' : ''}>${y}</option>`).join('')}</select></label>

@@ -32,18 +32,18 @@ const paceSec = q => ((kqStem(q) + (q.c || []).join('')).replace(/\s+/g, '').len
 const clock = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
 
 // 出す問題を選ぶ（cfg.set＝出し方。数 n＝0 は全部）
-const qIds = (f) => { const L = []; KQ.years.slice().reverse().forEach(y => (KQ.q[y] || []).forEach(q => { if (!f || f(q, y)) L.push(y + '-' + q.n); })); return L; };
+const qIds = (f, five) => { const L = []; (five ? KQ.years : KQ.allYears).slice().reverse().forEach(y => (KQ.q[y] || []).forEach(q => { if (!f || f(q, y)) L.push(y + '-' + q.n); })); return L; };
 const kqText = q => (kqStem(q) + ' ' + (q.c || []).join(' ') + ' ' + (q.raw || '')).toLowerCase();
 const cut = (L, n) => (n ? L.slice(0, n) : L);
 function drPick(cfg, R) {
   const seen = id => !!R.kq[id], miss = id => R.kq[id] && !R.kq[id].ok;
   const rank = id => (!seen(id) ? 0 : miss(id) ? 1 : 2);
   switch (cfg.set) {
-    case 'all5': { const L = qIds(), un = L.filter(id => !seen(id)); return cut(shuffle(un.length ? un : L), cfg.n); }
+    case 'all5': { const L = qIds(null, true), un = L.filter(id => !seen(id)); return cut(shuffle(un.length ? un : L), cfg.n); }
     case 'rnd': case 'surv': return cut(shuffle(qIds()), cfg.set === 'surv' ? 0 : cfg.n);
     case 'subj': { const L = shuffle(qIds(q => q.s === cfg.subj)); return cfg.n ? L.slice(0, cfg.n) : L.sort((a, b) => rank(a) - rank(b)); }
     case 'year': {
-      const y = cfg.year || String(KQ.years[KQ.years.length - 1]);
+      const y = cfg.year || String(KQ.allYears[KQ.allYears.length - 1]);
       return (KQ.q[y] || []).filter(q => (cfg.part === 'all' || (cfg.part === 'am' ? q.n <= 100 : q.n > 100)) && q.n >= (cfg.from || 0)).sort((a, b) => a.n - b.n).map(q => y + '-' + q.n);
     }
     case 'miss': return cut(shuffle(qIds().filter(miss)), cfg.n);
@@ -73,11 +73,11 @@ async function renderDrill() {
   const box = $('#tab-drill');
   if (!KS.ready) {
     box.innerHTML = '<p class="mut">過去問を読み込み中…（はじめの1回だけ少しかかります）</p>';
-    try { await kqAll(); kqIndex(); KS.ready = true; } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+    try { await kqEvery(); kqIndex(); KS.ready = true; } catch (e) { box.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
     renderSide(); renderFacts();
   }
   if (!DR.cfg) { DR.cfg = Object.assign({}, DR_DEF, lsGet('ippo_drill_cfg') || {}); DR.cfg.c = Object.assign({}, DR_DEF.c, DR.cfg.c || {}); }
-  const ys = KQ.years.map(String);
+  const ys = KQ.allYears.map(String);
   DR.cfg.c.years = (DR.cfg.c.years || []).filter(y => ys.indexOf(y) >= 0);
   DR.cfg.c.subjs = DR.cfg.c.subjs || [];
   if (hashParts()[1] === 'go' && !DR.run) { const s = drSaved(); if (s) DR.run = s; }
@@ -89,36 +89,39 @@ async function renderDrill() {
 // ===== 出し方を選ぶ（カコモンと同じ並び：やりきる・全科目ランダム・科目別・回ごと・復習・サバイバル・自分で設定） =====
 function drawSetup() {
   const box = $('#tab-drill'), D = DR.cfg, c = D.c, R = summarize(LOGS, META), mk = markSet();
-  const yrs = KQ.years.slice().reverse().map(String);
-  const all = qIds(), nAll = all.length, nSeen = all.filter(id => R.kq[id]).length;
+  const yrs = KQ.allYears.slice().reverse().map(String), y5 = KQ.years.map(String);
+  const all = qIds(), five = qIds(null, true), nAll = five.length, nSeen = five.filter(id => R.kq[id]).length;
   const nMiss = all.filter(id => R.kq[id] && !R.kq[id].ok).length, nMark = all.filter(id => mk[id]).length;
   const seg = (id, opts, cur) => `<span class="seg" id="${id}">` + opts.map(([v, l]) => `<button data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${l}</button>`).join('') + '</span>';
   const qb = (set, n, label, x) => { x = x || {}; return `<button class="btn qb${x.sub ? ' sub' : ''}" data-go="${set}" data-n="${n}"${x.v ? ` data-v="${esc(x.v)}"` : ''}${x.p ? ` data-p="${x.p}"` : ''}${x.dis ? ' disabled' : ''}>${label}</button>`; };
   const bar = (a, b) => `<span class="dbar"><b style="width:${b ? Math.round(a * 100 / b) : 0}%"></b></span>`;
   const sv = drSaved(), best = lsGet(survKey()) || 0;
+  const yRow = y => {  // 回ごとの1行
+    const ids = (KQ.q[y] || []).map(q => y + '-' + q.n), s = ids.filter(id => R.kq[id]).length;
+    return `<tr><td>第${y}回</td><td class="n mut">${s}/${ids.length}</td><td class="dbtn">${qb('year', 0, '午前', { v: y, p: 'am', sub: 1 })}${qb('year', 0, '午後', { v: y, p: 'pm', sub: 1 })}${qb('year', 0, '全部', { v: y, p: 'all', sub: 1 })}<button class="btn sub qb" data-from="${y}">途中から</button></td></tr>`;
+  };
   const subjRow = x => {  // 科目別の1行（60％達成コンテンツの科目が先・ほかは畳む）
     const ids = all.filter(id => KQS[id] === x.s), n = ids.filter(id => R.kq[id]).length;
     return `<tr><td>${esc(x.s)}</td><td class="n mut">${n}/${ids.length}</td><td class="dbtn">${qb('subj', 10, '10問', { v: x.s, sub: 1 })}${qb('subj', 20, '20問', { v: x.s, sub: 1 })}${qb('subj', 0, '全問', { v: x.s, sub: 1 })}</td></tr>`;
   };
-  let h = `<div class="ph"><h1>問題を解く</h1><span class="mut">第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回（過去5年分・${nAll}問）から出します。ボタンを押すとすぐ始まります。答えは過去問の地図と記録に入ります。</span></div>`;
+  let h = kqSwitch('drill') + `<div class="ph"><h1>過去問を解く</h1><span class="mut">第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部解くのが目標です。ボタンを押すとすぐ始まります。</span></div>`;
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
     <p class="row"><button class="btn" id="dRes">続きから</button><button class="btn sub" id="dDrop">やめて新しく始める</button></p></div>`;
   h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
     <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}
     <span class="mut">下のどの出し方にも効きます</span></div>`;
-  h += `<div class="card dsec"><h2>過去5年分を全部やりきる</h2><p class="mut">まだ解いていない問題だけから出します（全部解いたら全体から）。</p>
+  h += `<div class="card dsec dhero"><h2>★ まずはこれ：過去5年分を全部やりきる</h2><p class="mut">第${y5[0]}回〜第${y5[y5.length - 1]}回の${nAll}問。まだ解いていない問題だけから出します（全部解いたら全体から）。</p>
     <p class="dprog">${bar(nSeen, nAll)}<span class="num">${nSeen} / ${nAll}問</span><span class="mut">のこり ${nAll - nSeen}問</span></p>
     <p class="row">${[10, 20, 30, 50].map(n => qb('all5', n, n + '問')).join('')}</p></div>`;
-  h += `<div class="card dsec"><h2>全科目からランダム</h2><p class="row">${[10, 20, 30, 50].map(n => qb('rnd', n, n + '問')).join('')}</p></div>`;
+  h += `<div class="card dsec"><h2>全科目からランダム</h2><p class="mut">全部の回（${all.length}問）から出します。下の科目別・回ごと・復習・自分で設定も同じです。</p><p class="row">${[10, 20, 30, 50].map(n => qb('rnd', n, n + '問')).join('')}</p></div>`;
   h += `<div class="card dsec"><h2>科目別ランダム</h2><p class="mut">「全問」は まだ解いていない→間違えた→正解した の順に出します。</p><table class="dsub">`
     + KQ_SUBJ.filter(x => x.ippo).map(subjRow).join('') + '</table>'
     + `<details class="dmore"${D.more ? ' open' : ''}><summary>ほかの科目（${KQ_SUBJ.filter(x => !x.ippo).length}）</summary><table class="dsub">`
     + KQ_SUBJ.filter(x => !x.ippo).map(subjRow).join('') + '</table></details></div>';
   h += `<div class="card dsec"><h2>回ごとに解く（本番の練習）</h2><p class="mut">番号順に出します。本番と同じにするなら、上の答え合わせを「最後にまとめて」、時間を「全体の制限時間」に。</p><table class="dsub">`
-    + yrs.map(y => {
-      const ids = (KQ.q[y] || []).map(q => y + '-' + q.n), s = ids.filter(id => R.kq[id]).length;
-      return `<tr><td>第${y}回</td><td class="n mut">${s}/${ids.length}</td><td class="dbtn">${qb('year', 0, '午前', { v: y, p: 'am', sub: 1 })}${qb('year', 0, '午後', { v: y, p: 'pm', sub: 1 })}${qb('year', 0, '全部', { v: y, p: 'all', sub: 1 })}<button class="btn sub qb" data-from="${y}">途中から</button></td></tr>`;
-    }).join('') + '</table></div>';
+    + yrs.filter(y => y5.indexOf(y) >= 0).map(yRow).join('') + '</table>'
+    + `<details class="dmore" id="dOld"${D.old ? ' open' : ''}><summary>それより前の回（${yrs.length - y5.length}回分）</summary><table class="dsub">`
+    + yrs.filter(y => y5.indexOf(y) < 0).map(yRow).join('') + '</table></details></div>';
   h += `<div class="card dsec"><h2>復習</h2><table class="dsub">
     <tr><td>間違えたまま</td><td class="n mut">${nMiss}問</td><td class="dbtn">${qb('miss', 10, '10問', { sub: 1, dis: !nMiss })}${qb('miss', 20, '20問', { sub: 1, dis: !nMiss })}${qb('miss', 0, '全部', { sub: 1, dis: !nMiss })}</td></tr>
     <tr><td>印（★）を付けた問題</td><td class="n mut">${nMark}問</td><td class="dbtn">${qb('mark', 0, '全部', { sub: 1, dis: !nMark })}</td></tr>
@@ -148,6 +151,7 @@ function drawSetup() {
   $('#dKw').onchange = () => setC('kw', $('#dKw').value);
   $('#dCus').ontoggle = () => { D.open = $('#dCus').open ? 1 : 0; save(); };
   $('.dmore').ontoggle = () => { D.more = $('.dmore').open ? 1 : 0; save(); };
+  $('#dOld').ontoggle = () => { D.old = $('#dOld').open ? 1 : 0; save(); };
   if (sv) {
     $('#dRes').onclick = () => { DR.run = sv; drawRun(); };
     $('#dDrop').onclick = () => { lsSet(drKey(), null); drawSetup(); };

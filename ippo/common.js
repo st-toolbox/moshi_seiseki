@@ -167,6 +167,11 @@ async function kqYear(y) {
   return KQ.q[y];
 }
 async function kqAll() { const ys = await kqYears(); await Promise.all(ys.map(kqYear)); return ys; }
+// 解くときは全部の回から出せる（11/27運営者「問題を解くときは全問題に」）＝地図・一覧・やりきるは5年のまま
+async function kqEvery() { await kqYears(); await Promise.all(KQ.allYears.map(kqYear)); return KQ.allYears; }
+const kqIn5 = id => !!KQ.years && KQ.years.map(String).indexOf(String(id).split('-')[0]) >= 0;
+// 過去問の中の切り替え（解く／地図・一覧）
+const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">地図・一覧（過去5年）</a></div>`;
 async function kqGet(id) { const [y, n] = id.split('-'); const qs = await kqYear(y); return qs.find(q => String(q.n) === String(n)) || null; }
 async function kxGet(id) {
   const [y, n] = id.split('-');
