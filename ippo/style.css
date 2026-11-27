@@ -533,3 +533,5 @@ h2.sec .mut{font-weight:400;letter-spacing:0}
   #kF.seg,#pPart.seg{grid-template-columns:repeat(3,1fr)}
   #kF.seg button,#pPart.seg button{padding:8px 8px;gap:6px;font-size:13px}
 }
+/* 上の目次は1行（11/27 運営者「一番上のボタンは1行で統一」） */
+.v.top1 span{white-space:nowrap}

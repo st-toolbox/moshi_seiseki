@@ -136,11 +136,11 @@ function renderSide() {
   const v = (h, label, em, on, cls, icn) => `<button class="v${icn ? ' top1' : ''}${on ? ' on' : ''}" data-h="${h}">${icn ? ic(icn) : ''}<span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
   let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '', 'home');
   h += '<h3>学ぶ</h3>'
-    + v('ippo', '基礎学習する', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub, '', 'book')
-    + v('drill', '過去問とく', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '', 'pen')
-    + v('paper', '結果のスキャン', R.nPaper ? R.nPaper + '問' : null, tab === 'paper', '', 'scan')
+    + v('ippo', '基礎学習', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub, '', 'book')
+    + v('drill', '過去問', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '', 'pen')
+    + v('paper', 'スキャン', R.nPaper ? R.nPaper + '問' : null, tab === 'paper', '', 'scan')
     + v('quiz', '小テスト', null, tab === 'quiz', '', 'quiz');
-  h += '<h3>自分</h3>' + v('rec', '記録・分析', null, tab === 'rec', '', 'chart');
+  h += '<h3>自分</h3>' + v('rec', '記録', null, tab === 'rec', '', 'chart');
   if (tab === 'kq') {
     h += '<h3>過去問の絞り込み</h3>'
       + v('kq/miss', '間違えたまま', miss, KS.f === 'miss', miss ? 'hot' : '')
