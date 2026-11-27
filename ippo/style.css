@@ -762,3 +762,25 @@ tr.click:hover .go2,.plist a:hover .go,.act:hover .ago{background:var(--ink2);co
 @media (max-width:640px){.askbox .tw table{min-width:0}.askbox .tw table,.askbox .tw tbody,.askbox .tw tr,.askbox .tw td{display:block}.askbox .tw tr:first-child{display:none}.askbox .tw tr{padding:8px 10px;border-bottom:1px solid var(--line2)}.askbox .tw tr:last-child{border-bottom:0}.askbox .tw td{border:0;padding:2px 0}.askbox .tw td br{display:none}.askbox .tw td .mut{margin-left:6px}}
 .lnk{background:none;border:0;padding:0;color:var(--ink2);text-decoration:underline;cursor:pointer;font:inherit;font-weight:700}
 @media print{.askw{display:none}}
+
+/* 科目→章→節の分析（11/27 運営者「科目→章→節をちゃんと使って」） */
+.secv .row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 6px}
+table.sect{width:100%;margin:4px 0 8px}
+table.sect td,table.sect th{font-size:13px;vertical-align:top}
+table.sect tr.chr td{background:var(--lav2)}
+table.sect td.sn{padding-left:1.6em}
+.stree .ss{border:1px solid var(--line2);border-radius:10px;margin:0 0 8px;background:#fff}
+.stree .ss>summary{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 12px;cursor:pointer;font-size:14px}
+.stree .ss>summary b{min-width:9em}
+.stree .ss>table{margin:0;border-top:1px solid var(--line2)}
+.sbar{display:inline-flex;width:120px;height:8px;border-radius:4px;background:#e8e8ef;overflow:hidden}
+.sbar i{display:block;height:100%}.sbar .ok{background:#3a8f5c}.sbar .ng{background:#d9534f}
+.lv{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700;white-space:nowrap}
+.lv.l0{background:#eee;color:#777}.lv.l1{background:#fbe0de;color:#a52a24}.lv.l2{background:#fdf0d5;color:#8a5a00}.lv.l3{background:#e3eefc;color:#1d4f91}.lv.l4{background:#ddf2e4;color:#1f6b3d}
+.xn{font-size:12px;color:#a52a24}
+.qcs{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.qc{font-style:normal;font-size:11px;font-family:var(--n);padding:0 5px;border:1px solid #bbb;border-radius:9px;background:#fff;color:#555;cursor:pointer;line-height:1.6}
+.qc.s1{background:#ddf2e4;border-color:#3a8f5c;color:#1f6b3d}.qc.s2{background:#fbe0de;border-color:#d9534f;color:#a52a24}
+.sm{font-size:12px}td.sp3{font-size:12.5px}
+@media (max-width:640px){table.sect th:nth-child(4),table.sect td:nth-child(4),table.sect th:nth-child(5),table.sect td:nth-child(5){display:none}table.sect td,table.sect th{padding:5px 4px}.sbar{width:70px}.stree .ss>summary b{min-width:0;width:100%}}
+@media print{.stree .ss{break-inside:avoid}.secv .seg{display:none}.stree details:not([open])>table{display:none}}

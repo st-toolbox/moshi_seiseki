@@ -351,10 +351,7 @@ function detail(u) {
   h += '<h3>科目ごと</h3><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>' + META.list.map(k => { const s = META.S[k], r = R.subj[k]; return `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`; }).join('') + '</table>';
   const ps = Object.keys(R.pages).filter(id => META.P[id]).sort((a, b) => R.pages[b].last - R.pages[a].last);
   h += '<h3>開いた回</h3><table><tr><th>回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">わからない</th><th class="n">時間</th><th>終わりの過去問</th><th>最後</th></tr>' + ps.map(id => { const p = R.pages[id], m = META.P[id]; return `<tr><td>${esc(m.sname)} 第${m.no}回 ${esc(m.title)}</td><td class="n">${p.done} / ${m.total}</td><td class="n">${p.n ? pct(p.ok, p.n) + '%' : '—'}</td><td class="n">${Object.keys(p.u).length || ''}</td><td class="n">${p.time ? hm(p.time) : ''}</td><td>${p.exit ? (p.exit.ok + ' / ' + p.exit.n) : ''}</td><td>${p.last ? md(p.last) : ''}</td></tr>`; }).join('') + '</table>';
-  const ks = {};
-  Object.entries(R.kq).forEach(([id, k]) => { const s = kSubj(id, k); const o = ks[s] || (ks[s] = { n: 0, f: 0, x: 0, pp: 0 }); o.n++; if (k.first) o.f++; if (!k.ok) o.x++; if (k.src === 'paper') o.pp++; });
-  const kl = Object.entries(ks).sort((a, b) => pct(a[1].f, a[1].n) - pct(b[1].f, b[1].n));
-  h += '<h3>過去問：科目ごと（初めの正解の低い順）</h3>' + (kl.length ? '<table><tr><th>科目</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th><th class="n">初めが紙</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${pct(o.f, o.n)}%</td><td class="n">${o.x}</td><td class="n">${o.pp || ''}</td></tr>`).join('') + '</table>' : '<p class="mut">まだありません。</p>');
+  h += '<h3>過去問：科目 → 章 → 節</h3>' + secTreeHtml(R);
   const pg = {};
   Object.values(LOGALL[u] || {}).filter(l => l.ev === 'kq' && l.paper).forEach(l => { const y = String(l.qid).split('-')[0], k = (l.on || day(l.at)) + '|' + y; const o = pg[k] || (pg[k] = { n: 0, ok: 0, at: l.at }); o.n++; if (l.ok) o.ok++; });
   const pk = Object.keys(pg).sort().reverse();
@@ -363,6 +360,7 @@ function detail(u) {
   if (as.length) h += '<h3>課題</h3><ul>' + as.map(([, a]) => { const pd = (a.pages || []).filter(id => R.pages[id] && R.pages[id].complete).length; return `<li>${esc(a.title)}（${a.at ? md(a.at) : ''}${a.due ? '・' + esc(a.due) + 'まで' : ''}）回 ${pd} / ${(a.pages || []).length}</li>`; }).join('') + '</ul>';
   $('#detail').innerHTML = h;
   studyLogBind(u);
+  secTreeBind($('#detail'), () => detail(u), id => showKx(id));
   $('#detail').scrollIntoView({ behavior: 'smooth' });
 }
 

@@ -306,7 +306,9 @@ function drawResult() {
   const ids = each ? r.ids.filter(id => r.ans[id] != null) : r.ids;  // 1問ごと＝答えた分で数える・まとめて＝全部（空欄は×）
   const nOk = ids.filter(id => r.ok[id]).length;
   const by = {};
-  ids.forEach(id => { const q = qOf(id) || {}, s = q.s || 'ほか', o = by[s] || (by[s] = { n: 0, ok: 0 }); o.n++; if (r.ok[id]) o.ok++; });
+  // 科目 › 章 ごと（サイトのノートの見出し・11/27）。紐づけの無い問題は問題の科目
+  const chOf = id => { const x = secOf(id); return x ? `${x.sn} › ${x.ch}章 ${x.cht}` : ((qOf(id) || {}).s || 'ほか'); };
+  ids.forEach(id => { const s = chOf(id), o = by[s] || (by[s] = { n: 0, ok: 0, x: [] }); o.n++; if (r.ok[id]) o.ok++; else o.x.push(id); });
   const wrong = ids.filter(id => !r.ok[id]);
   let h = phead('chart', '結果', nOk >= Math.ceil(ids.length * .6) && ids.length ? '6割に届きました' : 'おつかれさま', `${esc(drTitle(r.cfg))}・${r.cfg.set === 'surv' ? '連続正解 ' + nOk + '問（これまでの最高 ' + (lsGet(survKey()) || 0) + '問）' : r.ids.length + '問・' + (each ? '1問ごと' : 'まとめて答え合わせ')}`, ringHtml(pct(nOk, ids.length), `<b class="num">${nOk}</b> / ${ids.length} 問 正解`, ''), 1) + `
     <div class="stats"><div class="card"><div class="lab">正解</div><div class="big">${nOk}<small> / ${ids.length}問</small></div><span class="mut">${pct(nOk, ids.length)}%${each && ids.length < r.ids.length && r.cfg.set !== 'surv' ? `・答えなかった ${r.ids.length - ids.length}問は数えていません` : ''}</span></div>
@@ -315,12 +317,12 @@ function drawResult() {
   // ボタンは3つだけ（11/27 運営者「多すぎる・問題選択に戻るボタンがない」）
   h += `<div class="rbar"><button class="btn sub rback" id="rSetup">${ic('back')}問題選びに戻る</button><span class="sp"></span>${wrong.length ? `<button class="btn" id="rWrong">${ic('pen')}間違えた ${wrong.length} 問をもう一度</button>` : ''}<button class="btn sub" id="rPrint">${ic('print')}印刷・PDF</button></div>`;
   const bl = Object.entries(by).sort((a, b) => a[1].ok / a[1].n - b[1].ok / b[1].n);
-  h += '<div class="grid2"><div><h2>科目ごと（低い順）</h2><table><tr><th>科目</th><th class="n">問題</th><th class="n">正解</th><th class="n">%</th></tr>'
-    + bl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${o.ok}</td><td class="n">${pct(o.ok, o.n)}</td></tr>`).join('') + '</table></div>';
-  h += '<div><h2>1問ずつ（押すと解説）</h2><table><tr><th class="n">#</th><th>回・問</th><th>科目</th><th class="n">自分</th><th class="n">正答</th><th></th></tr>'
+  h += '<div class="grid2"><div><h2>科目 › 章ごと（低い順）</h2><table><tr><th>科目 › 章</th><th class="n">問題</th><th class="n">正解</th><th class="n">%</th></tr>'
+    + bl.map(([s, o]) => `<tr><td>${esc(s)}${o.x.length ? `<div class="mut sm">×：${o.x.map(id => { const x = secOf(id); return x ? `${x.ch}-${x.sec} ${esc(x.sect)}` : ''; }).filter((v, i, a) => v && a.indexOf(v) === i).join('・')}</div>` : ''}</td><td class="n">${o.n}</td><td class="n">${o.ok}</td><td class="n">${pct(o.ok, o.n)}</td></tr>`).join('') + '</table></div>';
+  h += '<div><h2>1問ずつ（押すと解説）</h2><table><tr><th class="n">#</th><th>回・問</th><th>科目 › 章 › 節</th><th class="n">自分</th><th class="n">正答</th><th></th></tr>'
     + (r.cfg.set === 'surv' ? ids : r.ids).map((id, i) => {
       const q = qOf(id) || {}, a = r.ans[id];
-      return `<tr class="click" data-q="${id}"><td class="n">${i + 1}</td><td>第${id.split('-')[0]}回 問${id.split('-')[1]}${mk[id] ? ' ★' : ''}</td><td>${esc(q.s || '')}</td><td class="n">${a != null ? a : '—'}</td><td class="n">${esc(q.a === '0' ? '全' : (q.a || '').split('').join('・'))}</td><td class="mk ${a == null ? '' : r.ok[id] ? 'o' : 'x'}">${a == null ? '' : r.ok[id] ? '○' : '×'}</td></tr>`;
+      return `<tr class="click" data-q="${id}"><td class="n">${i + 1}</td><td>第${id.split('-')[0]}回 問${id.split('-')[1]}${mk[id] ? ' ★' : ''}</td><td class="sp3">${esc(secPath(id) || q.s || '')}</td><td class="n">${a != null ? a : '—'}</td><td class="n">${esc(q.a === '0' ? '全' : (q.a || '').split('').join('・'))}</td><td class="mk ${a == null ? '' : r.ok[id] ? 'o' : 'x'}">${a == null ? '' : r.ok[id] ? '○' : '×'}</td></tr>`;
     }).join('') + '</table></div></div>';
   box.innerHTML = h;
   $$('#tab-drill tr[data-q]').forEach(t => t.onclick = () => showKx(t.dataset.q));

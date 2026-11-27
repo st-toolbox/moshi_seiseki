@@ -71,7 +71,7 @@ async function psetPrint(w, set) {
   const d = new Date(set.at || Date.now()), ds = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
   const qh = (x, i) => {
     const q = x.q, [y, n] = x.id.split('-');
-    let h = `<div class="q"><div class="qh">問${i + 1}<small>第${esc(y)}回 問${esc(n)}・${esc(q.s || '')}</small></div><p>${esc(q.t || q.raw || '')}</p>`;
+    let h = `<div class="q"><div class="qh">問${i + 1}<small>第${esc(y)}回 問${esc(n)}・${esc(secPath(x.id) || q.s || '')}</small></div><p>${esc(q.t || q.raw || '')}</p>`;
     if (q.im && KQ.img[x.id]) h += `<img src="${KQ.img[x.id]}" alt="">`;
     if (q.st) h += '<ol class="st">' + q.st.map((s, j) => `<li><i>${'abcde'[j]}.</i><span>${esc(s)}</span></li>`).join('') + '</ol>';
     if (q.c && q.c.length) h += '<ol>' + q.c.map((c, j) => `<li><i>${j + 1}.</i><span>${esc(c)}</span></li>`).join('') + '</ol>';
@@ -130,7 +130,7 @@ html,body{margin:0}body{font-family:"BIZ UDPGothic","Yu Gothic","Hiragino Sans",
 .cards{display:flex;flex-wrap:wrap;gap:0;align-items:flex-start}
 .c{break-inside:avoid;page-break-inside:avoid;box-sizing:border-box;position:relative}
 .ch{display:flex;justify-content:space-between;gap:6px;align-items:baseline;border-bottom:0.4px solid #888;padding-bottom:1mm;margin-bottom:1.2mm}
-.ch b{font-size:9.6pt}.ch small{font-size:7.6pt;color:#444}
+.ch b{font-size:9.6pt;white-space:nowrap}.ch small{font-size:7.6pt;color:#444;flex:1}
 .ch .r{font-weight:700;font-size:9pt;white-space:nowrap}.ch .r.x{color:#111}
 .c p{margin:0.8mm 0}.c img{display:block;max-width:100%;max-height:55mm;margin:1mm 0}
 .c ol{margin:0.6mm 0 0;padding:0;list-style:none}.c li{display:flex;gap:4px;padding:0 1mm;border-radius:1mm}.c li i{font-style:normal;min-width:1.4em}
@@ -184,14 +184,15 @@ async function resultPrint(list, r, title) {
   const w = psetWindow(); if (!w) return;
   try {
     const qs = [];
-    for (const id of list) { const q = await kqGet(id); qs.push({ id, q: q || { t: '（問題が見つかりません）' }, x: await kxGet(id).catch(() => '') }); }
+    await secLoad();
+    for (const id of (SEC.ready ? secSort(list) : list)) { const q = await kqGet(id); qs.push({ id, q: q || { t: '（問題が見つかりません）' }, x: await kxGet(id).catch(() => '') }); }
     await Promise.all(qs.filter(o => o.q.im).map(o => kimgGet(o.id)));
     const d = new Date(), ds = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
     const nW = qs.filter(o => !r.ok[o.id]).length, KO = kxOpen();
     const card = o => {
       const q = o.q, [y, n] = o.id.split('-'), me = r.ans[o.id], ok = !!r.ok[o.id], ca = String(q.a || '');
       const mine = me == null ? [] : String(me).split('');
-      let h = `<div class="c${ok ? ' okq' : ''}"><div class="ch"><b>第${esc(y)}回 問${esc(n)}</b><small>${esc(q.s || '')}</small><span class="r${ok ? '' : ' x'}">${me == null ? '未回答' : ok ? '○ 正解' : '× 間違い'}</span></div><p>${esc(q.t || q.raw || '')}</p>`;
+      let h = `<div class="c${ok ? ' okq' : ''}"><div class="ch"><b>第${esc(y)}回 問${esc(n)}</b><small>${esc(secPath(o.id) || q.s || '')}</small><span class="r${ok ? '' : ' x'}">${me == null ? '未回答' : ok ? '○ 正解' : '× 間違い'}</span></div><p>${esc(q.t || q.raw || '')}</p>`;
       if (q.im && KQ.img[o.id]) h += `<img src="${KQ.img[o.id]}" alt="">`;
       if (q.st) h += '<ol>' + q.st.map((s, j) => `<li><i>${'abcde'[j]}.</i><span>${esc(s)}</span></li>`).join('') + '</ol>';
       if (q.c && q.c.length) h += '<ol>' + q.c.map((c, j) => { const k = String(j + 1); const R = ca.indexOf(k) >= 0 || ca === '0', M = mine.indexOf(k) >= 0;

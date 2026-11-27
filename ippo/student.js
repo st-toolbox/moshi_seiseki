@@ -741,6 +741,7 @@ function drawQuiz() {
 
 // ===== 記録・分析 =====
 function renderRec() {
+  if (!SEC.ready && !renderRec.wait) { renderRec.wait = 1; kqEvery().then(() => { renderRec.wait = 0; if (curTab() === 'rec') renderRec(); }).catch(() => { renderRec.wait = 0; }); }
   const R = summarize(LOGS, META);
   let h = `${phead('chart', '自分の記録', '記録・分析', 'これまでに取り組んだ全部。科目ごとの初めの正解が低い所から手をつけると、点が伸びやすくなります。', '')}<div class="stats">
     <div class="card"><div class="lab">取り組んだ日</div><div class="big">${R.nDays}<small>日</small></div></div>
@@ -751,22 +752,14 @@ function renderRec() {
   const ds = Array.from({ length: N }, (_, i) => day(today - (N - 1 - i) * 864e5));
   const mx = Math.max(1, ...ds.map(d => R.days[d] || 0));
   h += '<h2>この3週間（1日の時間）</h2><div class="days">' + ds.map(d => `<div class="${R.days[d] ? '' : 'z'}" style="height:${Math.max(2, (R.days[d] || 0) * 100 / mx)}%" title="${d} ${hm(R.days[d] || 0)}"></div>`).join('') + `</div><div class="dlab"><span>${md(today - (N - 1) * 864e5)}</span><span>今日</span></div>`;
-  // 過去問の科目ごと
-  const ks = {};
-  Object.keys(R.kq).forEach(id => {
-    const k = R.kq[id], s = k.s || KQS[id] || (k.page && META.P[k.page] && META.S[META.P[k.page].subj].kq[0]) || 'ほか';
-    const o = ks[s] || (ks[s] = { n: 0, first: 0, miss: 0 });
-    o.n++; if (k.first) o.first++; if (!k.ok) o.miss++;
-  });
-  const kl = Object.entries(ks).sort((a, b) => pct(a[1].first, a[1].n) - pct(b[1].first, b[1].n));
-  h += '<div class="grid2"><div><h2>過去問：科目ごと（初めの正解の低い順）</h2>';
-  h += kl.length ? '<table><tr><th>科目</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${pct(o.first, o.n)}%</td><td class="n">${o.miss ? `<a href="#kq/miss" data-s="${esc(s)}">${o.miss}</a>` : 0}</td></tr>`).join('') + '</table>' : '<p class="mut">まだありません。</p>';
-  h += '</div><div><h2>基礎学習：科目ごと</h2><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>';
+  h += '<h2>過去問：科目 → 章 → 節</h2>' + secTreeHtml(R);
+  h += '<div><div>';
+  h += '<h2>基礎学習：科目ごと</h2><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>';
   META.list.forEach(k => {
     const s = META.S[k], r = R.subj[k];
     h += `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`;
   });
   h += '</table></div></div><p class="mut">「初めの正解」＝その問題・歩に初めて答えたときに正解だった割合。もう一度答えても変わりません。</p>';
   $('#tab-rec').innerHTML = h;
-  $$('#tab-rec a[data-s]').forEach(a => a.onclick = () => { KS.subj = a.dataset.s; KS.list = []; });
+  secTreeBind($('#tab-rec'), renderRec, id => { KS.sel = id; KS.f = 'all'; KS.subj = ''; KS.year = ''; KS.list = []; KS.lim = 300; location.hash = 'kq/all'; });
 }

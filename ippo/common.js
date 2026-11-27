@@ -168,7 +168,90 @@ async function kqYear(y) {
 }
 async function kqAll() { const ys = await kqYears(); await Promise.all(ys.map(kqYear)); return ys; }
 // 解くときは全部の回から出せる（11/27運営者「問題を解くときは全問題に」）＝地図・一覧・やりきるは5年のまま
-async function kqEvery() { await kqYears(); await Promise.all(KQ.allYears.map(kqYear)); return KQ.allYears; }
+async function kqEvery() { await kqYears(); await Promise.all(KQ.allYears.map(kqYear).concat([secLoad()])); return KQ.allYears; }
+// ===== 科目→章→節（サイトのノートの見出し・11/27 運営者「科目→章→節をちゃんと使って」）=====
+// ippo/kqsec＝{subj:[{id,name,ch:[{n,t,sec:[[節,名前]]}]}], map:{'回-問':[[科目id,章,節]]}}（_道具/kakomon_print/dump_sec.py）
+const SEC = { ready: false, S: [], by: {}, map: {}, ord: {} };
+async function secLoad() {
+  if (SEC.ready) return SEC;
+  let d = null; try { const s = await get('ippo/kqsec'); d = s ? (typeof s === 'string' ? JSON.parse(s) : s) : null; } catch (e) { d = null; }
+  if (!d) return SEC;
+  SEC.S = d.subj || []; SEC.map = d.map || {}; let o = 0;
+  SEC.S.forEach(s => { SEC.by[s.id] = s; s.C = {}; s.ch.forEach(c => { s.C[c.n] = c; c.T = {}; c.sec.forEach(([n, t]) => { c.T[n] = t; SEC.ord[s.id + '|' + c.n + '|' + n] = o++; }); }); });
+  SEC.ready = true; return SEC;
+}
+// 問題 → {科目id・科目名・章・章名・節・節名}（紐づけが2つある問題は先の方）
+function secOf(id) {
+  const m = (SEC.map[id] || [])[0]; if (!m) return null;
+  const s = SEC.by[m[0]]; if (!s) return null; const c = s.C[m[1]] || { t: '', T: {} };
+  return { sid: m[0], sn: s.name, ch: m[1], cht: c.t, sec: m[2], sect: c.T[m[2]] || '', k: m[0] + '|' + m[1] + '|' + m[2] };
+}
+const secPath = (id, sep) => { const x = secOf(id); return x ? [x.sn, `${x.ch}章 ${x.cht}`, `${x.ch}-${x.sec} ${x.sect}`].join(sep || ' › ') : ''; };
+const secRank = id => { const x = secOf(id); return x ? SEC.ord[x.k] : 1e9; };
+const secSort = ids => ids.slice().sort((a, b) => secRank(a) - secRank(b) || (a < b ? -1 : 1));
+// 分かり具合の目安：初めの正解の割合（解いた問題の中）＋×のまま
+function secLv(o) {
+  if (!o.n) return { c: 'l0', t: 'まだ' };
+  const r = o.f / o.n;
+  if (r >= 0.8 && !o.x && o.n >= 3) return { c: 'l4', t: '◎ 身についた' };  // 1〜2問だけでは◎にしない
+  if (r >= 0.6) return { c: 'l3', t: '○ だいたい' };
+  if (r >= 0.4) return { c: 'l2', t: '△ あやしい' };
+  return { c: 'l1', t: '× 弱い' };
+}
+// 学生1人の記録（summarize の R.kq）を科目→章→節に積む。all＝全部の回（false＝新しい5年分）
+function secStats(R, all) {
+  const yrs = all ? null : (KQ.years || []).map(String);
+  const T = {}, nd = k => T[k] || (T[k] = { N: 0, n: 0, f: 0, ok: 0, x: 0, rs: 0, rn: 0, ids: [] });
+  Object.keys(SEC.map).forEach(id => {
+    if (yrs && yrs.indexOf(id.split('-')[0]) < 0) return;
+    const x = secOf(id); if (!x) return;
+    const k = R.kq[id], [y, n] = id.split('-'), q = (KQ.q[y] || []).find(z => String(z.n) === n);
+    [x.sid, x.sid + '|' + x.ch, x.k].forEach(key => {
+      const o = nd(key); o.N++; o.ids.push(id);
+      if (q && q.r != null) { o.rs += q.r; o.rn++; }
+      if (k) { o.n++; if (k.first) o.f++; if (k.ok) o.ok++; else o.x++; }
+    });
+  });
+  return T;
+}
+const SECV = { all: false };
+// 分析の表：上に「見直す節」・下に科目→章→節（押すと開く）。問題の丸を押すと onq(id)
+function secTreeHtml(R) {
+  if (!SEC.ready) return '<p class="mut">科目→章→節の表を読み込めませんでした。</p>';
+  const T = secStats(R, SECV.all), pc = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const cell = o => { const lv = secLv(o); return `<td class="n">${o.n} / ${o.N}</td><td class="n">${o.n ? pc(o.f, o.n) + '%' : '—'}</td><td class="n">${o.x || ''}</td><td class="n mut">${o.rn ? Math.round(o.rs / o.rn) + '%' : ''}</td><td><span class="lv ${lv.c}">${lv.t}</span></td>`; };
+  const bar = o => `<i class="sbar" title="解いた ${o.n} / ${o.N}"><i class="ok" style="width:${pc(o.f, o.N)}%"></i><i class="ng" style="width:${pc(o.n - o.f, o.N)}%"></i></i>`;
+  const chip = id => { const k = R.kq[id], [y, n] = id.split('-'); return `<i class="qc ${k ? (k.ok ? 's1' : 's2') : ''}" data-sq="${id}" title="第${y}回 問${n}${k ? (k.first ? '　初めから正解' : k.ok ? '　初めは×・今は○' : '　×のまま') : '　まだ'}">${y}-${n}</i>`; };
+  const head = t => `<tr><th>${t}</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th><th class="n">みんなの正答率</th><th>分かり具合</th></tr>`;
+  let h = `<div class="secv"><div class="row"><span class="seg" id="secAll"><button data-a="0" class="${SECV.all ? '' : 'on'}">過去5年分</button><button data-a="1" class="${SECV.all ? 'on' : ''}">全部の回</button></span>
+    <span class="mut">分け方＝国試ノートの 科目 → 章 → 節。「初めの正解」＝初めて解いたときに正解だった割合。「みんなの正答率」＝受験生が初めて解いたときの正答率。</span></div>`;
+  // 見直す節：解いた2問以上で、初めの正解が6割未満か×が残っている。初めの正解の低い順（同じなら、みんなの正答率が高い＝落とせない順）
+  const av = o => o.rn ? o.rs / o.rn : 0;
+  const weak = Object.entries(T).filter(([k, o]) => k.split('|').length === 3 && o.n >= 2 && (o.f / o.n < 0.6 || o.x))
+    .sort((a, b) => a[1].f / a[1].n - b[1].f / b[1].n || av(b[1]) - av(a[1])).slice(0, 12);
+  h += '<h3>見直す節（解いた2問以上で、初めの正解が6割未満か×が残っている所・低い順に12まで）</h3>';
+  h += weak.length ? '<table class="sect">' + head('科目 › 章 › 節') + weak.map(([k, o]) => { const [sid, c, n] = k.split('|'), s = SEC.by[sid], ch = s.C[c]; return `<tr><td>${esc(s.name)} › ${c}章 ${esc(ch.t)} › <b>${c}-${n} ${esc(ch.T[n])}</b><div class="qcs">${o.ids.map(chip).join('')}</div></td>${cell(o)}</tr>`; }).join('') + '</table>'
+    : '<p class="mut">いまは当てはまる節はありません（解いた数が増えると出ます）。</p>';
+  h += '<h3>科目 → 章 → 節（科目を押すと章と節が開く）</h3><div class="stree">';
+  SEC.S.forEach(s => {
+    const o = T[s.id]; if (!o) return;
+    const lv = secLv(o);
+    h += `<details class="ss"><summary><b>${esc(s.name)}</b>${bar(o)}<span class="num">解いた ${o.n} / ${o.N}</span><span class="num">${o.n ? '初めの正解 ' + pc(o.f, o.n) + '%' : ''}</span><span class="lv ${lv.c}">${lv.t}</span>${o.x ? `<span class="xn">×のまま ${o.x}</span>` : ''}</summary>`;
+    h += '<table class="sect">' + head('章 › 節');
+    s.ch.forEach(c => {
+      const oc = T[s.id + '|' + c.n]; if (!oc) return;
+      h += `<tr class="chr"><td><b>${c.n}章 ${esc(c.t)}</b></td>${cell(oc)}</tr>`;
+      c.sec.forEach(([n, t]) => { const os = T[s.id + '|' + c.n + '|' + n]; if (!os) return;
+        h += `<tr><td class="sn">${c.n}-${n} ${esc(t)}<div class="qcs">${os.ids.map(chip).join('')}</div></td>${cell(os)}</tr>`; });
+    });
+    h += '</table></details>';
+  });
+  return h + '</div><p class="mut">丸＝問題（緑＝今は正解・赤＝×のまま・白＝まだ）。押すとその問題が開きます。分かり具合＝◎ 3問以上解いて初めの正解8割以上・×なし・○ 6割以上・△ 4割以上・× 4割未満。</p></div>';
+}
+function secTreeBind(box, redraw, onq) {
+  const a = box.querySelector('#secAll'); if (a) a.onclick = e => { const b = e.target.closest('[data-a]'); if (b) { SECV.all = b.dataset.a === '1'; redraw(); } };
+  box.querySelectorAll('[data-sq]').forEach(c => c.onclick = e => { e.preventDefault(); e.stopPropagation(); onq(c.dataset.sq); });
+}
 const kqIn5 = id => !!KQ.years && KQ.years.map(String).indexOf(String(id).split('-')[0]) >= 0;
 // 過去問の中の切り替え（解く／地図・一覧）
 // 絵（SVG・線画）。絵文字は端末によって化けるので使わない（11/27）
