@@ -617,3 +617,44 @@ h2.sec .mut{font-weight:400;letter-spacing:0}
 .dhero2 .d5h{margin-bottom:9px}
 .dhero2 .btn.qb.tile{padding:9px 4px 7px}
 @media (max-width:820px){.dhero2 .himg{height:100px;background-position:62% 40%}.dhero2 .htx{padding:12px 16px 16px}}
+
+/* ===== ボタンの見た目（11/27 運営者「ボタンもChatGPTで」＝生成した見本 btn_kit をCSSで組んだ） ===== */
+:root{--navy:#1e1b6e;--navy2:#2a1f8f;--lav:#eef0fe;--lavb:#d9d6f5;--btng:linear-gradient(180deg,#5b50f0,#4338ca)}
+.btn{border-radius:999px;padding:7px 18px;font-weight:700;border:2px solid transparent;background:var(--btng);color:#fff;box-shadow:0 6px 14px -7px rgba(79,70,229,.7);transition:transform .12s,box-shadow .12s,background .12s}
+.btn:hover:not(:disabled){background:linear-gradient(180deg,#4f46e5,#3730a3);border-color:transparent;transform:translateY(-1px);box-shadow:0 10px 18px -8px rgba(79,70,229,.75)}
+.btn.sub,a.btn.sub{background:#fff;color:var(--navy2);border:2px solid #4f46e5;box-shadow:none}
+.btn.sub:hover:not(:disabled){background:var(--lav);color:var(--navy2);border-color:#4f46e5;box-shadow:0 4px 10px -6px rgba(79,70,229,.5)}
+.btn:disabled,.btn.sub:disabled{opacity:1;background:#e7e7ee;border-color:#e7e7ee;color:#a2a2b2;box-shadow:none}
+.btn.ng{background:#fff;color:var(--ng);border:2px solid var(--ng);box-shadow:none}
+.btn.sm{padding:3px 12px}
+.btn.big,#dGo{padding:12px 28px;font-size:15.5px;border-radius:14px}
+.btn.hero-go{border-radius:14px;background:var(--btng);box-shadow:0 10px 22px -8px rgba(79,70,229,.75)}
+.dsec .btn.qb:not(.tile){min-width:3.4em;justify-content:center;padding:5px 14px;font-size:14px}
+/* 数のタイル */
+.btn.qb.tile{background:#fff;color:var(--navy);border:1.5px solid var(--lavb);border-radius:16px;box-shadow:0 3px 10px -6px rgba(30,27,110,.25)}
+.tile b{font-weight:800;letter-spacing:-.01em}
+.btn.qb.tile:hover:not(:disabled){background:var(--lav);color:var(--navy);border-color:#4f46e5;box-shadow:0 0 0 1px #4f46e5,0 8px 18px -10px rgba(79,70,229,.6);transform:translateY(-1px)}
+.btn.qb.tile:hover small{color:var(--sub)}
+.btn.qb.tile.rec,.btn.qb.tile.rec:hover:not(:disabled){background:linear-gradient(160deg,#5b50f0,#3730a3);color:#fff;border-color:transparent}
+.btn.qb.tile.rec:hover small{color:rgba(255,255,255,.85)}
+.tile i{background:linear-gradient(180deg,#f07a62,#e0624e);box-shadow:0 3px 8px -3px rgba(224,98,78,.7);letter-spacing:.06em}
+/* 開く・閉じる（∨・∧つき） */
+.dcfg-go,.dsec>summary::after{font-size:13px;font-weight:700;color:var(--navy2);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a1f8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center/14px;border:2px solid #4f46e5;border-radius:999px;padding:4px 30px 4px 16px}
+.dcfg-go::before{content:'変える'}
+.dcfg[open] .dcfg-go,.dsec[open]>summary::after{background:var(--lav) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a1f8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 15-6-6-6 6'/%3E%3C/svg%3E") no-repeat right 10px center/14px;color:var(--navy2)}
+.dcfg[open] .dcfg-go::before{content:'閉じる'}
+.dcfg[open] .dcfg-go::after{content:none}
+.dcfg>summary:hover .dcfg-go,.dsec>summary:hover::after{background-color:var(--lav);color:var(--navy2)}
+.dmore>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-weight:700;font-size:13px;color:var(--navy2);border:2px solid var(--lavb);border-radius:999px;padding:4px 30px 4px 14px;margin-top:8px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a1f8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center/13px}
+.dmore>summary::-webkit-details-marker{display:none}
+.dmore>summary::before{content:none}
+.dmore[open]>summary{background:var(--lav) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a1f8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 15-6-6-6 6'/%3E%3C/svg%3E") no-repeat right 10px center/13px}
+.dmore>summary:hover{border-color:#4f46e5}
+/* 表の「開く ›」・ホームの札の「はじめる」 */
+.go2,.act .ago{display:inline-flex;align-items:center;gap:4px;padding:4px 14px;border-radius:999px;background:#fff;color:var(--navy2);border:2px solid #4f46e5;font:700 12.5px var(--f)}
+tr.click:hover .go2,.plist a:hover .go,.act:hover .ago{background:var(--btng);color:#fff;border-color:transparent}
+/* 段の見出し */
+.dic,.dcfg-ic{width:40px;height:40px;border-radius:12px;background:#eceafd;color:#4f46e5}
+.dic .ic,.dcfg-ic .ic{width:20px;height:20px;stroke-width:2.2}
+.dsec h2>span:last-child{color:var(--navy);font-weight:800;font-size:15.5px}
+.dsec h2 small{font-weight:400}
