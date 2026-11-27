@@ -608,3 +608,12 @@ h2.sec .mut{font-weight:400;letter-spacing:0}
   .dgrid{grid-template-columns:1fr}
   .dgrid>.card{height:auto}
 }
+/* 過去問ページの絵を縦に細く（11/27 運営者） */
+.dhero2{min-height:0}
+.dhero2 .htx{padding:18px 26px 18px}
+.dhero2 h2{margin:8px 0 4px;font-size:23px}
+.dhero2 .lead{margin:0 0 10px}
+.dhero2 .d5{padding:10px 14px 12px}
+.dhero2 .d5h{margin-bottom:9px}
+.dhero2 .btn.qb.tile{padding:9px 4px 7px}
+@media (max-width:820px){.dhero2 .himg{height:100px;background-position:62% 40%}.dhero2 .htx{padding:12px 16px 16px}}

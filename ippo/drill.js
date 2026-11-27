@@ -109,7 +109,7 @@ function drawSetup() {
   let h = kqSwitch('drill') + `<section class="hero dhero2"><div class="himg"></div><div class="htx">
     <span class="kick">STEP 2　覚えたら過去問で確かめる</span>
     <h2>過去問をとく</h2>
-    <p class="lead">第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部やりきろう。問題数を押すとすぐ始まります。</p>
+    <p class="lead">第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から。まずは過去5年分を全部やりきろう。</p>
     <div class="d5"><div class="d5h"><span class="ring" style="--p:${pct(nSeen, nAll)}"><b class="num">${pct(nSeen, nAll)}<small>%</small></b></span><span><b>${ic('target')}まずはこれ：過去5年分を全部</b><br>第${y5[0]}回〜第${y5[y5.length - 1]}回　<b class="num">${nSeen}</b> / ${nAll}問・のこり ${nAll - nSeen}問<br><span class="mut">まだ解いていない問題から出ます</span></span></div>
     <div class="tiles">${tile(10)}${tile(20, 1)}${tile(30)}${tile(50)}</div></div></div></section>`;
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
