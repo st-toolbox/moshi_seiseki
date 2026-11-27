@@ -110,7 +110,7 @@ function drawSetup() {
   const PR = D.out === 'print';
   h += `<div class="card dopt dout"><b>解き方</b>${seg('dOut', [['screen', ic('screen') + '画面で解く'], ['print', ic('print') + 'A4で印刷して紙で解く']], PR ? 'print' : 'screen')}
     <span class="mut">${PR ? '下のボタンを押すと、その問題を問題用紙とマークシートにして刷ります（' + PSET_MAX + '問まで）。解いたらマークシートを写真に撮って「結果のスキャン」へ。' : '紙で解きたいときは「A4で印刷」に切り替えます。'}</span></div>`;
-  if (!PR) h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', kxOpen() ? '1問ごと（すぐ解説）' : '1問ごと（すぐ正誤）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
+  if (!PR) h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
     <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}
     <span class="mut">下のどの出し方にも効きます</span></div>`;
   h += `<div class="card dsec dhero"><h2>★ まずはこれ：過去5年分を全部やりきる</h2><p class="mut">第${y5[0]}回〜第${y5[y5.length - 1]}回の${nAll}問。まだ解いていない問題だけから出します（全部解いたら全体から）。</p>
@@ -306,7 +306,7 @@ function drawResult() {
   const bl = Object.entries(by).sort((a, b) => a[1].ok / a[1].n - b[1].ok / b[1].n);
   h += '<div class="grid2"><div><h2>科目ごと（低い順）</h2><table><tr><th>科目</th><th class="n">問題</th><th class="n">正解</th><th class="n">%</th></tr>'
     + bl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${o.ok}</td><td class="n">${pct(o.ok, o.n)}</td></tr>`).join('') + '</table></div>';
-  h += '<div><h2>1問ずつ（' + (kxOpen() ? '押すと解説' : '押すと問題と正答') + '）</h2><table><tr><th class="n">#</th><th>回・問</th><th>科目</th><th class="n">自分</th><th class="n">正答</th><th></th></tr>'
+  h += '<div><h2>1問ずつ（押すと解説）</h2><table><tr><th class="n">#</th><th>回・問</th><th>科目</th><th class="n">自分</th><th class="n">正答</th><th></th></tr>'
     + (r.cfg.set === 'surv' ? ids : r.ids).map((id, i) => {
       const q = qOf(id) || {}, a = r.ans[id];
       return `<tr class="click" data-q="${id}"><td class="n">${i + 1}</td><td>第${id.split('-')[0]}回 問${id.split('-')[1]}${mk[id] ? ' ★' : ''}</td><td>${esc(q.s || '')}</td><td class="n">${a != null ? a : '—'}</td><td class="n">${esc(q.a === '0' ? '全' : (q.a || '').split('').join('・'))}</td><td class="mk ${a == null ? '' : r.ok[id] ? 'o' : 'x'}">${a == null ? '' : r.ok[id] ? '○' : '×'}</td></tr>`;

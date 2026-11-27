@@ -200,7 +200,7 @@ async function resultPrint(list, r, title) {
 <div class="bar">
   <span class="g"><b>形</b><label><input type="radio" name="m" value="m-big" checked>ノートに貼る（幅13cm）</label><label><input type="radio" name="m" value="m-small">ノートに貼る・小（幅9cm・2列）</label><label><input type="radio" name="m" value="m-binder">バインダー（穴の余白つき）</label></span>
   <span class="g"><b>問題</b><label><input type="radio" name="w" value="1"${nW ? ' checked' : ''}${nW ? '' : ' disabled'}>間違えた ${nW} 問</label><label><input type="radio" name="w" value="0"${nW ? '' : ' checked'}>全部 ${qs.length} 問</label></span>
-  <span class="g">${KO ? '<label><input type="checkbox" id="oX" checked>解説</label><label><input type="checkbox" id="oO">選択肢ごとの解説も</label>' : ''}<label><input type="checkbox" id="oM"${KO ? '' : ' checked'}>${KO ? '書き込み欄' : '調べたことを書く欄'}</label></span>
+  <span class="g"><label><input type="checkbox" id="oX" checked>解説</label>${KO ? '<label><input type="checkbox" id="oO">選択肢ごとの解説も</label>' : ''}<label><input type="checkbox" id="oM"${KO ? '' : ' checked'}>${KO ? '書き込み欄' : '調べたことを書く欄'}</label></span>
   <button onclick="print()">印刷する</button><button class="sub" onclick="print()">PDFで保存</button>
   <span class="tip">PDFは、出てきた画面の「送信先」で「PDFに保存」を選びます。ノート用は点線で切って貼る・○は正答・×は自分の答え。A4・倍率100%で。</span>
 </div>

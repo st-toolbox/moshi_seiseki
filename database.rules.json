@@ -84,6 +84,9 @@
       "kx": {
         ".read": "auth != null && ((root.child('ippo').child('members').child(auth.uid).exists() && root.child('ippo').child('config').child('kxOpen').val() === true) || root.child('teachers').child(auth.uid).exists())"
       },
+      "kxs": {
+        ".read": "auth != null && (root.child('ippo').child('members').child(auth.uid).exists() || root.child('teachers').child(auth.uid).exists())"
+      },
       "kimg": {
         ".read": "auth != null && (root.child('ippo').child('members').child(auth.uid).exists() || root.child('teachers').child(auth.uid).exists())"
       },
