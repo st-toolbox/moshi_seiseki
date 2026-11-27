@@ -34,7 +34,7 @@ async function applyScreen() {
     b.innerHTML = `<p>${md(a.at)} に申し込みました。先生が許可すると、この画面のまま使えるようになります。</p><p class="mut">${esc(ME.email)}</p>`;
   } else {
     b.innerHTML = `<p>このアプリは、申し込んだ人だけが使えます。申し込むと、先生が許可したあとに使えるようになります。</p>
-      <p>できること：過去問を解く（全問の地図で自分の○×が見える）・一歩ずつ（説明を読んで答えて進む）・紙で解いた過去問の答えを入れる・小テスト。</p>
+      <p>できること：過去問を解く（全問の地図で自分の○×が見える）・60％達成コンテンツ（説明を読んで答えて進む）・紙で解いた過去問の答えを入れる・小テスト。</p>
       <p>答えと「わからない」の印、取り組んだ時間は記録に残り、先生が見ます（学習の様子を見て、課題を出すためです）。</p>
       <p><button class="btn" id="btnApply">申し込む</button></p><p class="mut">${esc(ME.email)}</p>`;
     $('#btnApply').onclick = async () => {
@@ -116,7 +116,7 @@ function daysLeft() {
 function renderFacts() {
   const R = summarize(LOGS, META), dl = daysLeft();
   const nq = KQ.years ? KQ.years.reduce((a, y) => a + (KQ.q[y] || []).length, 0) : 0;
-  $('#facts').innerHTML = `<span>一歩ずつ<b>${R.pagesDone}</b>/ ${META.order.length}回</span>`
+  $('#facts').innerHTML = `<span>60％達成コンテンツ<b>${R.pagesDone}</b>/ ${META.order.length}回</span>`
     + `<span>過去問 解いた<b>${R.nKq}</b>${nq ? '/ ' + nq + '問' : '問'}</span>`
     + (dl ? `<span class="hot">${esc(dl.name)}まで<b>${dl.d}</b>日</span>` : '');
 }
@@ -129,7 +129,7 @@ function renderSide() {
   let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '');
   h += '<h3>学ぶ</h3>'
     + v('kq', '過去問', R.nKq ? R.nKq + '問' : null, tab === 'kq')
-    + v('ippo', '一歩ずつ', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub)
+    + v('ippo', '60％達成コンテンツ', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub)
     + v('paper', '紙で解いた', R.nPaper ? R.nPaper + '問' : null, tab === 'paper')
     + v('quiz', '小テスト', null, tab === 'quiz');
   h += '<h3>自分</h3>' + v('rec', '記録・分析', null, tab === 'rec');
@@ -139,7 +139,7 @@ function renderSide() {
       + v('kq/new', 'まだ解いていない', null, KS.f === 'new')
       + v('kq/all', '全部', null, KS.f === 'all');
   }
-  h += '<h3>一歩ずつの科目</h3>';
+  h += '<h3>60％達成コンテンツの科目</h3>';
   META.list.forEach(k => {
     const s = META.S[k], r = R.subj[k] || { done: 0 }, pp = pct(r.done, s.total);
     h += `<button class="v sub${tab === 'ippo' && sub === k ? ' on' : ''}" data-h="ippo/${k}"><span>${esc(s.name)}</span><em>${r.pagesDone || 0}/${s.pages.length}</em><i class="bar"><b class="${pp >= 100 ? 'done' : ''}" style="width:${pp}%"></b></i></button>`;
@@ -183,7 +183,7 @@ function renderHome() {
     <div class="card"><div class="lab">この1週間 取り組んだ日</div><div class="big">${wk.nDays}<small>日</small></div></div>
     <div class="card"><div class="lab">この1週間の時間</div><div class="big">${hm(wk.time)}</div></div>
     <div class="card"><div class="lab">この1週間 過去問</div><div class="big">${wk.nKq}<small>問</small></div></div>
-    <div class="card"><div class="lab">この1週間 一歩ずつの歩</div><div class="big">${wk.nStep}</div></div></div>`;
+    <div class="card"><div class="lab">この1週間 60％達成コンテンツの歩</div><div class="big">${wk.nStep}</div></div></div>`;
   // 課題
   const as = Object.entries(ASSIGN || {}).sort((a, b) => (a[1].due || '9') < (b[1].due || '9') ? -1 : 1);
   h += '<h2>先生からの課題</h2>';
@@ -198,21 +198,21 @@ function renderHome() {
   });
   // 次の一手
   h += '<h2>次にやること</h2><div class="grid2"><div>';
-  h += '<h3>一歩ずつ：続きから</h3>';
+  h += '<h3>60％達成コンテンツ：続きから</h3>';
   if (R.lastPage && META.P[R.lastPage]) h += '<ul class="plist">' + pageLink(R.lastPage, R, true) + '</ul>';
-  else h += '<p>まだ何も開いていません。<a href="#ippo">一歩ずつの一覧</a>から始めましょう。</p>';
+  else h += '<p>まだ何も開いていません。<a href="#ippo">60％達成コンテンツの一覧</a>から始めましょう。</p>';
   h += '</div><div><h3>過去問</h3>';
   const miss = Object.values(R.kq).filter(k => !k.ok).length;
   h += miss ? `<p>間違えたままの問題が <b>${miss}</b> 問あります。<a href="#kq/miss">解き直す</a></p>` : '<p class="mut">間違えたままの問題はありません。</p>';
   h += '<p><a href="#kq/new">まだ解いていない問題を解く</a>　<a href="#paper">紙で解いた答えを入れる</a></p></div></div>';
-  h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・一歩ずつ ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
+  h += `<p class="mut" style="margin-top:18px">これまでの合計：${hm(R.time)}・60％達成コンテンツ ${R.pagesDone} / ${META.order.length} 回・過去問 ${R.nKq} 問（紙 ${R.nPaper}）</p>`;
   $('#tab-home').innerHTML = h;
 }
 
 // ===== 一歩ずつの一覧 =====
 function renderIppo() {
   const R = summarize(LOGS, META), sub = hashParts()[1];
-  let h = '<div class="ph"><h1>一歩ずつ</h1><span class="mut">説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。</span></div>';
+  let h = '<div class="ph"><h1>60％達成コンテンツ</h1><span class="mut">説明を2〜4行読む → 問いに答える → 次へ。1回は25歩ほど・30〜40分。まちがえても止まらず先へ。終わりにその範囲の過去問が出ます。</span></div>';
   const keys = sub && META.S[sub] ? [sub] : META.list;
   if (!sub) {
     h += '<table><tr><th>科目</th><th class="n">回</th><th class="n">終わった</th><th>進み</th><th class="n">初めの正解</th></tr>';
@@ -303,7 +303,7 @@ window.addEventListener('message', e => {
 
 // ===== 過去問（全問の地図・一覧・読む窓） =====
 const KQS = {}; // 問題id → 科目
-let KQ_SUBJ = [];  // 科目の並び（一歩ずつの科目が先）
+let KQ_SUBJ = [];  // 科目の並び（60％達成コンテンツの科目が先）
 function kqIndex() {
   if (KQ_SUBJ.length) return;
   const cnt = {};
@@ -362,7 +362,7 @@ async function renderKq() {
   const nIppo = KQ_SUBJ.filter(x => x.ippo).length;
   h += `<div class="split"><section class="list">
     <div class="bar2"><b>${fl}</b><span class="num">${KS.list.length} 問</span>
-      <select id="kS"><option value="">すべての科目</option><optgroup label="一歩ずつの科目">${so.slice(0, nIppo).join('')}</optgroup><optgroup label="ほかの科目">${so.slice(nIppo).join('')}</optgroup></select>
+      <select id="kS"><option value="">すべての科目</option><optgroup label="60％達成コンテンツの科目">${so.slice(0, nIppo).join('')}</optgroup><optgroup label="ほかの科目">${so.slice(nIppo).join('')}</optgroup></select>
       <select id="kY"><option value="">すべての回</option>${yrs.map(y => `<option${KS.year === String(y) ? ' selected' : ''}>${y}</option>`).join('')}</select>
       <span class="seg" id="kF"><button data-f="miss" class="${KS.f === 'miss' ? 'on' : ''}">間違えたまま</button><button data-f="new" class="${KS.f === 'new' ? 'on' : ''}">まだ</button><button data-f="all" class="${KS.f === 'all' ? 'on' : ''}">全部</button></span>
       <button class="btn sm" id="kGo">${KS.sel ? '続ける' : '上から解く'}</button></div>
@@ -674,7 +674,7 @@ function renderRec() {
     <div class="card"><div class="lab">取り組んだ日</div><div class="big">${R.nDays}<small>日</small></div></div>
     <div class="card"><div class="lab">時間</div><div class="big">${hm(R.time)}</div></div>
     <div class="card"><div class="lab">過去問（初めの正解）</div><div class="big">${R.nKq}<small>問</small></div><span class="mut">${pct(R.okKq, R.nKq)}%・うち紙 ${R.nPaper}</span></div>
-    <div class="card"><div class="lab">一歩ずつの歩（初めの正解）</div><div class="big">${R.nStep}</div><span class="mut">${pct(R.okStep, R.nStep)}%</span></div></div>`;
+    <div class="card"><div class="lab">60％達成コンテンツの歩（初めの正解）</div><div class="big">${R.nStep}</div><span class="mut">${pct(R.okStep, R.nStep)}%</span></div></div>`;
   const N = 21, today = new Date(day(Date.now()) + 'T00:00:00').getTime();
   const ds = Array.from({ length: N }, (_, i) => day(today - (N - 1 - i) * 864e5));
   const mx = Math.max(1, ...ds.map(d => R.days[d] || 0));
@@ -689,7 +689,7 @@ function renderRec() {
   const kl = Object.entries(ks).sort((a, b) => pct(a[1].first, a[1].n) - pct(b[1].first, b[1].n));
   h += '<div class="grid2"><div><h2>過去問：科目ごと（初めの正解の低い順）</h2>';
   h += kl.length ? '<table><tr><th>科目</th><th class="n">解いた</th><th class="n">初めの正解</th><th class="n">×のまま</th></tr>' + kl.map(([s, o]) => `<tr><td>${esc(s)}</td><td class="n">${o.n}</td><td class="n">${pct(o.first, o.n)}%</td><td class="n">${o.miss ? `<a href="#kq/miss" data-s="${esc(s)}">${o.miss}</a>` : 0}</td></tr>`).join('') + '</table>' : '<p class="mut">まだありません。</p>';
-  h += '</div><div><h2>一歩ずつ：科目ごと</h2><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>';
+  h += '</div><div><h2>60％達成コンテンツ：科目ごと</h2><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>';
   META.list.forEach(k => {
     const s = META.S[k], r = R.subj[k];
     h += `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`;

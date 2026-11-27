@@ -62,7 +62,7 @@ function renderFacts() {
 function renderMap() {
   const ms = memUids();
   const per = window._mper || '0', from = +per ? Date.now() - (+per) * 864e5 : 0;
-  let h = `<div class="ph"><h1>全体の地図</h1><span class="mut">学生×一歩ずつの回。名前を押すとその学生の詳しい取り組みが出ます。</span></div>`;
+  let h = `<div class="ph"><h1>全体の地図</h1><span class="mut">学生×60％達成コンテンツの回。名前を押すとその学生の詳しい取り組みが出ます。</span></div>`;
   if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「参加者」で申し込みを許可してください。</p>'; return; }
   h += `<div class="row"><label>数える期間 <select id="mPer"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="mRl">最新にする</button>
@@ -220,7 +220,7 @@ function renderGain() {
   const opt = sel => el.map(e => `<option value="${esc(e.k)}" ${e.k === sel ? 'selected' : ''}>${esc(e.k)}${e.date ? '（' + esc(e.date) + '）' : ''}</option>`).join('');
   const gakus = Array.from(new Set(Object.values(STU).map(s => s.gakunen).filter(Boolean))).sort();
   const g = window._gain || {};
-  $('#tab-gain').innerHTML = `<p>前と後の2つの模試の点を比べ、そのあいだの一歩ずつの取り組みで分けます。両方の模試を午前・午後とも出した学生だけを数えます。</p>
+  $('#tab-gain').innerHTML = `<p>前と後の2つの模試の点を比べ、そのあいだの60％達成コンテンツの取り組みで分けます。両方の模試を午前・午後とも出した学生だけを数えます。</p>
   <div class="card">
     <div class="row"><label>前の模試 <select id="gA"><option value="">選ぶ</option>${opt(g.a)}</select></label></div>
     <div class="row"><label>後の模試 <select id="gB"><option value="">選ぶ</option>${opt(g.b)}</select></label></div>
@@ -277,7 +277,7 @@ async function gain() {
     ${rows.map(r => `<circle cx="${X(r.min)}" cy="${Y(r.d)}" r="5" fill="${r.mem ? '#4f46e5' : '#999'}" fill-opacity=".7"><title>${esc(nm(r.u))} ${r.min}分 ${sg(r.d)}</title></circle>`).join('')}</svg>
     <p class="mut">青＝参加者・灰＝参加していない学生。点にカーソルを当てると学籍番号が出ます。</p>`;
   // 科目ごと
-  h += `<h2>科目ごと（その科目を一歩ずつでやった人とやっていない人）</h2><p class="mut">「やった」＝期間の中でその科目の歩と過去問の ${Math.round(SP * 100)}% 以上に答えた。模試の科目名で点を取る。</p><table><tr><th>科目</th><th class="n">やった人</th><th class="n">その伸び</th><th class="n">やっていない人</th><th class="n">その伸び</th><th class="n">差</th></tr>`;
+  h += `<h2>科目ごと（その科目を60％達成コンテンツでやった人とやっていない人）</h2><p class="mut">「やった」＝期間の中でその科目の歩と過去問の ${Math.round(SP * 100)}% 以上に答えた。模試の科目名で点を取る。</p><table><tr><th>科目</th><th class="n">やった人</th><th class="n">その伸び</th><th class="n">やっていない人</th><th class="n">その伸び</th><th class="n">差</th></tr>`;
   const within = {};
   META.list.forEach(k => {
     const s = META.S[k]; const did = [], not = [];
@@ -298,7 +298,7 @@ async function gain() {
   h += `<h3>学生ごと</h3><div class="row"><button class="btn sub sm" id="gCsv">CSV</button></div><table><tr><th>学籍番号</th><th>参加</th><th class="n">前</th><th class="n">後</th><th class="n">伸び</th><th class="n">時間</th><th class="n">歩</th></tr>` +
     rows.sort((x, y) => y.d - x.d).map(r => `<tr><td>${esc(nm(r.u))}</td><td>${r.mem ? '○' : ''}</td><td class="n">${f1(r.A.p)}%</td><td class="n">${f1(r.B.p)}%</td><td class="n">${sg(r.d)}</td><td class="n">${r.min}分</td><td class="n">${r.R.nStep}</td></tr>`).join('') + '</table>';
   $('#gOut').innerHTML = h;
-  $('#gCsv').onclick = () => csv([['学籍番号', '学年', '参加', '前%', '後%', '伸び', '分', '歩']].concat(rows.map(r => [nm(r.u), gk(r.u), r.mem ? 1 : 0, f1(r.A.p), f1(r.B.p), f1(r.d), r.min, r.R.nStep])), '一歩ずつ_伸び_' + day(Date.now()) + '.csv');
+  $('#gCsv').onclick = () => csv([['学籍番号', '学年', '参加', '前%', '後%', '伸び', '分', '歩']].concat(rows.map(r => [nm(r.u), gk(r.u), r.mem ? 1 : 0, f1(r.A.p), f1(r.B.p), f1(r.d), r.min, r.R.nStep])), '60％達成_伸び_' + day(Date.now()) + '.csv');
 }
 
 // ===== 課題 =====
@@ -390,7 +390,7 @@ function renderCfg() {
     <div class="row"><label>名前 <input id="cN" value="${esc(t.name || '')}" placeholder="例：12/24 模試"></label><label>日付 <input type="date" id="cD" value="${esc(t.date || '')}"></label></div>
     <h3>お知らせ（学生のホームの上に出す）</h3><textarea id="cM">${esc(CFG.notice || '')}</textarea>
     <div class="row"><button class="btn" id="cGo">保存</button></div></div>
-    <p class="mut">中身（一歩ずつの回・過去問）は ippo2_upload.py で入れる。小テストは ippo/quiz に入れると学生の「小テスト」に出る。</p>`;
+    <p class="mut">中身（60％達成コンテンツの回・過去問）は ippo2_upload.py で入れる。小テストは ippo/quiz に入れると学生の「小テスト」に出る。</p>`;
   $('#cGo').onclick = async () => {
     CFG = { target: { name: $('#cN').value.trim(), date: $('#cD').value }, notice: $('#cM').value.trim(), at: TS, by: ME.email };
     await db.ref('ippo/config').set(CFG);
