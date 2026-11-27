@@ -733,3 +733,13 @@ tr.click:hover .go2,.plist a:hover .go,.act:hover .ago{background:var(--ink2);co
 .tch .btn:active:not(:disabled){transform:none;box-shadow:none}
 .tch .dmore>summary{border-width:1.5px;border-color:#c9c6e6;font-weight:600}
 .tch #mF button{border-width:1.5px!important;font-weight:600}
+
+/* 学習記録（11/27 運営者「何をいつどれぐらい」） */
+.lgday{background:#fff;border:1px solid var(--line2);border-radius:10px;margin:0 0 10px;overflow:hidden}
+.lgh{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;background:var(--lav2);color:var(--ink2);font-size:13.5px}
+.lgt{width:100%;margin:0}
+.lgt td{vertical-align:top;padding:7px 12px;border-bottom:1px solid var(--line2);font-size:13px;line-height:1.6}
+.lgt tr:last-child td{border-bottom:0}
+.lgtm{white-space:nowrap;width:7.5em;font-family:var(--n)}
+.lgk{display:inline-block;min-width:4.6em;font-size:11.5px;font-weight:700;color:var(--ink2);margin-right:6px}
+@media print{.lgday{break-inside:avoid}}

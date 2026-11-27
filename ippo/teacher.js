@@ -221,12 +221,93 @@ function renderAct() {
   $('#dl').onclick = () => csv([['学籍番号', '学年', '最後', '日数', '分', '歩', '初めの正解%', '終わった回', '過去問', '過去問の正解%', 'うち紙', '課題（済/出した）']].concat(rows.map(({ u, R, a }) => [nm(u), gk(u), R.last ? day(R.last) : '', R.nDays, mins(R.time), R.nStep, R.nStep ? pct(R.okStep, R.nStep) : '', R.pagesDone, R.nKq, R.nKq ? pct(R.okKq, R.nKq) : '', R.nPaper, a.n ? a.done + '/' + a.n : ''])), '過去問対策_取り組み_' + day(Date.now()) + '.csv');
   $$('#tab-act tr.click').forEach(tr => tr.onclick = () => { location.hash = 'act/' + tr.dataset.u; });
 }
+// ===== 学習記録（11/27 運営者「何をいつどれぐらいやっているのかの記録が欲しい・詳細に学生の学習記録をつけていく」）=====
+// 学生の記録（ippo/log）を、30分以上あいたら別の「まとまり」に分けて、まとまりごとに 何時から何時・何分・何をどれだけ・結果 を並べる
+const SETN = { all5: '過去5年分', rnd: '全科目ランダム', subj: '科目別', year: '回ごと', miss: '間違えたまま', mark: '★印', surv: 'サバイバル', again: 'もう一度', custom: '自分で設定' };
+const WD = '日月火水木金土';
+const tm = t => { const d = new Date(t); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const qn = id => { const [y, n] = String(id || '').split('-'); return n ? `第${y}回問${n}` : '番号なし'; };
+function sessionsOf(u, from) {
+  const arr = Object.values(LOGALL[u] || {}).filter(l => l && l.at >= from).sort((a, b) => a.at - b.at);
+  const S = []; let c = null;
+  for (const l of arr) {
+    if (!c || l.at - c.end > 30 * 60e3) { c = { start: l.at, end: l.at, sec: 0, L: [] }; S.push(c); }
+    c.end = l.at; c.L.push(l);
+    if (l.ev === 'time') c.sec += Math.min(+l.sec || 0, 1800);
+  }
+  return S.map(c => Object.assign(c, { items: sessItems(c.L) }));
+}
+function sessItems(L) {
+  const pg = {}, kq = {}, pp = {}, qz = { n: 0, ok: 0 }, out = [];
+  let mark = 0;
+  L.forEach(l => {
+    if (l.page && META.P[l.page] && ['open', 'step', 'unsure', 'exit_hit', 'exit_miss', 'time'].indexOf(l.ev) >= 0) {
+      const o = pg[l.page] || (pg[l.page] = { st: 0, sok: 0, pq: 0, pok: 0, px: [], un: 0, exit: null, sec: 0, open: 0 });
+      if (l.ev === 'open') o.open++;
+      else if (l.ev === 'time') o.sec += Math.min(+l.sec || 0, 1800);
+      else if (l.ev === 'unsure') o.un++;
+      else if (l.ev === 'exit_hit' || l.ev === 'exit_miss') o.exit = l;
+      else if (String(l.step).indexOf('past_') === 0) { o.pq++; if (l.ok) o.pok++; else o.px.push(String(l.step).slice(5)); }
+      else { o.st++; if (l.ok) o.sok++; }
+    } else if (l.ev === 'kq' && l.paper) {
+      const k = (l.on || '') + '|' + String(l.qid).split('-')[0]; const o = pp[k] || (pp[k] = { n: 0, ok: 0 }); o.n++; if (l.ok) o.ok++;
+    } else if (l.ev === 'kq') {
+      const k = l.set || 'one'; const o = kq[k] || (kq[k] = { n: 0, ok: 0, x: [], subj: {} }); o.n++; if (l.ok) o.ok++; else o.x.push(l.qid);
+      const sj = kSubj(l.qid, l); o.subj[sj] = (o.subj[sj] || 0) + 1;
+    } else if (l.ev === 'quiz') { qz.n++; if (l.ok) qz.ok++; }
+    else if (l.ev === 'kqmark' && l.on) mark++;
+    else if (l.ev === 'pset') out.push({ k: '印刷', t: `過去問を印刷「${l.t || ''}」${l.n || ''}問` });
+  });
+  const xs = x => (x = x.filter(Boolean)).length ? `　×：${x.slice(0, 8).map(qn).join('・')}${x.length > 8 ? ' ほか' + (x.length - 8) + '問' : ''}` : '';
+  Object.entries(pg).forEach(([id, o]) => {
+    const m = META.P[id]; let t = `${m.sname} 第${m.no}回「${m.title}」`;
+    const r = [];
+    if (o.st) r.push(`歩 ${o.st}（○${o.sok}）`);
+    if (o.pq) r.push(`回の中の過去問 ${o.pq}問（○${o.pok}）`);
+    if (o.un) r.push(`わからない ${o.un}`);
+    if (o.exit) r.push(`終わりの過去問 ${o.exit.ok} / ${o.exit.n}`);
+    if (!r.length) r.push(o.open ? '開いただけ' : '読んでいた');
+    out.push({ k: '基礎学習', t: t + '　' + r.join('・') + (o.sec ? `　${Math.round(o.sec / 60)}分` : '') + xs(o.px) });
+  });
+  Object.entries(kq).forEach(([k, o]) => {
+    const sj = Object.entries(o.subj).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([a, n]) => `${a}${n}`).join('・');
+    out.push({ k: '過去問', t: `${k === 'one' ? '1問ずつ' : SETN[k] || k} ${o.n}問 ○${o.ok}（${pct(o.ok, o.n)}%）　${sj}${xs(o.x)}` });
+  });
+  Object.entries(pp).forEach(([k, o]) => { const [on, y] = k.split('|'); out.push({ k: '紙', t: `紙で解いた分を入れた　第${y}回 ${o.n}問 ○${o.ok}（${pct(o.ok, o.n)}%）${on ? '　解いた日 ' + on : ''}` }); });
+  if (qz.n) out.push({ k: '小テスト', t: `${qz.n}問 ○${qz.ok}` });
+  if (mark) out.push({ k: '★', t: `★を付けた ${mark}問` });
+  return out;
+}
+function studyLogHtml(u) {
+  const per = window._lgd || '14', from = +per ? new Date(day(Date.now() - (+per - 1) * 864e5) + 'T00:00:00').getTime() : 0;
+  const S = sessionsOf(u, from).filter(c => c.items.length || c.sec >= 60).reverse();
+  const byDay = {}; S.forEach(c => (byDay[day(c.start)] = byDay[day(c.start)] || []).push(c));
+  let h = `<h3>学習記録</h3><div class="row"><label>期間 <select id="lgD">${[['7', '直近7日'], ['14', '直近14日'], ['30', '直近30日'], ['0', '全部']].map(([v, t]) => `<option value="${v}"${v === per ? ' selected' : ''}>${t}</option>`).join('')}</select></label><button class="btn sub sm" id="lgCsv">CSV</button></div>`;
+  h += '<p class="mut">30分以上あいたら別のまとまりにしています。時間＝画面が見えていて手を動かしていた分（手が止まった間は2分まで）。○＝正解の数。×＝まちがえた過去問の番号。</p>';
+  if (!S.length) return h + '<p class="mut">この期間の記録はありません。</p>';
+  h += Object.keys(byDay).map(d => {
+    const L = byDay[d], tot = L.reduce((a, c) => a + c.sec, 0), dt = new Date(d + 'T00:00:00');
+    return `<div class="lgday"><div class="lgh"><b>${dt.getMonth() + 1}/${dt.getDate()}（${WD[dt.getDay()]}）</b><span>合計 ${hm(tot)}・${L.length}回</span></div><table class="lgt">`
+      + L.map(c => `<tr><td class="lgtm">${tm(c.start)}〜${tm(c.end)}<br><span class="mut">${c.sec ? hm(c.sec) : '1分未満'}</span></td><td>${c.items.map(i => `<div><span class="lgk">${esc(i.k)}</span>${esc(i.t)}</div>`).join('') || '<span class="mut">画面を見ていた</span>'}</td></tr>`).join('')
+      + '</table></div>';
+  }).join('');
+  return h;
+}
+function studyLogBind(u) {
+  $('#lgD').onchange = () => { window._lgd = $('#lgD').value; detail(u); };
+  $('#lgCsv').onclick = () => {
+    const S = sessionsOf(u, 0).filter(c => c.items.length || c.sec >= 60);
+    csv([['学籍番号', '日', '始め', '終わり', '分', 'やったこと']].concat(S.map(c => [nm(u), day(c.start), tm(c.start), tm(c.end), mins(c.sec), c.items.map(i => i.k + '：' + i.t).join(' / ')])), '学習記録_' + nm(u) + '_' + day(Date.now()) + '.csv');
+  };
+}
+
 function detail(u) {
   const R = summarize(LOGALL[u], META);
   const N = 21, today = new Date(day(Date.now()) + 'T00:00:00').getTime();
   const ds = Array.from({ length: N }, (_, i) => day(today - (N - 1 - i) * 864e5));
   const mx = Math.max(1, ...ds.map(d => R.days[d] || 0));
   let h = `<h2>${esc(nmx(u))}　${esc(gk(u))}</h2><h3>この3週間（1日の時間）</h3><div class="days">` + ds.map(d => `<div class="${R.days[d] ? '' : 'z'}" style="height:${Math.max(2, (R.days[d] || 0) * 100 / mx)}%" title="${d} ${hm(R.days[d] || 0)}"></div>`).join('') + `</div><div class="dlab"><span>${md(today - (N - 1) * 864e5)}</span><span>今日</span></div>`;
+  h += studyLogHtml(u);
   h += '<h3>科目ごと</h3><table><tr><th>科目</th><th class="n">終わった回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">時間</th></tr>' + META.list.map(k => { const s = META.S[k], r = R.subj[k]; return `<tr><td>${esc(s.name)}</td><td class="n">${r.pagesDone} / ${s.pages.length}</td><td class="n">${pct(r.done, s.total)}%</td><td class="n">${r.n ? pct(r.ok, r.n) + '%' : '—'}</td><td class="n">${r.time ? hm(r.time) : '—'}</td></tr>`; }).join('') + '</table>';
   const ps = Object.keys(R.pages).filter(id => META.P[id]).sort((a, b) => R.pages[b].last - R.pages[a].last);
   h += '<h3>開いた回</h3><table><tr><th>回</th><th class="n">進み</th><th class="n">初めの正解</th><th class="n">わからない</th><th class="n">時間</th><th>終わりの過去問</th><th>最後</th></tr>' + ps.map(id => { const p = R.pages[id], m = META.P[id]; return `<tr><td>${esc(m.sname)} 第${m.no}回 ${esc(m.title)}</td><td class="n">${p.done} / ${m.total}</td><td class="n">${p.n ? pct(p.ok, p.n) + '%' : '—'}</td><td class="n">${Object.keys(p.u).length || ''}</td><td class="n">${p.time ? hm(p.time) : ''}</td><td>${p.exit ? (p.exit.ok + ' / ' + p.exit.n) : ''}</td><td>${p.last ? md(p.last) : ''}</td></tr>`; }).join('') + '</table>';
@@ -241,6 +322,7 @@ function detail(u) {
   const as = Object.entries(ASG[u] || {});
   if (as.length) h += '<h3>課題</h3><ul>' + as.map(([, a]) => { const pd = (a.pages || []).filter(id => R.pages[id] && R.pages[id].complete).length; return `<li>${esc(a.title)}（${a.at ? md(a.at) : ''}${a.due ? '・' + esc(a.due) + 'まで' : ''}）回 ${pd} / ${(a.pages || []).length}</li>`; }).join('') + '</ul>';
   $('#detail').innerHTML = h;
+  studyLogBind(u);
   $('#detail').scrollIntoView({ behavior: 'smooth' });
 }
 
