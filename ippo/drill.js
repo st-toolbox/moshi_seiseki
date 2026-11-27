@@ -100,14 +100,17 @@ function drawSetup() {
     const ids = (KQ.q[y] || []).map(q => y + '-' + q.n), s = ids.filter(id => R.kq[id]).length;
     return `<tr><td>第${y}回</td><td class="n mut">${s}/${ids.length}</td><td class="dbtn">${qb('year', 0, '午前', { v: y, p: 'am', sub: 1 })}${qb('year', 0, '午後', { v: y, p: 'pm', sub: 1 })}${qb('year', 0, '全部', { v: y, p: 'all', sub: 1 })}<button class="btn sub qb" data-from="${y}">途中から</button></td></tr>`;
   };
-  const subjRow = x => {  // 科目別の1行（60％達成コンテンツの科目が先・ほかは畳む）
+  const subjRow = x => {  // 科目別の1行（基礎学習の科目が先・ほかは畳む）
     const ids = all.filter(id => KQS[id] === x.s), n = ids.filter(id => R.kq[id]).length;
     return `<tr><td>${esc(x.s)}</td><td class="n mut">${n}/${ids.length}</td><td class="dbtn">${qb('subj', 10, '10問', { v: x.s, sub: 1 })}${qb('subj', 20, '20問', { v: x.s, sub: 1 })}${qb('subj', 0, '全問', { v: x.s, sub: 1 })}</td></tr>`;
   };
   let h = kqSwitch('drill') + `<div class="ph"><h1>過去問を解く</h1><span class="mut">第${yrs[yrs.length - 1]}回〜第${yrs[0]}回の全${all.length}問から出せます。まずは過去5年分を全部解くのが目標です。ボタンを押すとすぐ始まります。</span></div>`;
   if (sv) h += `<div class="card hl"><b>解きかけがあります</b>　${esc(drTitle(sv.cfg))}・${sv.ids.length}問のうち ${Object.keys(sv.ans).length}問 答えた
     <p class="row"><button class="btn" id="dRes">続きから</button><button class="btn sub" id="dDrop">やめて新しく始める</button></p></div>`;
-  h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
+  const PR = D.out === 'print';
+  h += `<div class="card dopt dout"><b>解き方</b>${seg('dOut', [['screen', '画面で解く'], ['print', '🖨 A4で印刷して紙で解く']], PR ? 'print' : 'screen')}
+    <span class="mut">${PR ? '下のボタンを押すと、その問題を問題用紙とマークシートにして刷ります（' + PSET_MAX + '問まで）。解いたらマークシートを写真に撮って「結果のスキャン」へ。' : '紙で解きたいときは「A4で印刷」に切り替えます。'}</span></div>`;
+  if (!PR) h += `<div class="card dopt"><b>答え合わせ</b>${seg('dGrade', [['each', '1問ごと（すぐ解説）'], ['end', '最後にまとめて（本番の形）']], D.grade)}
     <b>時間</b>${seg('dTime', [['none', '計らない'], ['pace', '1問の目安（60秒・長い問題120秒）'], ['total', '全体の制限時間（1問90秒）']], D.time)}
     <span class="mut">下のどの出し方にも効きます</span></div>`;
   h += `<div class="card dsec dhero"><h2>★ まずはこれ：過去5年分を全部やりきる</h2><p class="mut">第${y5[0]}回〜第${y5[y5.length - 1]}回の${nAll}問。まだ解いていない問題だけから出します（全部解いたら全体から）。</p>
@@ -125,7 +128,7 @@ function drawSetup() {
   h += `<div class="card dsec"><h2>復習</h2><table class="dsub">
     <tr><td>間違えたまま</td><td class="n mut">${nMiss}問</td><td class="dbtn">${qb('miss', 10, '10問', { sub: 1, dis: !nMiss })}${qb('miss', 20, '20問', { sub: 1, dis: !nMiss })}${qb('miss', 0, '全部', { sub: 1, dis: !nMiss })}</td></tr>
     <tr><td>印（★）を付けた問題</td><td class="n mut">${nMark}問</td><td class="dbtn">${qb('mark', 0, '全部', { sub: 1, dis: !nMark })}</td></tr>
-    <tr><td>サバイバル<br><span class="mut">1問まちがえたら終わり</span></td><td class="n mut">最高 ${best}問</td><td class="dbtn">${qb('surv', 0, '始める', { sub: 1 })}</td></tr></table></div>`;
+    ${PR ? '' : `<tr><td>サバイバル<br><span class="mut">1問まちがえたら終わり</span></td><td class="n mut">最高 ${best}問</td><td class="dbtn">${qb('surv', 0, '始める', { sub: 1 })}</td></tr>`}</table></div>`;
   const pc = customPool(c, R).length;
   h += `<details class="card dsec"${D.open ? ' open' : ''} id="dCus"><summary><h2>自分で設定して解く</h2></summary><div class="dset">
     <b>回</b><div class="yrs">${yrs.map(y => `<label class="chk"><input type="checkbox" value="${y}"${!c.years.length || c.years.indexOf(y) >= 0 ? ' checked' : ''}> 第${y}回</label>`).join('')}</div>
@@ -134,12 +137,13 @@ function drawSetup() {
     <b>ことば</b><div><input id="dKw" value="${esc(c.kw)}" placeholder="例：失語（空白で区切ると全部含む問題）"></div>
     <b>解いたか</b><div>${seg('dSt', [['all', 'すべて'], ['new', 'まだ解いていない'], ['miss', '間違えた'], ['ok', '正解した']], c.st)}</div>
     <b>問題数</b><div>${seg('dN', [[10, '10'], [20, '20'], [30, '30'], [50, '50'], [0, '全部']], c.n)}</div>
-    </div><p class="row"><button class="btn" id="dGo"${pc ? '' : ' disabled'}>${c.n ? Math.min(c.n, pc) : pc} 問を始める</button><span class="mut">当てはまる問題 ${pc} 問</span></p></details>`;
+    </div><p class="row"><button class="btn" id="dGo"${pc ? '' : ' disabled'}>${c.n ? Math.min(c.n, pc) : pc} 問を${PR ? '印刷する' : '始める'}</button><span class="mut">当てはまる問題 ${pc} 問</span></p></details>`;
   h += '<p class="mut">キー：<kbd>1</kbd>〜<kbd>5</kbd> 答える　<kbd>Enter</kbd> 次へ　<kbd>←</kbd><kbd>→</kbd> 前・次　<kbd>M</kbd> 印</p>';
   box.innerHTML = h;
   const save = () => lsSet('ippo_drill_cfg', D);
   const setD = (k, v) => { D[k] = v; save(); drawSetup(); };
   const setC = (k, v) => { c[k] = v; D.open = 1; save(); drawSetup(); };
+  $$('#dOut button').forEach(b => b.onclick = () => setD('out', b.dataset.v));
   $$('#dGrade button').forEach(b => b.onclick = () => setD('grade', b.dataset.v));
   $$('#dTime button').forEach(b => b.onclick = () => setD('time', b.dataset.v));
   $$('#dSt button').forEach(b => b.onclick = () => setC('st', b.dataset.v));
@@ -161,6 +165,7 @@ function drawSetup() {
     if (cfg.set === 'surv') { cfg.grade = 'each'; if (cfg.time === 'total') cfg.time = 'none'; }
     const ids = drPick(cfg, R);
     if (!ids.length) return alert('当てはまる問題がありません。');
+    if (PR) return psetMake(ids, drTitle(cfg));
     if (sv && !confirm('解きかけの問題があります。それをやめて新しく始めますか？')) return;
     startRun(ids, cfg);
   };

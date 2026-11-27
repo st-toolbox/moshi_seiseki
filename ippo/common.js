@@ -159,7 +159,7 @@ const kqStem = q => (q.t || (q.raw || '').split('\n')[0] || '').trim();
 
 // 過去問（ippo/kq/y<回>・ippo/kx/y<回>・ippo/kimg/<回-問>）の読み込み
 const KQ = { years: null, q: {}, x: {}, img: {} };
-// 学生に見せる過去問は新しい5年分だけ（運営者 11/27）。古い回のデータは残す＝60％達成コンテンツの中の過去問の解説が使う
+// 学生に見せる過去問は新しい5年分だけ（運営者 11/27）。古い回のデータは残す＝基礎学習の中の過去問の解説が使う
 const KQ_SPAN = 5;
 async function kqYears() { if (!KQ.years) { const m = await get('ippo/kqmeta'); KQ.allYears = (m && m.years) || []; KQ.years = KQ.allYears.slice(-KQ_SPAN); } return KQ.years; }
 async function kqYear(y) {

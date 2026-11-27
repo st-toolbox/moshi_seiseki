@@ -16,10 +16,25 @@ auth.onAuthStateChanged(async user => {
   try { await loadAll(); } catch (e) { $('#tab-map').innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; return; }
   db.ref('ippo/members').on('value', s => { MEM = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
   db.ref('ippo/apply').on('value', s => { APP = s.val() || {}; renderFacts(); if (cur() === 'mem') renderMem(); });
+  db.ref('ippo/consent').on('value', s => { CONS = s.val() || {}; if (cur() === 'mem') renderMem(); });
   $$('#tabs button').forEach(b => b.onclick = () => { location.hash = b.dataset.t; });
   window.addEventListener('hashchange', route);
   route();
 });
+
+// 同意（AI分析）：学生ごとの最新の1件。画像（ippo/consentimg）は「証拠」を押したときだけ読む
+let CONS = {};
+function consOf(u) { const L = Object.entries(CONS[u] || {}).map(([id, c]) => Object.assign({ id }, c)).sort((a, b) => (a.at || 0) - (b.at || 0)); return L.length ? Object.assign(L[L.length - 1], { n: L.length }) : null; }
+function consCell(u) {
+  const c = consOf(u); if (!c) return '<td class="mut">未回答</td><td></td>';
+  return `<td>${c.ai ? '<b>同意</b>' : '同意しない'}${c.n > 1 ? ' <span class="mut">（' + c.n + '回目）</span>' : ''}<br><span class="mut">${esc(c.name || '')}・${md(c.at)}</span></td><td><button class="btn sub sm" data-cimg="${u}/${c.id}">証拠</button></td>`;
+}
+async function consImg(path) {
+  const w = window.open('', '_blank'); if (!w) return alert('新しい窓を開けませんでした');
+  w.document.write('<p style="font-family:sans-serif">読み込み中…</p>');
+  const img = await get('ippo/consentimg/' + path).catch(() => null);
+  w.document.open(); w.document.write(img ? `<!doctype html><meta charset="utf-8"><title>同意の証拠</title><body style="margin:0;background:#888"><img src="${img}" style="display:block;max-width:100%;margin:10px auto;background:#fff"></body>` : '<p>画像がありません</p>'); w.document.close();
+}
 
 async function loadAll() {
   const [idx, stu, lg, asg, dr, cfg, ex] = await Promise.all(['ippo/index', 'students', 'ippo/log', 'ippo/assign', 'ippo/draft', 'ippo/config', 'exams'].map(p => get(p).catch(() => null)));
@@ -62,7 +77,7 @@ function renderFacts() {
 function renderMap() {
   const ms = memUids();
   const per = window._mper || '0', from = +per ? Date.now() - (+per) * 864e5 : 0;
-  let h = `<div class="ph"><h1>全体の地図</h1><span class="mut">学生×60％達成コンテンツの回。名前を押すとその学生の詳しい取り組みが出ます。</span></div>`;
+  let h = `<div class="ph"><h1>全体の地図</h1><span class="mut">学生×基礎学習の回。名前を押すとその学生の詳しい取り組みが出ます。</span></div>`;
   if (!ms.length) { $('#tab-map').innerHTML = h + '<p class="mut">参加している学生はまだいません。「参加者」で申し込みを許可してください。</p>'; return; }
   h += `<div class="row"><label>数える期間 <select id="mPer"><option value="0">全部</option><option value="7">直近7日</option><option value="14">直近14日</option><option value="30">直近30日</option></select></label>
     <button class="btn sub sm" id="mRl">最新にする</button>
@@ -112,10 +127,10 @@ function renderMem() {
   let h = `<p>学生の画面：<a href="index.html" id="stuUrl"></a>　<button class="btn sub sm" id="cpUrl">URLをコピー</button></p>`;
   const ap = Object.keys(APP).filter(u => !MEM[u]);
   h += `<h2>申し込み（${ap.length}人）</h2>`;
-  h += ap.length ? '<table><tr><th>学籍番号</th><th>申し込み</th><th>学年</th><th></th></tr>' + ap.map(u => `<tr><td>${esc(nm(u))}</td><td>${md(APP[u].at)}</td><td>${gsel(u)}</td><td><button class="btn sm" data-ok="${u}">許可</button> <button class="btn ng sm" data-no="${u}">見送り</button></td></tr>`).join('') + '</table>' : '<p class="mut">ありません。</p>';
+  h += ap.length ? '<table><tr><th>学籍番号</th><th>申し込み</th><th>AI分析</th><th></th><th>学年</th><th></th></tr>' + ap.map(u => `<tr><td>${esc(nm(u))}</td><td>${md(APP[u].at)}</td>${consCell(u)}<td>${gsel(u)}</td><td><button class="btn sm" data-ok="${u}">許可</button> <button class="btn ng sm" data-no="${u}">見送り</button></td></tr>`).join('') + '</table>' : '<p class="mut">ありません。</p>';
   const ms = memUids();
   h += `<h2>参加している学生（${ms.length}人）</h2>`;
-  h += ms.length ? '<table><tr><th>学籍番号</th><th>学年</th><th>許可した日</th><th></th></tr>' + ms.map(u => `<tr><td>${esc(nm(u))}</td><td>${esc(gk(u))}</td><td>${MEM[u].at ? md(MEM[u].at) : ''}</td><td><button class="btn ng sm" data-rm="${u}">外す</button></td></tr>`).join('') + '</table>' : '<p class="mut">まだいません。</p>';
+  h += ms.length ? '<table><tr><th>学籍番号</th><th>学年</th><th>許可した日</th><th>AI分析</th><th></th><th></th></tr>' + ms.map(u => `<tr><td>${esc(nm(u))}</td><td>${esc(gk(u))}</td><td>${MEM[u].at ? md(MEM[u].at) : ''}</td>${consCell(u)}<td><button class="btn ng sm" data-rm="${u}">外す</button></td></tr>`).join('') + '</table>' : '<p class="mut">まだいません。</p>';
   const others = Object.keys(STU).filter(u => !MEM[u] && /^(OE|oe)/.test(STU[u].email || '')).sort((a, b) => nm(a) < nm(b) ? -1 : 1);
   h += `<h2>申し込みなしで足す</h2><p class="mut">成績分析アプリに一度ログインした学生から選べます。2年生はまだ名簿に無い人が多い＝学生の画面に一度ログインしてもらうと出ます。</p>
     <div class="row"><select id="addU"><option value="">学生を選ぶ</option>${others.map(u => `<option value="${u}">${esc(nm(u))}　${esc(gk(u))}</option>`).join('')}</select>${gsel('_add')}<button class="btn sm" id="addGo">足す</button></div>`;
@@ -133,6 +148,8 @@ function renderMem() {
   };
   $$('[data-ok]').forEach(b => b.onclick = () => admit(b.dataset.ok, $(`[data-g="${b.dataset.ok}"]`).value).catch(e => alert(e.message)));
   $$('[data-no]').forEach(b => b.onclick = () => confirm(nm(b.dataset.no) + ' の申し込みを見送りますか？') && db.ref('ippo/apply/' + b.dataset.no).remove());
+  $$('[data-cimg]').forEach(b => b.onclick = () => consImg(b.dataset.cimg));
+  if (ms.length || ap.length) $('#tab-mem').insertAdjacentHTML('beforeend', '<p class="mut">AI分析＝学生が登録のときに選んだ同意（最新の1件）。課題の下書きでAIに渡すのは「同意」の学生の集計だけ。名前と証拠の画像は先生だけが見られ、AIには渡さない。</p>');
   $$('[data-rm]').forEach(b => b.onclick = () => confirm(nm(b.dataset.rm) + ' を外しますか？（記録は残ります）') && db.ref('ippo/members/' + b.dataset.rm).remove());
   $('#addGo').onclick = () => { const u = $('#addU').value; if (!u) return; admit(u, $('[data-g="_add"]').value).catch(e => alert(e.message)); };
 }
@@ -220,7 +237,7 @@ function renderGain() {
   const opt = sel => el.map(e => `<option value="${esc(e.k)}" ${e.k === sel ? 'selected' : ''}>${esc(e.k)}${e.date ? '（' + esc(e.date) + '）' : ''}</option>`).join('');
   const gakus = Array.from(new Set(Object.values(STU).map(s => s.gakunen).filter(Boolean))).sort();
   const g = window._gain || {};
-  $('#tab-gain').innerHTML = `<p>前と後の2つの模試の点を比べ、そのあいだの60％達成コンテンツの取り組みで分けます。両方の模試を午前・午後とも出した学生だけを数えます。</p>
+  $('#tab-gain').innerHTML = `<p>前と後の2つの模試の点を比べ、そのあいだの基礎学習の取り組みで分けます。両方の模試を午前・午後とも出した学生だけを数えます。</p>
   <div class="card">
     <div class="row"><label>前の模試 <select id="gA"><option value="">選ぶ</option>${opt(g.a)}</select></label></div>
     <div class="row"><label>後の模試 <select id="gB"><option value="">選ぶ</option>${opt(g.b)}</select></label></div>
@@ -277,7 +294,7 @@ async function gain() {
     ${rows.map(r => `<circle cx="${X(r.min)}" cy="${Y(r.d)}" r="5" fill="${r.mem ? '#4f46e5' : '#999'}" fill-opacity=".7"><title>${esc(nm(r.u))} ${r.min}分 ${sg(r.d)}</title></circle>`).join('')}</svg>
     <p class="mut">青＝参加者・灰＝参加していない学生。点にカーソルを当てると学籍番号が出ます。</p>`;
   // 科目ごと
-  h += `<h2>科目ごと（その科目を60％達成コンテンツでやった人とやっていない人）</h2><p class="mut">「やった」＝期間の中でその科目の歩と過去問の ${Math.round(SP * 100)}% 以上に答えた。模試の科目名で点を取る。</p><table><tr><th>科目</th><th class="n">やった人</th><th class="n">その伸び</th><th class="n">やっていない人</th><th class="n">その伸び</th><th class="n">差</th></tr>`;
+  h += `<h2>科目ごと（その科目を基礎学習でやった人とやっていない人）</h2><p class="mut">「やった」＝期間の中でその科目の歩と過去問の ${Math.round(SP * 100)}% 以上に答えた。模試の科目名で点を取る。</p><table><tr><th>科目</th><th class="n">やった人</th><th class="n">その伸び</th><th class="n">やっていない人</th><th class="n">その伸び</th><th class="n">差</th></tr>`;
   const within = {};
   META.list.forEach(k => {
     const s = META.S[k]; const did = [], not = [];
@@ -298,7 +315,7 @@ async function gain() {
   h += `<h3>学生ごと</h3><div class="row"><button class="btn sub sm" id="gCsv">CSV</button></div><table><tr><th>学籍番号</th><th>参加</th><th class="n">前</th><th class="n">後</th><th class="n">伸び</th><th class="n">時間</th><th class="n">歩</th></tr>` +
     rows.sort((x, y) => y.d - x.d).map(r => `<tr><td>${esc(nm(r.u))}</td><td>${r.mem ? '○' : ''}</td><td class="n">${f1(r.A.p)}%</td><td class="n">${f1(r.B.p)}%</td><td class="n">${sg(r.d)}</td><td class="n">${r.min}分</td><td class="n">${r.R.nStep}</td></tr>`).join('') + '</table>';
   $('#gOut').innerHTML = h;
-  $('#gCsv').onclick = () => csv([['学籍番号', '学年', '参加', '前%', '後%', '伸び', '分', '歩']].concat(rows.map(r => [nm(r.u), gk(r.u), r.mem ? 1 : 0, f1(r.A.p), f1(r.B.p), f1(r.d), r.min, r.R.nStep])), '60％達成_伸び_' + day(Date.now()) + '.csv');
+  $('#gCsv').onclick = () => csv([['学籍番号', '学年', '参加', '前%', '後%', '伸び', '分', '歩']].concat(rows.map(r => [nm(r.u), gk(r.u), r.mem ? 1 : 0, f1(r.A.p), f1(r.B.p), f1(r.d), r.min, r.R.nStep])), '基礎学習_伸び_' + day(Date.now()) + '.csv');
 }
 
 // ===== 課題 =====
@@ -390,7 +407,7 @@ function renderCfg() {
     <div class="row"><label>名前 <input id="cN" value="${esc(t.name || '')}" placeholder="例：12/24 模試"></label><label>日付 <input type="date" id="cD" value="${esc(t.date || '')}"></label></div>
     <h3>お知らせ（学生のホームの上に出す）</h3><textarea id="cM">${esc(CFG.notice || '')}</textarea>
     <div class="row"><button class="btn" id="cGo">保存</button></div></div>
-    <p class="mut">中身（60％達成コンテンツの回・過去問）は ippo2_upload.py で入れる。小テストは ippo/quiz に入れると学生の「小テスト」に出る。</p>`;
+    <p class="mut">中身（基礎学習の回・過去問）は ippo2_upload.py で入れる。小テストは ippo/quiz に入れると学生の「小テスト」に出る。</p>`;
   $('#cGo').onclick = async () => {
     CFG = { target: { name: $('#cN').value.trim(), date: $('#cD').value }, notice: $('#cM').value.trim(), at: TS, by: ME.email };
     await db.ref('ippo/config').set(CFG);

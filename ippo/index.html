@@ -14,7 +14,7 @@
 
 <div id="scrLogin" class="login hidden">
   <div class="brand">国家試験過去問対策アプリ</div>
-  <p class="lead">言語聴覚士の国家試験の過去問と、60％達成コンテンツ（国試の6割を取る範囲を順に学ぶ）。</p>
+  <p class="lead">言語聴覚士の国家試験の過去問と、基礎学習（国試の6割を取る範囲を順に学ぶ）。</p>
   <div class="box">
     <p>大学のGoogleアカウント（OEで始まるメール）でログインしてください。</p>
     <p><button class="btn" onclick="signIn()">Googleでログイン</button></p>
@@ -49,15 +49,17 @@
 </div>
 
 <div id="viewer" class="viewer hidden">
-  <div class="vbar"><button class="btn sub sm" id="vBack">← もどる</button><span class="tt" id="vTitle"></span><span class="mut">60％達成コンテンツ</span></div>
-  <iframe id="frame" title="60％達成コンテンツ"></iframe>
+  <div class="vbar"><button class="btn sub sm" id="vBack">← もどる</button><span class="tt" id="vTitle"></span><span class="mut">基礎学習</span></div>
+  <iframe id="frame" title="基礎学習"></iframe>
 </div>
 
 <script src="../omr_layout.js"></script>
 <script src="../omr_reader.js"></script>
 <script src="../omr_ui.js"></script>
 <script src="common.js"></script>
+<script src="consent.js"></script>
 <script src="student.js"></script>
 <script src="drill.js"></script>
+<script src="print.js"></script>
 </body>
 </html>

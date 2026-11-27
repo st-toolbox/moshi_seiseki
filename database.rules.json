@@ -121,6 +121,23 @@
           ".read": "auth != null && auth.uid === $uid"
         }
       },
+      "consent": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".write": "auth != null && auth.uid === $uid && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && !data.exists() && newData.child('at').val() === now && newData.child('email').val() === auth.token.email",
+            ".validate": "newData.child('ai').isBoolean() && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 40 && newData.child('v').isString()"
+          }
+        }
+      },
+      "consentimg": {
+        "$uid": {
+          "$id": {
+            ".write": "auth != null && auth.uid === $uid && auth.token.email_verified == true && auth.token.email.matches(/^(OE|oe)[^@]*@(oky\\.)?asahi\\.ac\\.jp$/) && !data.exists()",
+            ".validate": "newData.isString() && newData.val().beginsWith('data:image/') && newData.val().length < 500000"
+          }
+        }
+      },
       "seen": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
