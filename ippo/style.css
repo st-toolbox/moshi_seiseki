@@ -272,3 +272,23 @@ div.kq-ch .ch{cursor:default}
 .pal button.mk::after{content:'★';position:absolute;top:-6px;right:-3px;font-size:10px;color:#c98a00}
 @media(max-width:640px){.dset{grid-template-columns:1fr;gap:4px}.dset>b{margin-top:8px}}
 @media print{.pal,.drh button,.pace{display:none}}
+
+/* 問題を解く：出し方の一覧（11/27） */
+.dopt{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.dsec h2{margin:0 0 6px}
+.dsec summary{cursor:pointer;list-style:none}
+.dsec summary h2{display:inline}
+.dsec summary::before{content:'▸ ';color:var(--acc)}
+.dsec[open] summary::before{content:'▾ '}
+.btn.qb{min-width:4.6em;padding:8px 14px;font-size:15px;font-weight:700;margin:0 6px 6px 0}
+.dsub .btn.qb{min-width:3.6em;padding:4px 10px;font-size:13px;margin:2px 4px 2px 0}
+.dsub{width:100%}
+.dsub td{padding:4px 6px;vertical-align:middle}
+.dsub .dbtn{text-align:right;white-space:nowrap}
+.dprog{display:flex;gap:10px;align-items:center}
+.dbar{flex:1;max-width:320px;height:10px;background:var(--line2);border-radius:5px;overflow:hidden}
+.dbar b{display:block;height:100%;background:var(--ok)}
+.sbjs{columns:2;margin-top:4px}
+#dKw{width:100%;max-width:360px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;font:inherit}
+.dmore summary{cursor:pointer;color:var(--acc);margin:8px 0 4px;font-size:13px}
+@media(max-width:640px){.dsub td{padding:3px 2px}.dsub td:first-child{font-size:13px}.dsub .btn.qb{min-width:0;padding:4px 7px;font-size:12px;margin:2px 2px 2px 0}.sbjs{columns:1}.btn.qb{min-width:0;padding:8px 12px}}
