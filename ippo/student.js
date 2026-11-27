@@ -136,8 +136,8 @@ function renderSide() {
   const v = (h, label, em, on, cls, icn) => `<button class="v${icn ? ' top1' : ''}${on ? ' on' : ''}" data-h="${h}">${icn ? ic(icn) : ''}<span>${label}</span>${em != null ? `<em class="${cls || ''}">${em}</em>` : ''}</button>`;
   let h = '<h3>はじめに</h3>' + v('home', 'ホーム', asOpen ? '課題' + asOpen : null, tab === 'home', asOpen ? 'hot' : '', 'home');
   h += '<h3>学ぶ</h3>'
-    + v('drill', '過去問とく', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '', 'pen')
     + v('ippo', '基礎学習する', R.pagesDone + '/' + META.order.length, tab === 'ippo' && !sub, '', 'book')
+    + v('drill', '過去問とく', drSaved() ? '続き' : R.nKq ? R.nKq + '問' : null, tab === 'drill' || tab === 'kq', drSaved() ? 'hot' : '', 'pen')
     + v('paper', '結果のスキャン', R.nPaper ? R.nPaper + '問' : null, tab === 'paper', '', 'scan')
     + v('quiz', '小テスト', null, tab === 'quiz', '', 'quiz');
   h += '<h3>自分</h3>' + v('rec', '記録・分析', null, tab === 'rec', '', 'chart');
@@ -193,9 +193,21 @@ function renderHome() {
   const act = (href, icn, t, d, go, extra, cls) => `<a class="act${cls ? ' ' + cls : ''}" href="${href}"><span class="aic">${ic(icn)}</span><span class="atx"><b>${t}</b><span>${d}</span>${extra || ''}</span><span class="ago">${go} ${ic('go')}</span></a>`;
   const miss0 = Object.values(R.kq).filter(k => !k.ok).length;
   if (drSaved()) h += `<a class="act resume" href="#drill/go"><span class="aic">${ic('redo')}</span><span class="atx"><b>解きかけの問題があります</b><span>前の続きから解けます</span></span><span class="ago">続きから ${ic('go')}</span></a>`;
-  h += '<div class="acts">'
-    + act('#drill', 'pen', '過去問をとく', nq ? `過去5年分 ${n5} / ${nq} 問。ボタン1つで10〜50問` : 'ボタン1つで10〜50問。科目別・回ごとも', '解く', nq ? `<i class="abar"><i style="width:${pct(n5, nq)}%"></i></i>` : '', 'a1')
-    + act(lp ? '#p/' + R.lastPage : '#ippo', 'book', '基礎学習する', lp ? `つづき：${esc(lp.sname)}｜${esc(lp.title)}` : `国試の6割を取る範囲を順に（全${META.order.length}回）`, lp ? (lst && lst.cls === 'done' ? '一覧へ' : 'つづき') : 'はじめる')
+  // まずは基礎学習（11/27 運営者「基本スタートは基礎学習・こちらへ誘導」）＝いちばん上の大きな枠
+  const tot = META.order.length, pd = R.pagesDone, isDone = id => R.pages[id] && META.P[id] && R.pages[id].done >= META.P[id].total;
+  const nx = (lp && !isDone(R.lastPage)) ? R.lastPage : META.order.find(id => !isDone(id));
+  const nm = nx ? META.P[nx] : null, nst = nx ? pageState(R, nx) : null, started = pd > 0 || !!lp;
+  h += `<section class="hero"><div class="htx">
+    <span class="kick">STEP 1　まずはここから</span>
+    <h2>基礎学習で、国試6割の土台をつくる</h2>
+    <p class="lead">よく出る所だけを、順番に。1回ずつ「読む → その場の過去問で確かめる」をくり返します。</p>`
+    + (nm ? `<a class="hnext" href="#p/${nx}"><span class="hn-l">${started ? '次はこの回' : '最初の回'}</span><b>第${nm.no}回　${esc(nm.sname)}｜${esc(nm.title)}</b>${nst.pp ? `<i class="abar"><i style="width:${nst.pp}%"></i></i>` : ''}</a>` : '<p class="hnext"><b>全部の回が終わりました。過去問で仕上げましょう。</b></p>')
+    + `<div class="hgo"><a class="btn hero-go" href="${nm ? '#p/' + nx : '#drill'}">${nm ? (started ? '続きから学習する' : '基礎学習をはじめる') : '過去問をとく'} ${ic('go')}</a>
+      <a class="hring" href="#ippo" title="基礎学習の一覧"><span class="ring" style="--p:${pct(pd, tot)}"><b class="num">${pct(pd, tot)}<small>%</small></b></span><span><b class="num">${pd}</b> / ${tot} 回 終わった<br><u>回の一覧を見る</u></span></a></div>
+  </div><div class="himg" aria-hidden="true"></div></section>`;
+  h += `<ol class="flow"><li class="on"><b>1</b>基礎学習で覚える</li><li><b>2</b>過去問で確かめる</li><li><b>3</b>紙で解いたらスキャン</li></ol>`;
+  h += '<h2 class="sec">基礎学習のあとに</h2><div class="acts">'
+    + act('#drill', 'pen', '過去問をとく', nq ? `過去5年分 ${n5} / ${nq} 問。ボタン1つで10〜50問` : 'ボタン1つで10〜50問。科目別・回ごとも', '解く', nq ? `<i class="abar"><i style="width:${pct(n5, nq)}%"></i></i>` : '')
     + act('#paper', 'scan', '結果のスキャン', '紙で解いたマークシートを写真で入れる', '入れる')
     + act('#kq', 'quiz', '問題の一覧から選ぶ', '過去5年分を科目・回で絞って1問ずつ', '一覧へ')
     + '</div>';
