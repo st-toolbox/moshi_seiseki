@@ -687,3 +687,17 @@ tr.click:hover .go2,.plist a:hover .go,.act:hover .ago{background:var(--ink2);co
 .dic .ic,.dcfg-ic .ic{width:19px;height:19px;stroke-width:2.1}
 .dsec h2>span:last-child{color:var(--ink2);font-weight:800;font-size:15.5px}
 .dsec h2 small{font-weight:400}
+/* 表の中のボタンは軽く（11/27 運営者「ボタンが圧迫しすぎ」「第○回が2段」）：影なしの細い枠・スマホは名前の下にボタンの行 */
+.dsec .dsub .btn.qb{min-width:3.6em;padding:3px 12px;font-size:13px;font-weight:700;border-width:1.5px;box-shadow:none;margin:2px 3px 2px 0}
+.dsec .dsub .btn.qb:hover:not(:disabled){transform:none;box-shadow:none}
+.dsub td:first-child{white-space:nowrap}
+@media (max-width:640px){
+  .dsub,.dsub tbody{display:block}
+  .dsub tr{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px;padding:8px 0;border-bottom:1px solid var(--line2)}
+  .dsub tr:last-child{border-bottom:0}
+  .dsub td{padding:0;border:0!important}
+  .dsub td:first-child{font-size:14px;white-space:normal}
+  .dsub td.n{text-align:right}
+  .dsub td.dbtn{grid-column:1/-1;display:flex;gap:6px;margin-top:6px;text-align:left}
+  .dsec .dsub .btn.qb{flex:1 1 0;min-width:0;justify-content:center;margin:0;padding:5px 4px;font-size:13px}
+}
