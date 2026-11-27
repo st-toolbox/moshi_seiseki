@@ -400,7 +400,7 @@ async function renderKq() {
   if (!KS.list.length) KS.list = kqFilter(R);
   const fl = { new: 'まだ解いていない', miss: '間違えたまま', all: '全部' }[KS.f];
   const yrs = KQ.years.slice().reverse();
-  let h = kqSwitch('kq') + phead('quiz', '', '過去5年分の一覧', `第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。行を押すと右に問題が出て、答えると正誤と解説が出ます。`, '', 1);
+  let h = kqSwitch('kq') + phead('quiz', '', '過去5年分の一覧', `第${KQ.years[0]}回〜第${KQ.years[KQ.years.length - 1]}回・${KQ.years.reduce((a, y) => a + KQ.q[y].length, 0)}問。行を押すと右に問題が出て、答えると正誤が出ます。`, '', 1);
   const so = KQ_SUBJ.map(x => `<option value="${esc(x.s)}"${KS.subj === x.s ? ' selected' : ''}>${esc(x.s)}（${x.n}）</option>`);
   const nIppo = KQ_SUBJ.filter(x => x.ippo).length;
   h += `<div class="split"><section class="list">
@@ -471,7 +471,7 @@ async function markAns(id, q, n, again) {
     <div class="row">${nx ? '<button class="btn" id="kNext">次へ <kbd>Enter</kbd></button>' : '<span class="mut">この一覧の最後です</span>'}</div><div class="kx mut" id="kX">解説を読み込み中…</div>`;
   if ($('#kNext')) $('#kNext').onclick = () => kqOpen(nx);
   const x = await kxGet(id).catch(() => '');
-  if (KS.sel === id && $('#kX')) { $('#kX').classList.remove('mut'); $('#kX').innerHTML = x ? kxFmt(x) : '解説はまだありません。'; }
+  if (KS.sel === id && $('#kX')) { $('#kX').classList.remove('mut'); $('#kX').innerHTML = kxBox(x); }
 }
 function kqKey(e) {
   if (curTab() !== 'kq' || !KS.sel || e.ctrlKey || e.metaKey || e.altKey) return;

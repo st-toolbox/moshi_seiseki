@@ -405,11 +405,12 @@ function renderCfg() {
   const t = CFG.target || {};
   $('#tab-cfg').innerHTML = `<div class="card"><h3>目標（学生のホームに「あと何日」を出す）</h3>
     <div class="row"><label>名前 <input id="cN" value="${esc(t.name || '')}" placeholder="例：12/24 模試"></label><label>日付 <input type="date" id="cD" value="${esc(t.date || '')}"></label></div>
+    <h3>過去問の解説</h3><label class="chk"><input type="checkbox" id="cX"${CFG.kxOpen ? ' checked' : ''}> 学生に解説を見せる（外している間は正誤・正答・科目だけ。DBのルールでも読めない）</label>
     <h3>お知らせ（学生のホームの上に出す）</h3><textarea id="cM">${esc(CFG.notice || '')}</textarea>
     <div class="row"><button class="btn" id="cGo">保存</button></div></div>
     <p class="mut">中身（基礎学習の回・過去問）は ippo2_upload.py で入れる。小テストは ippo/quiz に入れると学生の「小テスト」に出る。</p>`;
   $('#cGo').onclick = async () => {
-    CFG = { target: { name: $('#cN').value.trim(), date: $('#cD').value }, notice: $('#cM').value.trim(), at: TS, by: ME.email };
+    CFG = { target: { name: $('#cN').value.trim(), date: $('#cD').value }, notice: $('#cM').value.trim(), kxOpen: $('#cX').checked, at: TS, by: ME.email };
     await db.ref('ippo/config').set(CFG);
     alert('保存しました');
   };

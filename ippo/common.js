@@ -193,7 +193,12 @@ const phead = (icon, kick, title, lead, side, slim) => `<header class="phero${sl
 const ic = (k, c) => `<svg class="ic${c ? ' ' + c : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k] || ''}</svg>`;
 const kqSwitch = cur => `<div class="ksw"><a href="#drill" class="${cur === 'drill' ? 'on' : ''}">${ic('pen')}問題を解く</a><a href="#kq" class="${cur === 'kq' ? 'on' : ''}">${ic('quiz')}一覧から選ぶ（過去5年）</a></div>`;
 async function kqGet(id) { const [y, n] = id.split('-'); const qs = await kqYear(y); return qs.find(q => String(q.n) === String(n)) || null; }
+// 過去問の解説は先生が公開するまで出さない（11/27 運営者「自分でまだまだ調べるべき・ある程度の時期に解放」）＝ippo/config/kxOpen。DBのルールでも止めてある
+const kxOpen = () => typeof CONFIG !== 'undefined' && !!(CONFIG && CONFIG.kxOpen);
+const KX_LOCK = '<div class="kxlock"><b>解説はまだ公開していません</b><span>正答と科目を手がかりに、教科書・ノートで自分で調べてみよう。先生が時期を見て公開します。</span></div>';
+const kxBox = x => kxOpen() ? (x ? kxFmt(x) : '解説はまだありません。') : KX_LOCK;
 async function kxGet(id) {
+  if (!kxOpen()) return '';
   const [y, n] = id.split('-');
   if (!KQ.x[y]) { const s = await get('ippo/kx/y' + y); KQ.x[y] = s ? (typeof s === 'string' ? JSON.parse(s) : s) : {}; }
   return KQ.x[y][n] || '';
@@ -232,6 +237,6 @@ async function showKx(id) {
     const q = await kqGet(id), x = await kxGet(id);
     if (!q) { body.innerHTML = '<p>この問題は見つかりませんでした。</p>'; return; }
     body.innerHTML = (await kqHtml(id, q, false)) + `<p class="kq-ans">正答：${esc(q.a === '0' ? '全員正解' : q.a.split('').join('・'))}</p>`
-      + (x ? `<div class="kx">${kxFmt(x)}</div>` : '<p class="mut">解説はまだありません。</p>');
+      + (kxOpen() ? (x ? `<div class="kx">${kxFmt(x)}</div>` : '<p class="mut">解説はまだありません。</p>') : KX_LOCK);
   } catch (e) { body.innerHTML = '<p>読み込めませんでした：' + esc(e.message) + '</p>'; }
 }

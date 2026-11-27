@@ -183,7 +183,7 @@ async function resultPrint(list, r, title) {
     for (const id of list) { const q = await kqGet(id); qs.push({ id, q: q || { t: '（問題が見つかりません）' }, x: await kxGet(id).catch(() => '') }); }
     await Promise.all(qs.filter(o => o.q.im).map(o => kimgGet(o.id)));
     const d = new Date(), ds = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
-    const nW = qs.filter(o => !r.ok[o.id]).length;
+    const nW = qs.filter(o => !r.ok[o.id]).length, KO = kxOpen();
     const card = o => {
       const q = o.q, [y, n] = o.id.split('-'), me = r.ans[o.id], ok = !!r.ok[o.id], ca = String(q.a || '');
       const mine = me == null ? [] : String(me).split('');
@@ -196,11 +196,11 @@ async function resultPrint(list, r, title) {
       return h + '<div class="memo"></div></div>';
     };
     const html = `<!doctype html><html lang="ja"><meta charset="utf-8"><title>復習カード ${esc(ds)}</title><style>${RP_CSS}</style>
-<body class="m-big noopt${nW ? ' wonly' : ''}">
+<body class="m-big noopt${nW ? ' wonly' : ''}${KO ? '' : ' memo-on'}">
 <div class="bar">
   <span class="g"><b>形</b><label><input type="radio" name="m" value="m-big" checked>ノートに貼る（幅13cm）</label><label><input type="radio" name="m" value="m-small">ノートに貼る・小（幅9cm・2列）</label><label><input type="radio" name="m" value="m-binder">バインダー（穴の余白つき）</label></span>
   <span class="g"><b>問題</b><label><input type="radio" name="w" value="1"${nW ? ' checked' : ''}${nW ? '' : ' disabled'}>間違えた ${nW} 問</label><label><input type="radio" name="w" value="0"${nW ? '' : ' checked'}>全部 ${qs.length} 問</label></span>
-  <span class="g"><label><input type="checkbox" id="oX" checked>解説</label><label><input type="checkbox" id="oO">選択肢ごとの解説も</label><label><input type="checkbox" id="oM">書き込み欄</label></span>
+  <span class="g">${KO ? '<label><input type="checkbox" id="oX" checked>解説</label><label><input type="checkbox" id="oO">選択肢ごとの解説も</label>' : ''}<label><input type="checkbox" id="oM"${KO ? '' : ' checked'}>${KO ? '書き込み欄' : '調べたことを書く欄'}</label></span>
   <button onclick="print()">印刷する</button><button class="sub" onclick="print()">PDFで保存</button>
   <span class="tip">PDFは、出てきた画面の「送信先」で「PDFに保存」を選びます。ノート用は点線で切って貼る・○は正答・×は自分の答え。A4・倍率100%で。</span>
 </div>
@@ -210,7 +210,7 @@ async function resultPrint(list, r, title) {
 var B=document.body;
 document.querySelectorAll('[name=m]').forEach(function(e){e.onchange=function(){B.classList.remove('m-big','m-small','m-binder');B.classList.add(e.value)}});
 document.querySelectorAll('[name=w]').forEach(function(e){e.onchange=function(){B.classList.toggle('wonly',e.value==='1'&&e.checked)}});
-document.getElementById('oX').onchange=function(){B.classList.toggle('noex',!this.checked)};
+if(document.getElementById('oX'))document.getElementById('oX').onchange=function(){B.classList.toggle('noex',!this.checked)};
 document.getElementById('oO').onchange=function(){B.classList.toggle('noopt',!this.checked)};
 document.getElementById('oM').onchange=function(){B.classList.toggle('memo-on',this.checked)};
 <\/script></body></html>`;
