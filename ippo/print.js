@@ -134,8 +134,12 @@ html,body{margin:0}body{font-family:"BIZ UDPGothic","Yu Gothic","Hiragino Sans",
 .ch .r{font-weight:700;font-size:9pt;white-space:nowrap}.ch .r.x{color:#111}
 .c p{margin:0.8mm 0}.c img{display:block;max-width:100%;max-height:55mm;margin:1mm 0}
 .c ol{margin:0.6mm 0 0;padding:0;list-style:none}.c li{display:flex;gap:4px;padding:0 1mm;border-radius:1mm}.c li i{font-style:normal;min-width:1.4em}
-.c li.ok{font-weight:700;outline:0.5px solid #111}.c li.ok i::after{content:'◎';margin-left:1px}
-.c li.me i::before{content:'×';margin-right:1px}
+.c li{align-items:baseline}.c li span{flex:1}
+.c li.ok{font-weight:700;background:#e6e6e6;box-shadow:inset 1.2mm 0 0 #111;padding-left:2.2mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.c li.me:not(.ok){border:0.8px dashed #111;padding-left:2.2mm}.c li.me:not(.ok) span{text-decoration:line-through;text-decoration-thickness:0.6px}
+.c li .tg{font-style:normal;font-weight:700;font-size:7.4pt;white-space:nowrap;border-radius:0.8mm;padding:0 1.2mm;margin-left:2mm;align-self:center}
+.c li .tg.ok{background:#111;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.c li .tg.me{border:0.6px solid #111;background:#fff;color:#111}
 .ans{margin:1.2mm 0 0;font-size:8.6pt}.ans b{font-size:9.2pt}
 .kx{border-top:0.4px dotted #888;margin-top:1.2mm;padding-top:1mm;font-size:8.3pt;line-height:1.5}.kx p{margin:0.3mm 0}.kx .li{padding-left:1em;text-indent:-1em}.kx .kh{display:block;font-size:8.3pt;margin:1.2mm 0 0.3mm}.kx table{border-collapse:collapse;margin:0.6mm 0;font-size:7.8pt}.kx td{border:0.3px solid #999;padding:0.3mm 1.2mm;vertical-align:top}
 .noopt .ks-opt{display:none}
@@ -190,8 +194,9 @@ async function resultPrint(list, r, title) {
       let h = `<div class="c${ok ? ' okq' : ''}"><div class="ch"><b>第${esc(y)}回 問${esc(n)}</b><small>${esc(q.s || '')}</small><span class="r${ok ? '' : ' x'}">${me == null ? '未回答' : ok ? '○ 正解' : '× 間違い'}</span></div><p>${esc(q.t || q.raw || '')}</p>`;
       if (q.im && KQ.img[o.id]) h += `<img src="${KQ.img[o.id]}" alt="">`;
       if (q.st) h += '<ol>' + q.st.map((s, j) => `<li><i>${'abcde'[j]}.</i><span>${esc(s)}</span></li>`).join('') + '</ol>';
-      if (q.c && q.c.length) h += '<ol>' + q.c.map((c, j) => { const k = String(j + 1); return `<li class="${ca.indexOf(k) >= 0 || ca === '0' ? 'ok' : ''}${!ok && mine.indexOf(k) >= 0 && ca.indexOf(k) < 0 ? ' me' : ''}"><i>${k}.</i><span>${esc(c)}</span></li>`; }).join('') + '</ol>';
-      h += `<p class="ans">正答 <b>${esc(ca === '0' ? '全員正解' : ca.split('').join('・'))}</b>　自分 ${me == null ? '—' : esc(mine.join('・'))}</p>`;
+      if (q.c && q.c.length) h += '<ol>' + q.c.map((c, j) => { const k = String(j + 1); const R = ca.indexOf(k) >= 0 || ca === '0', M = mine.indexOf(k) >= 0;
+        return `<li class="${R ? 'ok' : ''}${M ? ' me' : ''}"><i>${k}.</i><span>${esc(c)}</span>${R ? '<em class="tg ok">正答</em>' : ''}${M ? `<em class="tg me">${R ? '自分も○' : '自分 ×'}</em>` : ''}</li>`; }).join('') + '</ol>';
+      h += `<p class="ans">正答 <b>${esc(ca === '0' ? '全員正解' : ca.split('').join('・'))}</b>　自分の答え <b>${me == null ? '—（未回答）' : esc(mine.join('・')) + (ok ? '（○）' : '（×）')}</b></p>`;
       if (o.x) h += `<div class="kx">${kxPaper(o.x)}</div>`;
       return h + '<div class="memo"></div></div>';
     };
@@ -202,7 +207,7 @@ async function resultPrint(list, r, title) {
   <span class="g"><b>問題</b><label><input type="radio" name="w" value="1"${nW ? ' checked' : ''}${nW ? '' : ' disabled'}>間違えた ${nW} 問</label><label><input type="radio" name="w" value="0"${nW ? '' : ' checked'}>全部 ${qs.length} 問</label></span>
   <span class="g"><label><input type="checkbox" id="oX" checked>解説</label>${KO ? '<label><input type="checkbox" id="oO">選択肢ごとの解説も</label>' : ''}<label><input type="checkbox" id="oM"${KO ? '' : ' checked'}>${KO ? '書き込み欄' : '調べたことを書く欄'}</label></span>
   <button onclick="print()">印刷する</button><button class="sub" onclick="print()">PDFで保存</button>
-  <span class="tip">PDFは、出てきた画面の「送信先」で「PDFに保存」を選びます。ノート用は点線で切って貼る・○は正答・×は自分の答え。A4・倍率100%で。</span>
+  <span class="tip">PDFは、出てきた画面の「送信先」で「PDFに保存」を選びます。ノート用は点線で切って貼る・黒い帯＝正答・点線と取り消し線＝自分が選んだまちがい。A4・倍率100%で。</span>
 </div>
 <div class="holes"><i></i><i></i><s></s></div>
 <div class="doc"><div class="hd"><b>過去問の復習カード</b><span>${esc(title)}・${esc(ds)}</span></div><div class="cards">${qs.map(card).join('')}</div></div>
